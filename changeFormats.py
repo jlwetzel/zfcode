@@ -1,3 +1,5 @@
+# A script for switching between ways of formatting the b1h data.
+
 import os
 import sys
 
@@ -10,22 +12,23 @@ def targetFiles2CSV(dirPath):
 	# count n1 n2 n3 a0 a1 a2 a3 a5 a6
 	#
 	# Assumes files are named <NNN.txt> and in path dir
+	# Does not remove any files.
 
-	os.chdir(dirPath)
-	allFile = open("all.csv", 'w')
+	allFile = open(dirPath + "all.csv", 'w')
 	allFile.write("count,n1,n2,n3,a0,a1,a2,a3,a5,a6\n")
 	for n1 in nucs:
 		for n2 in nucs:
 			for n3 in nucs:
 				triplet = n1+n2+n3
 				try:
-					tripletFile = open(triplet+'.txt', 'r')
+					tripletFile = open(dirPath + triplet+'_amino_acid_analysis.txt', 'r')
 				except IOError:
-					print "Invalid File Name: "+triplet+'.txt'
+					print "Invalid File Name: "+triplet+'_amino_acid_analysis.txt'
 					pass
 				for line in tripletFile:
 					obs = ""
-					(prot, count) = line.strip().split()
+					prot = line.strip().split()[0]
+					count = line.strip().split()[1]
 					obs += count + ","
 					for n in triplet:
 						obs += n + ","
@@ -36,8 +39,9 @@ def targetFiles2CSV(dirPath):
 	allFile.close()
 
 def csv2oneFile(dirPath):
-	# Converts the csv file 'all.csv' to a plaintext file 'all.txt'
-	# with 3 columns (NNN, AAAAAA, Count)
+	# Converts the csv file 'all.csv' inside dirPath to a 
+	# plaintext file 'all.txt' with 3 columns (NNN, AAAAAA, Count).
+	# Does not remove any files.
 	csvFile = open(dirPath + 'all.csv', 'r')
 	outfile = open(dirPath + 'all.txt', 'w')
 	for line in csvFile:
@@ -52,8 +56,8 @@ def csv2oneFile(dirPath):
 
 def main():
 	#path = sys.argv[1]
-	#targetFilestoCSV("../data/b1hData/oldData/F3/threshold025/high")
-	csv2oneFile("../data/b1hData/oldData/F3/threshold025/high/")
+	targetFiles2CSV("../data/b1hData/oldData/F3/unfiltered/high/")
+	csv2oneFile("../data/b1hData/oldData/F3/unfiltered/high/")
 
 
 if __name__ == '__main__':
