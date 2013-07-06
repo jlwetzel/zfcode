@@ -16,7 +16,7 @@ def getUniqueShilpaZFs(path, contacts):
 	#C2H2regex = re.compile( \
 	#    'C[A-Z]{2,5}C[A-Z]{3,3}[FY][A-Z]{7,7}H[A-Z]{3,5}[HC]')
 	lines = [l.strip().split() for l in inFile if l[0] != '#']
-	regions = [l[-1] for l in lines \
+	regions = [l[11] for l in lines \
 		if l[12] == "NOGAP" and [6] != "zf-C2H2_4"]# and \
 		#C2H2regex.search(l[-1]) != None]
 	prots = set()
@@ -28,12 +28,14 @@ def getUniqueShilpaZFs(path, contacts):
 
 	return prots
 
-def getProtDict(path, contacts):
+def getProtDict(path, contacts, cut = 0):
 	# Returns a dictionary mapping unique proteins 
 	# (when using only given list of contact positions)
 	# to a list of tuples (3-mer target bound, count).
 	# path should be to a file the 'all.txt' format
 	# and contatcs positions in file are -1,1,2,3,5,6
+	# Can optionally remove proteins for which all
+	# binding counts are less than the cut parameter.
 	
 	inFile = open(path, 'r')
 	inFile.readline()  # Skip the header line
@@ -41,15 +43,20 @@ def getProtDict(path, contacts):
 
 	for line in inFile:
 		sp_line = line.strip().split('\t')
-		count = sp_line[2]
+		count = int(sp_line[2])
 		targ = sp_line[0]
 		prot = ""
 		for c in contacts:
 			prot += sp_line[1][c]
-		if protDict.has_key(prot):
-			protDict[prot].append((targ, count))
-		else:
-			protDict[prot] = [(targ, count)]
+		if count >= cut:
+			if protDict.has_key(prot):
+				if protDict[prot].has_key(targ):
+					protDict[prot][targ] += count
+				else:
+					protDict[prot][targ] = count
+			else:
+				protDict[prot] = {}
+				protDict[prot][targ] = count
 
 	inFile.close()
 	return protDict
