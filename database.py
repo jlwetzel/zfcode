@@ -60,6 +60,11 @@ class TargetObj(object):
 			self.bcodes.append(l[1])
 			self.fings.append(l[2])
 			self.strins.append(l[3])
+		
+		self.bcodeDict = {}
+		for i in range(len(self.seqruns)):
+			self.bcodeDict[(self.seqruns[i], self.fings[i],
+			                self.strins[i])] = self.bcodes[i]
 	
 	def getValList(self):
 		# Returns a list of lists of the same form 
@@ -85,6 +90,7 @@ class TargetObj(object):
 				self.strins[i] == strin:
 				seqruns.append(self.seqruns[i])
 		return seqruns
+
 			
 def parseMasterFile(path):
 	# Returns a dictionary of 3merTargetObjs indexed by 
@@ -144,13 +150,16 @@ def organizeByTarget(targObjs, newpath, oldpath, mode = 'c'):
 	fings = ['F1', 'F2', 'F3']
 	strins = ['low', 'high']
 
-	# Make the directory hierarchy	
+	# Make the directory hierarchy
+
+	# For each finger	
 	for fing in fings:
 		try:
 			os.mkdir(newpath + '/' + fing + '/')
 		except OSError:
 			pass
 
+		# For each stringency
 		for strin in strins:
 			try:
 				os.mkdir(newpath + '/' + fing + '/' + \
@@ -158,17 +167,30 @@ def organizeByTarget(targObjs, newpath, oldpath, mode = 'c'):
 			except OSError:
 				pass
 
-			# Copy the files for each target
+			# For each 3-mer target
 			for targ in sorted(targObjs.keys()):
 
+				# For each sequencing run for this 3-mer target
 				seqruns = targObjs[targ].getByFingAndStrin(fing, strin)
 				for seqrun in sorted(seqruns):
+
+					# Get the correct barcode for this particular
+					# combination of target, stringency, finger,
+					# and sequencing run.
+					bcode = targObjs[targ].bcodeDict[(seqrun, fing,
+					                                  strin)]
+
+					# Construct path (labelled by barcode)
 					oldfile = oldpath + '/' + seqrun + '/' + \
-				         	  fing + '/' + targ \
+				         	  fing + '/' + bcode \
 				         	  + '_all_nucleotide_sequences.txt'
+
+				    # Construct the new path (labelled by 3-mer target)
 					newfile = newpath + '/' + fing + '/' + \
 				         	  strin + '/'+ targ + '_' + seqrun \
 				         	  + '_all_nuc_seq.txt'
+
+				    # Copy or move the old file to new location
 					if mode == 'c':
 						print "Copying %s to %s." \
 							%(oldfile, newfile)
@@ -198,5 +220,7 @@ def main():
 	newpath = "../data/b1hData/newDatabase/6varpos"
 	organizeByTarget(targs, newpath, oldpath, mode = 'c')
 
+    
+	
 if __name__ == '__main__':
 	main()
