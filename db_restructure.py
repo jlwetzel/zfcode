@@ -127,6 +127,11 @@ def organizeByTarget(targObjs, newpath, oldpath, mode = 'c'):
 				         strin + '/')
 			except OSError:
 				pass
+			try:
+				os.mkdir(newpath + '/' + fing + '/' + \
+				         strin + '/all_nuc_seq/')
+			except:
+				pass
 
 			# For each 3-mer target
 			for targ in sorted(targObjs.keys()):
@@ -148,8 +153,9 @@ def organizeByTarget(targObjs, newpath, oldpath, mode = 'c'):
 
 				    # Construct the new path (labelled by 3-mer target)
 					newfile = newpath + '/' + fing + '/' + \
-				         	  strin + '/'+ targ + '_' + seqrun \
-				         	  + '_bc' + bcode + '_all_nuc_seq.txt'
+				         	  strin + '/all_nuc_seq/'+ targ + '_' \
+				         	  + seqrun + '_bc' + bcode + \
+				         	  '_all_nuc_seq.txt'
 
 				    # Copy or move the old file to new location
 					if mode == 'c':
@@ -162,7 +168,8 @@ def organizeByTarget(targObjs, newpath, oldpath, mode = 'c'):
 						os.system('mv ' + oldfile + ' ' + newfile)
 
 				# Correct the permissions for the files
-				newdir = newpath + '/' + fing + '/' + strin + '/'
+				newdir = newpath + '/' + fing + '/' + strin + \
+					'/all_nuc_seq/'
 				os.system('chmod 644 ' + newdir + '*')
 
 def main():
@@ -182,11 +189,11 @@ def main():
 
 	# Restructure the db for the 5 variable position data
 	# Get the dict of TargObjs
-	mFilePath = '../data/b1hdata/database/all_selection_data_final_5pos.txt'
-	targs = parseMasterFile(mFilePath)
-	oldpath = "../data/b1hData/database"
-	newpath = "../data/b1hData/newDatabase/5varpos"
-	organizeByTarget(targs, newpath, oldpath, mode = 'c')
+	#mFilePath = '../data/b1hdata/database/all_selection_data_final_5pos.txt'
+	#targs = parseMasterFile(mFilePath)
+	#oldpath = "../data/b1hData/database"
+	#newpath = "../data/b1hData/newDatabase/5varpos"
+	#organizeByTarget(targs, newpath, oldpath, mode = 'c')
     
 if __name__ == '__main__':
 	main()
