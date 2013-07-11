@@ -1,51 +1,12 @@
-# Script for manipulating parsing through the B1H database
-# starting at the level of variable protein regions in the 
-# form of codons.
+# Script for processing the restructuring the database
+# from the old hierarchy to the new one.
+# old:  db -> seqrun -> finger -> barcode labelled sequence files.
+# new:  db -> varpos -> finger -> stringency -> target labelled 
+#                                               seq files.
+# Also contains a function for converting a master file of 
+# barcodes info to a nicely structured table.
 
 import os
-
-# Global Constants
-codon2amino = {'TTT':  'F', 'TTC':  'F', 'TTA':  'L', 'TTG':  'L',
-	           'TCT':  'S', 'TCC':  'S', 'TCA':  'S', 'TCG':  'S', 
-	           'TAT':  'Y', 'TAC':  'Y', 'TAA':  '*', 'TAG':  '*', 
-	           'TGT':  'C', 'TGC':  'C', 'TGA':  '*', 'TGG':  'W', 
-	           'CTT':  'L', 'CTC':  'L', 'CTA':  'L', 'CTG':  'L', 
-	           'CCT':  'P', 'CCC':  'P', 'CCA':  'P', 'CCG':  'P',
-	           'CAT':  'H', 'CAC':  'H', 'CAA':  'Q', 'CAG':  'Q', 
-	           'CGT':  'R', 'CGC':  'R', 'CGA':  'R', 'CGG':  'R', 
-	           'ATT':  'I', 'ATC':  'I', 'ATA':  'I', 'ATG':  'M', 
-	           'ACT':  'T', 'ACC':  'T', 'ACA':  'T', 'ACG':  'T', 
-	           'AAT':  'N', 'AAC':  'N', 'AAA':  'K', 'AAG':  'K', 
-	           'AGT':  'S', 'AGC':  'S', 'AGA':  'R', 'AGG':  'R', 
-	           'GTT':  'V', 'GTC':  'V', 'GTA':  'V', 'GTG':  'V',
-	           'GCT':  'A', 'GCC':  'A', 'GCA':  'A', 'GCG':  'A', 
-	           'GAT':  'D', 'GAC':  'D', 'GAA':  'E', 'GAG':  'E',
-	           'GGT':  'G', 'GGC':  'G', 'GGA':  'G', 'GGG':  'G'}
-
-codonBias = {'A':  {'GCT':.19, 'GCC':.25, 'GCA':.22 , 'GCG':.34},
-             'C':  {'TGT':.43, 'TGC':.57},
-             'D':  {'GAT':.59, 'GAC':.41},
-             'E':  {'GAA':.7, 'GAG':.3},
-             'F':  {'TTT':.51, 'TTC':.49},
-             'G':  {'GGT':.38, 'GGC':.4, 'GGA':.09, 'GGG':.13},
-             'I':  {'ATT':.47, 'ATC':.46, 'ATA':.07},
-             'H':  {'CAT':.52, 'CAC':.48},
-             'K':  {'AAA':.76, 'AAG':.24},
-             'L':  {'TTA':.11, 'TTG':.11, 'CTT':.1, 'CTC':.1, 
-                    'CTA':.03, 'CTG':.55},
-             'M':  {'ATG':1.0},
-             'N':  {'AAT':.39, 'AAC':.61},
-             'P':  {'CCT':.16, 'CCC':.1, 'CCA':.2, 'CCG':.55},
-             'Q':  {'CAA':.31, 'CAG':.69},
-             'R':  {'CGT':.42, 'CGC':.37, 'CGA':.05, 'CGG':.08, 
-                    'AGA':.04, 'AGG':.03},
-             'S':  {'TCT':.19, 'TCC':.17, 'TCA':.12, 'TCG':.13, 
-                    'AGT':.13, 'AGC':.27},
-             'T':  {'ACT':.18, 'ACC':.37, 'ACA':.26, 'ACG':.2},
-             'V':  {'GTT':.29, 'GTC':.2, 'GTA':.17, 'GTG':.34},
-             'W':  {'TGG':1.0},
-             'Y':  {'TAT':.53, 'TAC':.47},
-             '*':  {'TAA':.62, 'TAG':.09, 'TGA':.3}}
 
 class TargetObj(object):
 	def __init__(self, targ, valList):
@@ -188,7 +149,7 @@ def organizeByTarget(targObjs, newpath, oldpath, mode = 'c'):
 				    # Construct the new path (labelled by 3-mer target)
 					newfile = newpath + '/' + fing + '/' + \
 				         	  strin + '/'+ targ + '_' + seqrun \
-				         	  + '_all_nuc_seq.txt'
+				         	  + '_bc' + bcode + '_all_nuc_seq.txt'
 
 				    # Copy or move the old file to new location
 					if mode == 'c':
@@ -205,22 +166,27 @@ def organizeByTarget(targObjs, newpath, oldpath, mode = 'c'):
 				os.system('chmod 644 ' + newdir + '*')
 
 def main():
-	mFilePath = '../data/b1hdata/database/all_selection_data_final.txt'
-	
-	# Get the dict of TargObjs
-	targs = parseMasterFile(mFilePath)
 	
 	# Test the class
 	#for k in sorted(targs.keys()):
 	#	print "Targ:  %s" %k
 	#	print targs[k].getByFingAndStrin('F3', 'low')
 
-	# Make the new directory structure
+	# Restructure the db for the 6 variable position data
+	# Get the dict of TargObjs
+	mFilePath = '../data/b1hdata/database/all_selection_data_final.txt'
+	targs = parseMasterFile(mFilePath)
 	oldpath = "../data/b1hData/database"
 	newpath = "../data/b1hData/newDatabase/6varpos"
 	organizeByTarget(targs, newpath, oldpath, mode = 'c')
 
+	# Restructure the db for the 5 variable position data
+	# Get the dict of TargObjs
+	mFilePath = '../data/b1hdata/database/all_selection_data_final_5pos.txt'
+	targs = parseMasterFile(mFilePath)
+	oldpath = "../data/b1hData/database"
+	newpath = "../data/b1hData/newDatabase/5varpos"
+	organizeByTarget(targs, newpath, oldpath, mode = 'c')
     
-	
 if __name__ == '__main__':
 	main()
