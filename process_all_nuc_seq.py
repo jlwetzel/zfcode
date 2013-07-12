@@ -10,12 +10,39 @@
 # JS divergence for the distrubution of codons from the 
 # expected distribution of codons for E. coli (if using 
 # only NNS codons).  
+#
+#
+# Processing conventions:
+#
+# 1.  Any sequence containing any non-NNS codons will be 
+#     assumed a sequencing error and thrown out.
+# 2.  We take the log2 of the counts (+2) for each codon combination
+#     assuming count to be proportional to bacterial growth rate.
+# 3.  The log-counts for each codon combination in a given 
+#     *all_nuc_seq.txt file are converted to frequencies, as we 
+#     are really only concerned with relative affinity of different 
+#     proteins for a given 3-mer target.
+# 4.  When combining multiple files from different sequencing
+#     runs for the same 3-mer target, we take an arithmetic 
+#     mean for the count-derived freqencies of each codon 
+#     combination.
+# 5.  Based on the codon frequencies derived in step 4, we 
+#     compute the JS divergece of these codon frequencies from 
+#     the observed codon usage in E. coli given in the paper
+#     by Malloy, Stewart, and Taylor, 1996.  (We first normalize
+#     these observed frequencies to get rid of non-NNS codons.)
 
 import os
 import math
 import numpy as np
 
-# Global Constants
+###################################################
+###################################################
+#    Global Constants
+#
+###################################################
+###################################################
+
 codon2amino = {'TTT':  'F', 'TTC':  'F', 'TTA':  'L', 'TTG':  'L',
 	           'TCT':  'S', 'TCC':  'S', 'TCA':  'S', 'TCG':  'S', 
 	           'TAT':  'Y', 'TAC':  'Y', 'TAA':  '*', 'TAG':  '*', 
@@ -58,6 +85,13 @@ codonBias = {'A':  {'GCT':.19, 'GCC':.25, 'GCA':.22 , 'GCG':.34},
              'Y':  {'TAT':.53, 'TAC':.47},
              '*':  {'TAA':.62, 'TAG':.09, 'TGA':.3}}
 
+###################################################
+###################################################
+#    Helper Functions
+#
+###################################################
+###################################################
+
 def updateCodonCounts(seq, count, codonCounts):
     # Updates a dictionary of form: (codonPos/codon) -> count
     # based on the sequence and count
@@ -94,20 +128,6 @@ def updateSeqCounts(seq, count, seqCounts):
         seqCounts[seq] += count
     else:
         seqCounts[seq] = count
-
-def outputNNSNormFile(path, seqCounts):
-    # Normalizes counts for all nuc seqs in the file to 
-    # 1 and outputs them to the file named 'path'
-    
-    fout = open(path, 'w')
-    sortedSeqs = sorted(seqCounts.items(), 
-                        key=lambda x: (x[1],x[0]), reverse=True)
-    seqs = [i[0] for i in sortedSeqs]
-    counts = np.array([i[1] for i in sortedSeqs])
-    counts = counts/counts.sum()
-    for i in range(len(seqs)):
-        fout.write(seqs[i] + '\t' + str(counts[i]) + '\n')
-    fout.close()
 
 def outputCodonStats(path, codonCounts, numNucs):
     # Outputs a table of form (codonPos/codon) -> count
@@ -208,30 +228,55 @@ def outputSeqStats(path, lineProc, nonNNS, totalCount):
                 %totalCount)
     fout.close()
 
+###################################################
+###################################################
+#    Step 1 Functions --
+#    Filtering and stats collection.
+###################################################
+###################################################
+
+def outputNNSNormFile(path, seqCounts):
+    # Normalizes counts for all nuc seqs in the file to 
+    # 1 and outputs them to the file named 'path'
+    
+    fout = open(path, 'w')
+    sortedSeqs = sorted(seqCounts.items(), 
+                        key=lambda x: (x[1],x[0]), reverse=True)
+    seqs = [i[0] for i in sortedSeqs]
+    counts = np.array([i[1] for i in sortedSeqs])
+    counts = counts/counts.sum()
+    for i in range(len(seqs)):
+        fout.write(seqs[i] + '\t' + str(counts[i]) + '\n')
+    fout.close()
+
+
 
 def getStatsAndFilterNNS(path):
+    # The first level of processing.
+    #
     # Processes each all_nuc_seq.txt file in the directory 
     # given by path.  A new directory is created which 
     # which contains one file for each file in path, 
-    # with sequences contianing nonNNS codons removed
+    # with sequences containing nonNNS codons removed
     # and counts taken log2(count + 2) then normalized per file.
 
     nucs = ['A', 'C', 'T', 'G']
 
-    # Make a directory for nucleotide and codon stats
+    # Make directories for nucleotides sequences with 
+    # normalized probs
     newDir = '/'.join(path.split('/')[:-2]) + '/all_nuc_seq_NNSnorm/'
     try:
         os.mkdir(newDir)
     except OSError:
         pass
+    # Make a directory for nucleotide and codons stats. 
     try:
         os.mkdir(newDir + "statistics/")
     except OSError:
         pass
 
-    # For each file beginning with an capital nucleotide letter
+    
     handle = os.popen("ls " + path, 'r')
-    k = 0
     for line in handle:
 
         # This is a subdirectory
@@ -287,38 +332,133 @@ def getStatsAndFilterNNS(path):
                        fileNucCounts, len(seq))
         newfname = fname.split('.')[0] + '_seqStats.txt'
         fin.close()
+
+###################################################
+###################################################
+#    Step 2 Functions --
+#    Combining frequencies of multiple experiments
+###################################################
+###################################################
+
+def outputCombinedNucFile(path, targ, seqDict, numTargFiles):
+    # Output a single file with the average frequency
+    # for each unique nuc sequence of seqDict.
+
+    # Get the mean for the list of frequencies for 
+    # each sequence
+
+    #print seqDict['GACGCCAGGAACGCGAGG']
+
+    dictCP = seqDict.copy()
+    for seq in seqDict.keys():
+        seqDict[seq] = \
+            np.array(seqDict[seq]).sum()/float(numTargFiles)
+
+    # Sort the sequences by decreasing value
+    sortedSeqs = sorted(seqDict.items(), 
+                        key=lambda x: (x[1],x[0]), reverse=True)
+    seqs = [i[0] for i in sortedSeqs]
+    freqs = [i[1] for i in sortedSeqs]
+
+    #assert(abs(np.array(freqs).sum() 
+
+    # Output combined seqs and freqs to the new file
+    fout = open(path + targ + '_combined_nuc_seq.txt', 'w')
+    for i in range(len(seqs)):
+        #if i < 20:
+        #    print seqs[i], dictCP[seqs[i]]
+        #    print freqs[i]
+        fout.write(seqs[i] + '\t' + str(freqs[i]) + '\n')
+    fout.close()
+    print 'Output results to %s' \
+        %(path + targ + '_combined_nuc_seq.txt')
+
+def combineExperiments(path):
+    # Combines the multiple experiments for into one file
+    # per 3-mer by taking the arithmetic mean of frequencies
+    # for each sequence of nucleotides across the experiments.
+
+    nucs = ['A', 'C', 'T', 'G']
+
+    # Make a directory for nucleotide and codon stats
+    newDir = '/'.join(path.split('/')[:-2]) + '/combined_nuc_seq/'
+    try:
+        os.mkdir(newDir)
+    except OSError:
+        pass
+    
+    targ = '' # current 3-mer target
+    numTargFiles = 1 # number of files for the current 3mer targ
+
+    handle = os.popen("ls " + path, 'r')
+    k = 0
+    for line in handle:
+
+        # This is a subdirectory
+        if line[0] not in nucs:
+            continue
+
+        # Gather info from the filename
+        prevTarg = targ       # 3-mer target for the last file
+        fname = line.strip()
+        sp_fname = fname.split('_')
+        targ, seqrun, bcode = \
+            sp_fname[0], sp_fname[1], sp_fname[2]
+
+        # Create a dict for mapping sequences to list of 
+        # frquencies for that sequence across the 
+        # experiments.
         
+        if targ != prevTarg:
+            if k > 0:
+                outputCombinedNucFile(newDir, prevTarg, 
+                                      seqDict, numTargFiles)
+            seqDict = {}
+            numTargFiles = 1
+        else:
+            numTargFiles += 1
+
+        # Open the current file and process
+        fin = open(path + fname, 'r')
+
+        print "Processing: %s" %(path + fname)
+        for line in fin:
+            sp_line = line.strip().split()
+            seq = sp_line[0]
+            freq = eval(sp_line[1])
+
+            if seqDict.has_key(seq):
+                seqDict[seq].append(freq)
+            else:
+                seqDict[seq] = [freq]
+
+        fin.close()
+        k += 1
+
+
+###################################################
+###################################################
+#    MAIN
+#
+###################################################
+###################################################
 
 def main():
     fings = ['F1', 'F2', 'F3']
     strins = ['low', 'high']
     for fing in fings:
         for strin in strins:
+            
+            # Step 1 -- Filter and gather stats.
+            #path = '../data/b1hData/newDatabase/6varpos/' + \
+            #    fing + '/' + strin + '/all_nuc_seq/'
+            #getStatsAndFilterNNS(path)
+
+            # Step 2 -- Combine multiple experiment frequencies
             path = '../data/b1hData/newDatabase/6varpos/' + \
-                fing + '/' + strin + '/all_nuc_seq/'
-            getStatsAndFilterNNS(path)
+                fing + '/' + strin + '/all_nuc_seq_NNSnorm/'
+            combineExperiments(path)
+
 
 if __name__ == '__main__':
     main()
-
-
-
-# Processing conventions:
-#
-# 1.  Any sequence containing any non-NNS codons will be 
-#     assumed a sequencing error and thrown out.
-# 2.  We take the log2 of the counts (+2) for each codon combination
-#     assuming count to be proportional to bacterial growth rate.
-# 3.  The log-counts for each codon combination in a given 
-#     *all_nuc_seq.txt file are converted to frequencies, as we 
-#     are really only concerned with relative affinity of different 
-#     proteins for a given 3-mer target.
-# 4.  When combining multiple files from different sequencing
-#     runs for the same 3-mer target, we take an arithmetic 
-#     mean for the count-derived freqencies of each codon 
-#     combination.
-# 5.  Based on the codon frequencies derived in step 4, we 
-#     compute the JS divergece these codon frequencies from 
-#     the observed codon usage in E. coli given in the paper
-#     by Malloy, Stewart, and Taylor, 1996.  (We first normalize
-#     these observed frequencies to get rid of non-NNS codons.)
