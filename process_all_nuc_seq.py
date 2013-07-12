@@ -346,10 +346,6 @@ def outputCombinedNucFile(path, targ, seqDict, numTargFiles):
 
     # Get the mean for the list of frequencies for 
     # each sequence
-
-    #print seqDict['GACGCCAGGAACGCGAGG']
-
-    dictCP = seqDict.copy()
     for seq in seqDict.keys():
         seqDict[seq] = \
             np.array(seqDict[seq]).sum()/float(numTargFiles)
@@ -360,14 +356,9 @@ def outputCombinedNucFile(path, targ, seqDict, numTargFiles):
     seqs = [i[0] for i in sortedSeqs]
     freqs = [i[1] for i in sortedSeqs]
 
-    #assert(abs(np.array(freqs).sum() 
-
     # Output combined seqs and freqs to the new file
     fout = open(path + targ + '_combined_nuc_seq.txt', 'w')
     for i in range(len(seqs)):
-        #if i < 20:
-        #    print seqs[i], dictCP[seqs[i]]
-        #    print freqs[i]
         fout.write(seqs[i] + '\t' + str(freqs[i]) + '\n')
     fout.close()
     print 'Output results to %s' \
