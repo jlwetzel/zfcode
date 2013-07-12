@@ -35,6 +35,7 @@
 import os
 import math
 import numpy as np
+import itertools
 
 ###################################################
 ###################################################
@@ -60,30 +61,6 @@ codon2amino = {'TTT':  'F', 'TTC':  'F', 'TTA':  'L', 'TTG':  'L',
 	           'GAT':  'D', 'GAC':  'D', 'GAA':  'E', 'GAG':  'E',
 	           'GGT':  'G', 'GGC':  'G', 'GGA':  'G', 'GGG':  'G'}
 
-codonBias = {'A':  {'GCT':.19, 'GCC':.25, 'GCA':.22 , 'GCG':.34},
-             'C':  {'TGT':.43, 'TGC':.57},
-             'D':  {'GAT':.59, 'GAC':.41},
-             'E':  {'GAA':.7, 'GAG':.3},
-             'F':  {'TTT':.51, 'TTC':.49},
-             'G':  {'GGT':.38, 'GGC':.4, 'GGA':.09, 'GGG':.13},
-             'I':  {'ATT':.47, 'ATC':.46, 'ATA':.07},
-             'H':  {'CAT':.52, 'CAC':.48},
-             'K':  {'AAA':.76, 'AAG':.24},
-             'L':  {'TTA':.11, 'TTG':.11, 'CTT':.1, 'CTC':.1, 
-                    'CTA':.03, 'CTG':.55},
-             'M':  {'ATG':1.0},
-             'N':  {'AAT':.39, 'AAC':.61},
-             'P':  {'CCT':.16, 'CCC':.1, 'CCA':.2, 'CCG':.55},
-             'Q':  {'CAA':.31, 'CAG':.69},
-             'R':  {'CGT':.42, 'CGC':.37, 'CGA':.05, 'CGG':.08, 
-                    'AGA':.04, 'AGG':.03},
-             'S':  {'TCT':.19, 'TCC':.17, 'TCA':.12, 'TCG':.13, 
-                    'AGT':.13, 'AGC':.27},
-             'T':  {'ACT':.18, 'ACC':.37, 'ACA':.26, 'ACG':.2},
-             'V':  {'GTT':.29, 'GTC':.2, 'GTA':.17, 'GTG':.34},
-             'W':  {'TGG':1.0},
-             'Y':  {'TAT':.53, 'TAC':.47},
-             '*':  {'TAA':.62, 'TAG':.09, 'TGA':.3}}
 
 ###################################################
 ###################################################
@@ -426,6 +403,255 @@ def combineExperiments(path):
         fin.close()
         k += 1
 
+###################################################
+###################################################
+#    Step 3 Functions --
+#    Convert to proteins and get JS divergence
+#    from background E coli codon usage
+###################################################
+###################################################
+
+def getCodonBiasNNS():
+    # Returns a dictionary of dictionaries for codon bias
+    # in e. coli arranged by the amino acid that the codon
+    # codes for (see below).  Non-NNS codons are removed, then
+    # then distributions are renormalized.
+
+    codonBias = {'A':  {'GCT':.19, 'GCC':.25, 'GCA':.22 , 'GCG':.34},
+                 'C':  {'TGT':.43, 'TGC':.57},
+                 'D':  {'GAT':.59, 'GAC':.41},
+                 'E':  {'GAA':.7, 'GAG':.3},
+                 'F':  {'TTT':.51, 'TTC':.49},
+                 'G':  {'GGT':.38, 'GGC':.4, 'GGA':.09, 'GGG':.13},
+                 'I':  {'ATT':.47, 'ATC':.46, 'ATA':.07},
+                 'H':  {'CAT':.52, 'CAC':.48},
+                 'K':  {'AAA':.76, 'AAG':.24},
+                 'L':  {'TTA':.11, 'TTG':.11, 'CTT':.1, 'CTC':.1, 
+                        'CTA':.03, 'CTG':.55},
+                 'M':  {'ATG':1.0},
+                 'N':  {'AAT':.39, 'AAC':.61},
+                 'P':  {'CCT':.16, 'CCC':.1, 'CCA':.2, 'CCG':.55},
+                 'Q':  {'CAA':.31, 'CAG':.69},
+                 'R':  {'CGT':.42, 'CGC':.37, 'CGA':.05, 'CGG':.08, 
+                        'AGA':.04, 'AGG':.03},
+                 'S':  {'TCT':.19, 'TCC':.17, 'TCA':.12, 'TCG':.13, 
+                        'AGT':.13, 'AGC':.27},
+                 'T':  {'ACT':.18, 'ACC':.37, 'ACA':.26, 'ACG':.2},
+                 'V':  {'GTT':.29, 'GTC':.2, 'GTA':.17, 'GTG':.34},
+                 'W':  {'TGG':1.0},
+                 'Y':  {'TAT':.53, 'TAC':.47},
+                 '*':  {'TAA':.62, 'TAG':.09, 'TGA':.3}}
+
+    nnsBias = {}
+    for amino in codonBias:
+        nnsBias[amino] = {}
+        codonDict = codonBias[amino]
+        items = [i for i in codonDict.items() \
+                if i[0][2] in ['C', 'G']]
+        codons = [i[0] for i in items]
+        freqs = np.array([i[1] for i in items])
+        freqs = freqs/freqs.sum()
+        for i in range(len(codons)):
+            nnsBias[amino][codons[i]] = freqs[i]
+
+    return nnsBias
+
+def klDiv(f, g):
+    # Computes the KL divergence for discrete 
+    # distributions f and g, which are lists of 
+    # frequencies for f and g (in the same order)
+    # g must be non-zero at all points of the PMF
+    # for KL to be defined.
+    #
+    # f[i]lg(f[i]/g[i]) is taken to be 0 if f[i] = 0.
+
+    kl = 0.0
+    for i in range(len(f)):
+        if f[i] == 0:
+            continue
+        else:
+            kl += f[i]*math.log(f[i]/g[i], 2)
+
+    return kl
+
+def jsDiv(f, g):
+    # Computes the Jensen Shannon divergence of 
+    # f and g, where f and g are lists for discrete 
+    # PMFs (listed in the same order)
+
+    m = 0.5*(f + g)
+    jsd = 0.5*(klDiv(f, m) + klDiv(g, m))
+    return jsd
+
+def getProtJSDiv(prot, codonDict, nnsBiasEcoli):
+    # Returns the JS diveregnce for the frequency of
+    # different codon combinations for a protein 
+    # from the seltection vs the expected background
+    # freqeuncies for those coding combinations 
+    # based on E. coli codon usage
+    #
+    # prot is the protein
+    # codon dict is a dictionary mapping codon 
+    #  combinations to frequencies in the selection
+    # see getCodonBiasNNS for def of nnsBiasEcoli
+
+    # Make a list of lists of codons for each position
+    # of the protein.
+    
+    protCodons = []
+    for i, amino in enumerate(prot):
+        protCodons.append([])
+        for codon in nnsBiasEcoli[amino].keys():
+            protCodons[i].append(codon)
+
+    # Find expected background frquency for each codon
+    # combination assuming independence of codons 
+    comboList = list(itertools.product(*protCodons))
+    comboBGProbs = []
+    for combo in comboList:
+        prob = 1
+        for i, codon in enumerate(combo):
+            prob *= nnsBiasEcoli[prot[i]][codon]
+        comboBGProbs.append(prob)
+    comboBGProbs = np.array(comboBGProbs)
+
+    # Get the list of frequencies for codon combinations
+    # found in the selection, order the same is the
+    # combination bg probs
+    comboList = [''.join(i) for i in comboList]
+    obsComboProbs = []
+    
+    for combo in comboList:
+        if codonDict.has_key(combo):
+            obsComboProbs.append(codonDict[combo])
+        else:
+            obsComboProbs.append(0.0)
+
+    f = np.array(obsComboProbs)
+    g = np.array(comboBGProbs)
+    f = f/f.sum()
+    g = g/g.sum()
+
+    #if prot == 'WKSWRA':
+    #    print f
+    #    print g
+
+    # Return the (#possible combos, JSD) of the distributions
+    return len(comboList), jsDiv(f, g)
+
+def convertToProteins(path):
+    # Converts a directory with files of nucleotide
+    # sequences and frequencies to the corresponding
+    # combined set of proteins and frequencies.  Also JS
+    # divergence is calculated for the ways the protein
+    # is coded in the selections compared to E coli 
+    # bg codon usage.  This info is output into a 
+    # new directory with corresponding files.
+
+    nucs = ['A', 'C', 'T', 'G']
+    nnsBiasEcoli = getCodonBiasNNS()
+
+    # Make directories for nucleotides sequences with 
+    # normalized probs
+    newDir = '/'.join(path.split('/')[:-2]) + '/protein_seqs_JSD/'
+    try:
+        os.mkdir(newDir)
+    except OSError:
+        pass
+    # Make a directory for nucleotide and codons stats. 
+    try:
+        os.mkdir(path + "statistics/")
+    except OSError:
+        pass
+
+    
+    handle = os.popen("ls " + path, 'r')
+    for line in handle:
+
+        # This is a subdirectory
+        if line[0] not in nucs:
+            continue
+
+        # Gather info from the filename
+        fname = line.strip()
+        sp_fname = fname.split('_')
+        targ, seqrun, bcode = \
+            sp_fname[0], sp_fname[1], sp_fname[2]
+
+        # Create dictionary of dictionaries mapping prot seq
+        # to dict of observed codon sequences which are 
+        # in turn mapped to the observed frequencies of 
+        # these codon sequences.  Also make a dictionary
+        # mapping (position/codon) -> codon frequency
+        protDict = {} 
+        codonPosFreq = {}
+
+        # Open the current file and process
+        fin = open(path + fname, 'r')
+        print "Processing: %s" %(path + fname)
+        for line in fin:
+            sp_line = line.strip().split()
+            nucseq, freq = sp_line[0], eval(sp_line[1])
+
+            #print nucseq, freq
+            # Build the protein sequence
+            prot = ''
+            pos = 0
+            for i in range(len(nucseq)):
+                if i%3 == 2:
+                    # Grab the codon and update codonPosFreq
+                    codon = nucseq[i-2:i+1]
+                    prot += codon2amino[codon]
+                    if codonPosFreq.has_key((pos, codon)):
+                        codonPosFreq[pos,codon] += freq
+                    else:
+                        codonPosFreq[pos,codon] = freq
+                    pos += 1
+
+            # Update the protein/nucseq -> freq dictionary
+            if protDict.has_key(prot):
+                protDict[prot][nucseq] = freq
+            else:
+                protDict[prot] = {}
+                protDict[prot][nucseq] = freq
+            
+        fin.close()
+
+        print "Getting JS divergence for proteins."
+        # Create list of (freq, prot, #observed combos,
+        # possible combos, jsd) tuples
+        tList = []
+        #print len(protDict.keys())
+        for prot in protDict.keys():
+            #print len(protDict[prot])
+            numPos, jsd = getProtJSDiv(prot, protDict[prot],
+                                       nnsBiasEcoli)
+            totProtFreq = 0.0
+            for s in protDict[prot]:
+                totProtFreq += protDict[prot][s]
+            #print totProtFreq
+            tList.append((totProtFreq, prot, 
+                          len(protDict[prot]), 
+                          numPos, jsd))
+        
+        #print protDict['WRSWLA']  
+        print "Sorting by frequency."  
+
+        # Sort the tuple list by frequency and output it
+        tList = sorted(tList, reverse = True)
+
+        print "Outputting to files."
+        fout = open(newDir + targ + 'protein_seqs_JSD.txt', 'w')
+        for x in tList:
+            fout.write(x[1] + '\t' + str(x[0]) + '\t' \
+                       + str(x[2]) + '\t' + str(x[3]) + '\t' \
+                       + str(x[4]) + '\n')
+
+        # Output the codon usage statistics
+        newfname = fname.split('.')[0] + '_codonStats.txt'
+        outputCodonStats(path + './statistics/' + newfname,
+                         codonPosFreq, len(nucseq))
+
 
 ###################################################
 ###################################################
@@ -435,7 +661,8 @@ def combineExperiments(path):
 ###################################################
 
 def main():
-    fings = ['F1', 'F2', 'F3']
+
+    fings = ['F3', 'F2', 'F1']
     strins = ['low', 'high']
     for fing in fings:
         for strin in strins:
@@ -446,10 +673,15 @@ def main():
             #getStatsAndFilterNNS(path)
 
             # Step 2 -- Combine multiple experiment frequencies
+            #path = '../data/b1hData/newDatabase/6varpos/' + \
+            #    fing + '/' + strin + '/all_nuc_seq_NNSnorm/'
+            #combineExperiments(path)
+
+            # Step 3 -- Convert to proteins and compute
+            #            JS divergence for each protein
             path = '../data/b1hData/newDatabase/6varpos/' + \
-                fing + '/' + strin + '/all_nuc_seq_NNSnorm/'
-            combineExperiments(path)
-
-
+                    fing + '/' + strin + '/combined_nuc_seq/'
+            convertToProteins(path)
+    
 if __name__ == '__main__':
     main()
