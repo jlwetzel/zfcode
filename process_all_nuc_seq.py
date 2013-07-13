@@ -585,6 +585,7 @@ def convertToProteins(path):
         # mapping (position/codon) -> codon frequency
         protDict = {} 
         codonPosFreq = {}
+        nucPosFreq = {}
 
         # Open the current file and process
         fin = open(path + fname, 'r')
@@ -596,17 +597,21 @@ def convertToProteins(path):
             #print nucseq, freq
             # Build the protein sequence
             prot = ''
-            pos = 0
+            codonpos = 0
             for i in range(len(nucseq)):
                 if i%3 == 2:
                     # Grab the codon and update codonPosFreq
                     codon = nucseq[i-2:i+1]
                     prot += codon2amino[codon]
-                    if codonPosFreq.has_key((pos, codon)):
-                        codonPosFreq[pos,codon] += freq
+                    if codonPosFreq.has_key((codonpos, codon)):
+                        codonPosFreq[codonpos,codon] += freq
                     else:
-                        codonPosFreq[pos,codon] = freq
-                    pos += 1
+                        codonPosFreq[codonpos,codon] = freq
+                if nucPosFreq.has_key((i, nucseq[i])):
+                    nucPosFreq[i, nucseq[i]] += freq
+                else:
+                    nucPosFreq[i, nucseq[i]] = freq
+                    codonpos += 1
 
             # Update the protein/nucseq -> freq dictionary
             if protDict.has_key(prot):
@@ -641,7 +646,7 @@ def convertToProteins(path):
         tList = sorted(tList, reverse = True)
 
         print "Outputting to files."
-        fout = open(newDir + targ + 'protein_seqs_JSD.txt', 'w')
+        fout = open(newDir + targ + '_protein_seqs_JSD.txt', 'w')
         for x in tList:
             fout.write(x[1] + '\t' + str(x[0]) + '\t' \
                        + str(x[2]) + '\t' + str(x[3]) + '\t' \
@@ -651,6 +656,10 @@ def convertToProteins(path):
         newfname = fname.split('.')[0] + '_codonStats.txt'
         outputCodonStats(path + './statistics/' + newfname,
                          codonPosFreq, len(nucseq))
+        # Output the nucleotide usage statistics
+        newfname = fname.split('.')[0] + '_nucStats.txt'
+        outputNucStats(path + './statistics/' + newfname,
+                         nucPosFreq, len(nucseq))
 
 
 ###################################################
