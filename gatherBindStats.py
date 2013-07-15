@@ -2,7 +2,6 @@
 
 import os
 import sys
-import re
 
 nucs = ['A', 'C', 'G', 'T']
 
@@ -14,8 +13,7 @@ def getUniqueShilpaZFs(path, contacts):
 
 	inFile = open(path, 'r')
 	lines = [l.strip().split() for l in inFile if l[0] != '#']
-	regions = [l[11] for l in lines \
-		if l[12] == "NOGAP" and l[6] != "zf-C2H2_4"]
+	regions = [l[11] for l in lines if l[12] == "NOGAP"]
 	prots = set()
 	for r in regions:
 		prot = ""
@@ -59,6 +57,7 @@ def getProtDict(path, contacts, cut = 0):
 	return protDict
 
 def main():
+
 	path = "../data/shilpa/Drosophila_melanogaster_ZF.fulldom"
 	flyZFs = getUniqueShilpaZFs(path, [0, 1, 2, 5])
 	print len(flyZFs)

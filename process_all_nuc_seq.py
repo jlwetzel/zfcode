@@ -362,6 +362,7 @@ def combineExperiments(path):
     k = 0
     for line in handle:
 
+        print line
         # This is a subdirectory
         if line[0] not in nucs:
             continue
@@ -378,6 +379,7 @@ def combineExperiments(path):
         # experiments.
         
         if targ != prevTarg:
+            
             if k > 0:
                 outputCombinedNucFile(newDir, prevTarg, 
                                       seqDict, numTargFiles)
@@ -402,6 +404,9 @@ def combineExperiments(path):
 
         fin.close()
         k += 1
+    
+    # For the last target encountered.
+    outputCombinedNucFile(newDir, targ, seqDict, numTargFiles)
 
 ###################################################
 ###################################################
@@ -531,10 +536,6 @@ def getProtJSDiv(prot, codonDict, nnsBiasEcoli):
     g = np.array(comboBGProbs)
     f = f/f.sum()
     g = g/g.sum()
-
-    #if prot == 'WKSWRA':
-    #    print f
-    #    print g
 
     # Return the (#possible combos, JSD) of the distributions
     return len(comboList), jsDiv(f, g)
@@ -672,7 +673,6 @@ def convertToProteins(path):
 def main():
 
     # For 6 variable positions
-    """
     fings = ['F3', 'F2', 'F1']
     strins = ['low', 'high']
     for fing in fings:
@@ -693,7 +693,7 @@ def main():
             path = '../data/b1hData/newDatabase/6varpos/' + \
                     fing + '/' + strin + '/combined_nuc_seq/'
             convertToProteins(path)
-    """
+            
 
     # For 5 variable positions
     fings = ['F2', 'F3']
@@ -716,6 +716,6 @@ def main():
             path = '../data/b1hData/newDatabase/5varpos/' + \
                     fing + '/' + strin + '/combined_nuc_seq/'
             convertToProteins(path)
-    
+
 if __name__ == '__main__':
     main()
