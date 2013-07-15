@@ -671,24 +671,49 @@ def convertToProteins(path):
 
 def main():
 
+    # For 6 variable positions
+    """
     fings = ['F3', 'F2', 'F1']
     strins = ['low', 'high']
     for fing in fings:
         for strin in strins:
             
             # Step 1 -- Filter and gather stats.
-            #path = '../data/b1hData/newDatabase/6varpos/' + \
-            #    fing + '/' + strin + '/all_nuc_seq/'
-            #getStatsAndFilterNNS(path)
+            path = '../data/b1hData/newDatabase/6varpos/' + \
+                fing + '/' + strin + '/all_nuc_seq/'
+            getStatsAndFilterNNS(path)
 
             # Step 2 -- Combine multiple experiment frequencies
-            #path = '../data/b1hData/newDatabase/6varpos/' + \
-            #    fing + '/' + strin + '/all_nuc_seq_NNSnorm/'
-            #combineExperiments(path)
+            path = '../data/b1hData/newDatabase/6varpos/' + \
+                fing + '/' + strin + '/all_nuc_seq_NNSnorm/'
+            combineExperiments(path)
 
             # Step 3 -- Convert to proteins and compute
             #            JS divergence for each protein
             path = '../data/b1hData/newDatabase/6varpos/' + \
+                    fing + '/' + strin + '/combined_nuc_seq/'
+            convertToProteins(path)
+    """
+
+    # For 5 variable positions
+    fings = ['F2', 'F3']
+    strins = ['low', 'high']
+    for fing in fings:
+        for strin in strins:
+            
+            # Step 1 -- Filter and gather stats.
+            path = '../data/b1hData/newDatabase/5varpos/' + \
+                fing + '/' + strin + '/all_nuc_seq/'
+            getStatsAndFilterNNS(path)
+
+            # Step 2 -- Combine multiple experiment frequencies
+            path = '../data/b1hData/newDatabase/5varpos/' + \
+                fing + '/' + strin + '/all_nuc_seq_NNSnorm/'
+            combineExperiments(path)
+
+            # Step 3 -- Convert to proteins and compute
+            #            JS divergence for each protein
+            path = '../data/b1hData/newDatabase/5varpos/' + \
                     fing + '/' + strin + '/combined_nuc_seq/'
             convertToProteins(path)
     

@@ -24,8 +24,13 @@ class TargetObj(object):
 		
 		self.bcodeDict = {}
 		for i in range(len(self.seqruns)):
-			self.bcodeDict[(self.seqruns[i], self.fings[i],
-			                self.strins[i])] = self.bcodes[i]
+			if self.bcodeDict.has_key((self.seqruns[i], self.fings[i],
+			                		   self.strins[i])):
+				self.bcodeDict[(self.seqruns[i], self.fings[i],
+			                    self.strins[i])].append(self.bcodes[i])
+			else:
+				self.bcodeDict[(self.seqruns[i], self.fings[i],
+			                    self.strins[i])] = [self.bcodes[i]]
 	
 	def getValList(self):
 		# Returns a list of lists of the same form 
@@ -140,32 +145,33 @@ def organizeByTarget(targObjs, newpath, oldpath, mode = 'c'):
 				seqruns = targObjs[targ].getByFingAndStrin(fing, strin)
 				for seqrun in sorted(seqruns):
 
-					# Get the correct barcode for this particular
+					# Get the correct barcodes for this particular
 					# combination of target, stringency, finger,
 					# and sequencing run.
-					bcode = targObjs[targ].bcodeDict[(seqrun, fing,
-					                                  strin)]
+					bcodes = targObjs[targ].bcodeDict[(seqrun, fing,
+					                                   strin)]
 
-					# Construct path (labelled by barcode)
-					oldfile = oldpath + '/' + seqrun + '/' + \
-				         	  fing + '/' + bcode \
-				         	  + '_all_nucleotide_sequences.txt'
+					for bcode in bcodes:
+						# Construct path (labelled by barcode)
+						oldfile = oldpath + '/' + seqrun + '/' + \
+				         	  	fing + '/' + bcode \
+				         	  	+ '_all_nucleotide_sequences.txt'
 
-				    # Construct the new path (labelled by 3-mer target)
-					newfile = newpath + '/' + fing + '/' + \
-				         	  strin + '/all_nuc_seq/'+ targ + '_' \
-				         	  + seqrun + '_bc' + bcode + \
-				         	  '_all_nuc_seq.txt'
+				    	# Construct the new path (labelled by 3-mer target)
+						newfile = newpath + '/' + fing + '/' + \
+				         	  	strin + '/all_nuc_seq/'+ targ + '_' \
+				         	  	+ seqrun + '_bc' + bcode + \
+				         	  	'_all_nuc_seq.txt'
 
-				    # Copy or move the old file to new location
-					if mode == 'c':
-						print "Copying %s to %s." \
-							%(oldfile, newfile)
-						os.system('cp ' + oldfile + ' ' + newfile)
-					elif mode == 'm':
-						print "Moving %s to %s." \
-							%(oldfile, newfile)
-						os.system('mv ' + oldfile + ' ' + newfile)
+				    	# Copy or move the old file to new location
+						if mode == 'c':
+							print "Copying %s to %s." \
+								%(oldfile, newfile)
+							os.system('cp ' + oldfile + ' ' + newfile)
+						elif mode == 'm':
+							print "Moving %s to %s." \
+								%(oldfile, newfile)
+							os.system('mv ' + oldfile + ' ' + newfile)
 
 				# Correct the permissions for the files
 				newdir = newpath + '/' + fing + '/' + strin + \
@@ -181,19 +187,23 @@ def main():
 
 	# Restructure the db for the 6 variable position data
 	# Get the dict of TargObjs
-	mFilePath = '../data/b1hdata/database/all_selection_data_final.txt'
+	mFilePath = '../data/b1hdata/database/' +\
+		'all_selection_data_final.txt'
 	targs = parseMasterFile(mFilePath)
 	oldpath = "../data/b1hData/database"
 	newpath = "../data/b1hData/newDatabase/6varpos"
 	organizeByTarget(targs, newpath, oldpath, mode = 'c')
 
+	"""
 	# Restructure the db for the 5 variable position data
 	# Get the dict of TargObjs
-	#mFilePath = '../data/b1hdata/database/all_selection_data_final_5pos.txt'
-	#targs = parseMasterFile(mFilePath)
-	#oldpath = "../data/b1hData/database"
-	#newpath = "../data/b1hData/newDatabase/5varpos"
-	#organizeByTarget(targs, newpath, oldpath, mode = 'c')
-    
+	mFilePath = '../data/b1hdata/database/' +\
+		'all_selection_data_final_5pos.txt'
+	targs = parseMasterFile(mFilePath)
+	oldpath = "../data/b1hData/database"
+	newpath = "../data/b1hData/newDatabase/5varpos"
+	organizeByTarget(targs, newpath, oldpath, mode = 'c')
+    """
+
 if __name__ == '__main__':
 	main()
