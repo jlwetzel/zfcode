@@ -3,8 +3,6 @@
 import os
 import sys
 
-nucs = ['A', 'C', 'G', 'T']
-
 def getUniqueShilpaZFs(path, contacts):
 	# Returns a list of ZFs for the organism of the specified
 	# file (when using only given list of contact positions)
@@ -38,23 +36,42 @@ def getProtDict(path, contacts, cut = 0):
 
 	for line in inFile:
 		sp_line = line.strip().split('\t')
-		count = int(sp_line[2])
+		freq = eval(sp_line[2])
 		targ = sp_line[0]
 		prot = ""
 		for c in contacts:
 			prot += sp_line[1][c]
-		if count >= cut:
+		if freq >= cut:
 			if protDict.has_key(prot):
 				if protDict[prot].has_key(targ):
-					protDict[prot][targ] += count
+					protDict[prot][targ] += freq
 				else:
-					protDict[prot][targ] = count
+					protDict[prot][targ] = freq
 			else:
 				protDict[prot] = {}
-				protDict[prot][targ] = count
+				protDict[prot][targ] = freq
 
 	inFile.close()
 	return protDict
+
+def getProtSet(path, contacts):
+	# Returns the set of unique proteins for the 
+	# contact positions given by contacts.
+	# Path should be to a file of the 'all.txt' format.
+	
+	inFile = open(path, 'r')
+	inFile.readline()  # Skip the header line
+	protSet = set()
+
+	for line in inFile:
+		sp_line = line.strip().split('\t')
+		prot = ""
+		for c in contacts:
+			prot += sp_line[1][c]
+		protSet.add(prot)
+
+	inFile.close()
+	return protSet
 
 def main():
 

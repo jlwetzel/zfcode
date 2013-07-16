@@ -17,10 +17,10 @@ def targetFiles2singleCSV(dirPath, numVarPos):
 	allFile = open(dirPath + "all.csv", 'w')
 	
 	if numVarPos == 6:
-		allFile.write('freq,n1,n2,n3,a0,a1,a2,a3,a5,a6,' + \
+		allFile.write('freq,n1,n2,n3,a0,a1,a2,a3,a4,a6,' + \
 	    	          'obsCode,possCode,jsd\n')
 	elif numVarPos == 5:
-		allFile.write('freq,n1,n2,n3,a0,a2,a3,a5,a6,' + \
+		allFile.write('freq,n1,n2,n3,a0,a2,a3,a4,a6,' + \
 	    	          'obsCode,possCode,jsd\n')
 	protSet = set()
 	j = 0
@@ -88,7 +88,7 @@ def csv2txtFile(dirPath, numVarPos):
 			possCode = sp_line[10]
 			jsd = sp_line[11]
 
-		outfile.write(base + "\t" + prot + "\t" + freq + 
+		outfile.write(base + "\t" + prot + "\t" + freq + '\t' +
 		              obsCode + '\t' + possCode + '\t' + jsd + "\n")
 		i += 1
 	print "Num obs processed in csv to txt conversion:  %d" %i

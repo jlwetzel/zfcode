@@ -192,7 +192,7 @@ def outputNucStats(path, nucCounts, numNucs):
         fout.write(line)
     fout.close()
 
-def outputSeqStats(path, lineProc, nonNNS, totalCount):
+def outputSeqStats(path, lineProc, nonNNS):
     # Output statsistics about number of sequences processed,
     # number of sequencees thrown away, and total counts.
 
@@ -201,8 +201,6 @@ def outputSeqStats(path, lineProc, nonNNS, totalCount):
                 %(lineProc - nonNNS))
     fout.write('# seqs that contained nonNNS codons: %d\n'
                 %(nonNNS))
-    fout.write('Total count accross all kept (NNS) seqs: %d\n'
-                %totalCount)
     fout.close()
 
 ###################################################
@@ -274,13 +272,12 @@ def getStatsAndFilterNNS(path):
         fin = open(path + fname, 'r')
         lineProc = 0
         nonNNS = 0
-        totalCount = 0
         
         for line in fin:
             sp_line = line.strip().split()
-            totalCount += int(sp_line[1])
-            seq, count = sp_line[0], \
-                math.log(int(sp_line[1]) + 2,2)
+            count = int(sp_line[1])
+            seq, logcount = sp_line[0], \
+                math.log(count + 2,2)
 
             # Does seq contain only NNS codons?
             lineProc += 1
@@ -294,9 +291,9 @@ def getStatsAndFilterNNS(path):
                 continue
 
             # Update statistics for this file
-            updateSeqCounts(seq, count, fileSeqCounts)
-            updateCodonCounts(seq, count, fileCodonCounts)
-            updateNucCounts(seq, count, fileNucCounts)
+            updateSeqCounts(seq, logcount, fileSeqCounts)
+            updateCodonCounts(seq, logcount, fileCodonCounts)
+            updateNucCounts(seq, logcount, fileNucCounts)
 
         # Output the new files
         newfname = fname.split('.')[0] + '_NNS_norm.txt'
@@ -308,6 +305,8 @@ def getStatsAndFilterNNS(path):
         outputNucStats(newDir + 'statistics/' + newfname,
                        fileNucCounts, len(seq))
         newfname = fname.split('.')[0] + '_seqStats.txt'
+        outputSeqStats(newDir + 'statistics/' + newfname,
+                       lineProc, nonNNS)
         fin.close()
 
 ###################################################
@@ -684,15 +683,15 @@ def main():
             getStatsAndFilterNNS(path)
 
             # Step 2 -- Combine multiple experiment frequencies
-            path = '../data/b1hData/newDatabase/6varpos/' + \
-                fing + '/' + strin + '/all_nuc_seq_NNSnorm/'
-            combineExperiments(path)
+            #path = '../data/b1hData/newDatabase/6varpos/' + \
+            #    fing + '/' + strin + '/all_nuc_seq_NNSnorm/'
+            #combineExperiments(path)
 
             # Step 3 -- Convert to proteins and compute
             #            JS divergence for each protein
-            path = '../data/b1hData/newDatabase/6varpos/' + \
-                    fing + '/' + strin + '/combined_nuc_seq/'
-            convertToProteins(path)
+            #path = '../data/b1hData/newDatabase/6varpos/' + \
+            #        fing + '/' + strin + '/combined_nuc_seq/'
+            #convertToProteins(path)
             
 
     # For 5 variable positions
@@ -707,15 +706,15 @@ def main():
             getStatsAndFilterNNS(path)
 
             # Step 2 -- Combine multiple experiment frequencies
-            path = '../data/b1hData/newDatabase/5varpos/' + \
-                fing + '/' + strin + '/all_nuc_seq_NNSnorm/'
-            combineExperiments(path)
+            #path = '../data/b1hData/newDatabase/5varpos/' + \
+            #    fing + '/' + strin + '/all_nuc_seq_NNSnorm/'
+            #combineExperiments(path)
 
             # Step 3 -- Convert to proteins and compute
             #            JS divergence for each protein
-            path = '../data/b1hData/newDatabase/5varpos/' + \
-                    fing + '/' + strin + '/combined_nuc_seq/'
-            convertToProteins(path)
+            #path = '../data/b1hData/newDatabase/5varpos/' + \
+            #        fing + '/' + strin + '/combined_nuc_seq/'
+            #convertToProteins(path)
 
 if __name__ == '__main__':
     main()
