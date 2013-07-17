@@ -54,7 +54,7 @@ def getProtDict(path, contacts, cut = 0):
 	inFile.close()
 	return protDict
 
-def getProtSet(path, contacts):
+def getProtSet(path, contacts, jsdCut):
 	# Returns the set of unique proteins for the 
 	# contact positions given by contacts.
 	# Path should be to a file of the 'all.txt' format.
@@ -65,10 +65,11 @@ def getProtSet(path, contacts):
 
 	for line in inFile:
 		sp_line = line.strip().split('\t')
-		prot = ""
-		for c in contacts:
-			prot += sp_line[1][c]
-		protSet.add(prot)
+		if eval(sp_line[5]) < jsdCut:
+			prot = ""
+			for c in contacts:
+				prot += sp_line[1][c]
+			protSet.add(prot)
 
 	inFile.close()
 	return protSet

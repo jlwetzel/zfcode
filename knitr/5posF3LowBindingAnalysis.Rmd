@@ -1,0 +1,69 @@
+F3 (5pos) Low Stringency Analysis
+========================================================
+
+## Load libraries
+
+```{r}
+library(ggplot2)
+```
+
+## Import the data and basic stuff
+```{r}
+tableFile <- "../data/b1hdata/newDatabase/5varpos/F3/low/protein_seqs_JSD/all_cut10.txt"
+lab1 <- "../rsessions/F3_low_5pos_all.rda"
+lab2 <- "../rsessions/F3_low_5pos_cut10.rda"
+fname <- "../data/b1hData/newDatabase/5varpos/F3/low/protein_seqs_JSD/all.txt"
+data <- read.delim(fname, header = FALSE)
+lapply(data[1,], class)
+head(data)
+length(unique(data$V2))
+```
+
+## Drop the 10 lowest counts for each target
+```{r}
+sortedTargs <- sort(unique(data$V1))
+minCounts <- vector(mode = "numeric",
+                    length = length(sortedTargs))
+
+cut10data <- data.frame()
+lastrows <- 0
+for (i in 1:length(sortedTargs)) {
+  minCounts[i] <- tail(sort(
+    unique(subset(data,V1 == sortedTargs[i])$V3),
+    decreasing = TRUE), 10)[1]
+  cut10data <- rbind(cut10data, subset(data, V3 > minCounts[i] & 
+                               V1 == sortedTargs[i]))
+  rows <- nrow(cut10data) - lastrows
+  lastrows <- nrow(cut10data)
+  print(paste0(sortedTargs[i], ":  ",rows, " (", 
+               rows/nrow(subset(data, V1 == sortedTargs[i])), 
+               ")"))
+}
+
+nrow(cut10data)
+nrow(data)
+nrow(cut10data)/nrow(data)
+```
+
+## Make plot of JSD for all data
+```{r}
+JSDbpAll <- ggplot(data, aes(x = V1, y = V6)) + 
+            geom_boxplot() + xlab("Target") + ylab("JSD")
+print(JSDbpAll)
+```
+
+## Make plot of JSD for cut10data
+```{r}
+JSDbpCut10 <- ggplot(cut10data, aes(x = V1, y = V6)) + 
+              geom_boxplot() + xlab("Target") + ylab("JSD")
+print(JSDbpCut10)
+```
+
+## Save the data
+```{r}
+write.table(cut10data, file = tableFile, sep = '\t', 
+            quote = FALSE, eol = '\n', row.names = FALSE, 
+            col.names = FALSE)
+save(data, file = lab1)
+save(cut10data, JSDbpAll, JSDbpCut10, file = lab2)
+```
