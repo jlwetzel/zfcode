@@ -58,6 +58,9 @@ def getProtSet(path, contacts, jsdCut):
 	# Returns the set of unique proteins for the 
 	# contact positions given by contacts.
 	# Path should be to a file of the 'all.txt' format.
+	# Only includes those proteins which have a JSD 
+	# of at most jsdCut from the expected E. coli 
+	# codon distribution for that protein.
 	
 	inFile = open(path, 'r')
 	inFile.readline()  # Skip the header line
@@ -65,7 +68,7 @@ def getProtSet(path, contacts, jsdCut):
 
 	for line in inFile:
 		sp_line = line.strip().split('\t')
-		if eval(sp_line[5]) < jsdCut:
+		if eval(sp_line[5]) <= jsdCut:
 			prot = ""
 			for c in contacts:
 				prot += sp_line[1][c]
