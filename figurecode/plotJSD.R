@@ -25,6 +25,7 @@ freqVsJSDscatter <- function(data, xlim = NULL) {
 	ggplot(data, aes(x = V3, y = V6)) +
 	geom_point(size = 0.5) + 
 	scale_x_continuous(limits = xlim) +
+	scale_y_continuous(limits = c(0,1)) + 
 	xlab("Protein Frequency") +
 	ylab("Jensen-Shannon Divergence") +
 	theme_bw()
