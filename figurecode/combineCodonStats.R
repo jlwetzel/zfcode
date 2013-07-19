@@ -75,8 +75,13 @@ combineMats <- function(path, flist){
 
 makeLevelPlot <- function(fname, mat) {
 	# Makes a levelplot for the matrix values
+	bluered = colorRampPalette(c("red", "white", "blue"),
+	                           space = "Lab") 
 	pdf(fname, height = 4.55, width = 2.84)
-	print(levelplot(t(mat)))
+	print(levelplot(t(mat), at=seq(-5,5,length = 100), 
+	                col.regions = bluered,
+	                xlab = "Codon Position",
+	                ylab = "Codon"))
 	dev.off
 }
 
