@@ -18,10 +18,10 @@ def targetFiles2singleCSV(dirPath, numVarPos):
 	
 	if numVarPos == 6:
 		allFile.write('freq,n1,n2,n3,a0,a1,a2,a3,a4,a6,' + \
-	    	          'obsCode,possCode,jsd\n')
+	    	          'obsCode,possCode,jsd,entropy\n')
 	elif numVarPos == 5:
 		allFile.write('freq,n1,n2,n3,a0,a2,a3,a4,a6,' + \
-	    	          'obsCode,possCode,jsd\n')
+	    	          'obsCode,possCode,jsd,entropy\n')
 	protSet = set()
 	j = 0
 	for n1 in nucs:
@@ -40,8 +40,8 @@ def targetFiles2singleCSV(dirPath, numVarPos):
 					sp_line = line.strip().split('\t')
 					obs = ""
 					prot, freq = sp_line[0], sp_line[1]
-					obsCode, possCode, jsd = sp_line[2], \
-						sp_line[3], sp_line[4]
+					obsCode, possCode, jsd, entropy = sp_line[2], \
+						sp_line[3], sp_line[4], sp_line[5]
 					protSet.add(prot)
 					
 					obs += freq + ','
@@ -51,7 +51,8 @@ def targetFiles2singleCSV(dirPath, numVarPos):
 						obs += a + ','
 					obs += obsCode + ','
 					obs += possCode + ','
-					obs += jsd + '\n'
+					obs += jsd + ',',
+					obs += entropy + '\n'
 					allFile.write(obs)
 					i += 1
 				print "Num proteins in %s_protein_seqs_JSD.txt:  %d" \
@@ -81,15 +82,18 @@ def csv2txtFile(dirPath, numVarPos):
 			obsCode = sp_line[10]
 			possCode = sp_line[11]
 			jsd = sp_line[12]
+			entropy = sp_line[13]
 		elif numVarPos == 5:
 			prot = sp_line[4] + sp_line[5] + sp_line[6] + sp_line[7] \
 				+ sp_line[8]
 			obsCode = sp_line[9]
 			possCode = sp_line[10]
 			jsd = sp_line[11]
+			entropy = sp_line[12]
 
-		outfile.write(base + "\t" + prot + "\t" + freq + '\t' +
-		              obsCode + '\t' + possCode + '\t' + jsd + "\n")
+		outfile.write(base + '\t' + prot + '\t' + freq + '\t' +
+		              obsCode + '\t' + possCode + '\t' + jsd + 
+		              '\t' + entropy + '\n')
 		i += 1
 	print "Num obs processed in csv to txt conversion:  %d" %i
 	csvFile.close()
