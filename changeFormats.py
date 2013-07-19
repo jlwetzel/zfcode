@@ -87,8 +87,8 @@ def csv2txtFile(dirPath, numVarPos):
 			jsd = sp_line[11]
 			entropy = sp_line[12]
 
-		outStr = '\t'.join(base, prot, freq, obsCode, possCode,
-		                   jsd, entropy) + '\n'
+		outStr = '\t'.join([base, prot, freq, obsCode, possCode,
+		                    jsd, entropy]) + '\n'
 		outfile.write(outStr)
 		i += 1
 	print "Num obs processed in csv to txt conversion:  %d" %i
