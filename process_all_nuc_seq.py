@@ -488,7 +488,7 @@ def jsDiv(f, g):
     jsd = 0.5*(klDiv(f, m) + klDiv(g, m))
     return jsd
 
-def getProtJSDiv(prot, codonDict, nnsBiasEcoli):
+def getCodingDiversityStats(prot, codonDict, nnsBiasEcoli):
     # Returns the JS diveregnce for the frequency of
     # different codon combinations for a protein 
     # from the seltection vs the expected background
@@ -540,6 +540,65 @@ def getProtJSDiv(prot, codonDict, nnsBiasEcoli):
     # Return the (#possible combos, JSD) of the distributions
     return len(comboList), jsDiv(f, g)
 
+def getProtStatTuples(protDict, nnsBiasEcoli):
+    tList = []
+    for prot in protDict.keys():
+        numPos, jsd, entropy = \
+            getCodingDiversityStats(prot, protDict[prot],
+                                        nnsBiasEcoli)
+        totProtFreq = 0.0
+        for s in protDict[prot]:
+            totProtFreq += protDict[prot][s]
+            
+        tList.append((totProtFreq, prot, 
+                      len(protDict[prot]), 
+                      numPos, jsd, entropy))
+    return tList
+
+def processCombinedNucSeqFile(fpath, protDict,
+                              codonPosFreq, nucPosFreq):
+    # Builds the dictionaries. protDict maps each protein 
+    # to a dictionary a dictionary which maps nucleotide 
+    # sequences coding for that protein to the frequency 
+    # observed for that nucleotide sequence. codonPosFeq
+    # maps (codon, codon position) keys to frequencies and
+    # nucPosFreq maps (nucleotide, position) keys to 
+    # frequencies.
+
+    fin = open(fpath, 'r')
+    print "Processing: %s" %(fpath)
+    for line in fin:
+        sp_line = line.strip().split()
+        nucseq, freq = sp_line[0], eval(sp_line[1])
+
+        # Build the protein sequence
+        prot = ''
+        codonpos = 0
+        for i in range(len(nucseq)):
+            if i%3 == 2:
+                # Grab the codon and update codonPosFreq
+                codon = nucseq[i-2:i+1]
+                prot += codon2amino[codon]
+                if codonPosFreq.has_key((codonpos, codon)):
+                    codonPosFreq[codonpos,codon] += freq
+                else:
+                    codonPosFreq[codonpos,codon] = freq
+            if nucPosFreq.has_key((i, nucseq[i])):
+                nucPosFreq[i, nucseq[i]] += freq
+            else:
+                nucPosFreq[i, nucseq[i]] = freq
+                codonpos += 1
+
+        # Update the protein/nucseq -> freq dictionary
+        if protDict.has_key(prot):
+            protDict[prot][nucseq] = freq
+        else:
+            protDict[prot] = {}
+            protDict[prot][nucseq] = freq
+        
+    fin.close()
+
+
 def convertToProteins(path):
     # Converts a directory with files of nucleotide
     # sequences and frequencies to the corresponding
@@ -565,7 +624,7 @@ def convertToProteins(path):
     except OSError:
         pass
 
-    
+    # For each NNN_combined_nuc_seq.txt file
     handle = os.popen("ls " + path, 'r')
     for line in handle:
 
@@ -579,79 +638,27 @@ def convertToProteins(path):
         targ, seqrun, bcode = \
             sp_fname[0], sp_fname[1], sp_fname[2]
 
-        # Create dictionary of dictionaries mapping prot seq
-        # to dict of observed codon sequences which are 
-        # in turn mapped to the observed frequencies of 
-        # these codon sequences.  Also make a dictionary
-        # mapping (position/codon) -> codon frequency
+        # Create dictionary of to be filled.
         protDict = {} 
         codonPosFreq = {}
         nucPosFreq = {}
 
-        # Open the current file and process
-        fin = open(path + fname, 'r')
-        print "Processing: %s" %(path + fname)
-        for line in fin:
-            sp_line = line.strip().split()
-            nucseq, freq = sp_line[0], eval(sp_line[1])
+        # Open the file and process
+        processCombinedNucSeqFile(path + fname, protDict, 
+                                  codonPosFreq, nucPosFreq)
 
-            #print nucseq, freq
-            # Build the protein sequence
-            prot = ''
-            codonpos = 0
-            for i in range(len(nucseq)):
-                if i%3 == 2:
-                    # Grab the codon and update codonPosFreq
-                    codon = nucseq[i-2:i+1]
-                    prot += codon2amino[codon]
-                    if codonPosFreq.has_key((codonpos, codon)):
-                        codonPosFreq[codonpos,codon] += freq
-                    else:
-                        codonPosFreq[codonpos,codon] = freq
-                if nucPosFreq.has_key((i, nucseq[i])):
-                    nucPosFreq[i, nucseq[i]] += freq
-                else:
-                    nucPosFreq[i, nucseq[i]] = freq
-                    codonpos += 1
-
-            # Update the protein/nucseq -> freq dictionary
-            if protDict.has_key(prot):
-                protDict[prot][nucseq] = freq
-            else:
-                protDict[prot] = {}
-                protDict[prot][nucseq] = freq
-            
-        fin.close()
-
-        print "Getting JS divergence for proteins."
-        # Create list of (freq, prot, #observed combos,
-        # possible combos, jsd) tuples
-        tList = []
-        #print len(protDict.keys())
-        for prot in protDict.keys():
-            #print len(protDict[prot])
-            numPos, jsd = getProtJSDiv(prot, protDict[prot],
-                                       nnsBiasEcoli)
-            totProtFreq = 0.0
-            for s in protDict[prot]:
-                totProtFreq += protDict[prot][s]
-            #print totProtFreq
-            tList.append((totProtFreq, prot, 
-                          len(protDict[prot]), 
-                          numPos, jsd))
+        print "Computing JSDs and normalized Shannon Entropys."
+        tList = getProtStatTuples(protDict, nnsBiasEcoli)
         
-        #print protDict['WRSWLA']  
         print "Sorting by frequency."  
-
-        # Sort the tuple list by frequency and output it
         tList = sorted(tList, reverse = True)
 
-        print "Outputting to files."
+        print "Writing protein and statistics files."
         fout = open(newDir + targ + '_protein_seqs_JSD.txt', 'w')
         for x in tList:
             fout.write(x[1] + '\t' + str(x[0]) + '\t' \
                        + str(x[2]) + '\t' + str(x[3]) + '\t' \
-                       + str(x[4]) + '\n')
+                       + str(x[4]) + '\t' + str(x[5])'\n')
 
         # Output the codon usage statistics
         newfname = fname.split('.')[0] + '_codonStats.txt'
