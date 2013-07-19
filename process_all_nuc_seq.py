@@ -701,6 +701,7 @@ def main():
     for fing in fings:
         for strin in strins:
             # Step 1 -- Filter and gather stats.
+            """
             path = '../data/b1hData/newDatabase/6varpos/' + \
                 fing + '/' + strin + '/all_nuc_seq/'
             getStatsAndFilterNNS(path)
@@ -709,9 +710,9 @@ def main():
             path = '../data/b1hData/newDatabase/6varpos/' + \
                 fing + '/' + strin + '/all_nuc_seq_NNSnorm/'
             combineExperiments(path)
-
+            """
             # Step 3 -- Convert to proteins and compute
-                        JS divergence for each protein
+            #           JS divergence/entropy for each protein
             path = '../data/b1hData/newDatabase/6varpos/' + \
                     fing + '/' + strin + '/combined_nuc_seq/'
             convertToProteins(path)
@@ -723,6 +724,7 @@ def main():
         for strin in strins:
             
             # Step 1 -- Filter and gather stats.
+            """
             path = '../data/b1hData/newDatabase/5varpos/' + \
                 fing + '/' + strin + '/all_nuc_seq/'
             getStatsAndFilterNNS(path)
@@ -731,9 +733,9 @@ def main():
             path = '../data/b1hData/newDatabase/5varpos/' + \
                 fing + '/' + strin + '/all_nuc_seq_NNSnorm/'
             combineExperiments(path)
-
+            """
             # Step 3 -- Convert to proteins and compute
-                        JS divergence for each protein
+            #            JS divergence/entropy for each protein
             path = '../data/b1hData/newDatabase/5varpos/' + \
                     fing + '/' + strin + '/combined_nuc_seq/'
             convertToProteins(path)
