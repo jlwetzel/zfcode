@@ -495,6 +495,7 @@ def normEntropy(f):
     # between 0 and 1 by dividing by the maximum 
     # possible entropy for a distribution of this size.
 
+    """
     # Compute maximum possible entropy
     unifProbs = np.empty(len(f))
     unifProbs.fill(1/float(len(f)))
@@ -502,7 +503,24 @@ def normEntropy(f):
 
     # Return normalized entropy for f
     return -np.sum(f*np.log2(f))/emax
+    """
+    if len(f) == 1:
+        return 0.0
 
+    # Compute maximum possible entropy
+    unifProb = 1/float(len(f))
+    #print unifProb
+    #print math.log(unifProb, 2)
+    emax = -len(f) * (unifProb * math.log(unifProb, 2))
+
+    fentropy = 0.0
+    for i in range(len(f)):
+        if f[i] == 0:
+            continue
+        else:
+            fentropy -= f[i] * math.log(f[i], 2)
+
+    return fentropy/emax
 
 def getCodingDiversityStats(prot, codonDict, nnsBiasEcoli):
     # Returns the JS diveregnce for the frequency of
@@ -613,6 +631,7 @@ def processCombinedNucSeqFile(fpath, protDict,
             protDict[prot][nucseq] = freq
         
     fin.close()
+    return nucseq
 
 
 def convertToProteins(path):
@@ -659,9 +678,10 @@ def convertToProteins(path):
         codonPosFreq = {}
         nucPosFreq = {}
 
-        # Open the file and process
-        processCombinedNucSeqFile(path + fname, protDict, 
-                                  codonPosFreq, nucPosFreq)
+        # Open the file and process.  Returns the last 
+        # nucseq (codon sequene) processed.
+        nucseq = processCombinedNucSeqFile(path + fname, protDict, 
+                                           codonPosFreq, nucPosFreq)
 
         print "Computing JSDs and normalized Shannon Entropys."
         tList = getProtStatTuples(protDict, nnsBiasEcoli)
@@ -674,7 +694,7 @@ def convertToProteins(path):
         for x in tList:
             fout.write(x[1] + '\t' + str(x[0]) + '\t' \
                        + str(x[2]) + '\t' + str(x[3]) + '\t' \
-                       + str(x[4]) + '\t' + str(x[5])'\n')
+                       + str(x[4]) + '\t' + str(x[5]) + '\n')
 
         # Output the codon usage statistics
         newfname = fname.split('.')[0] + '_codonStats.txt'
