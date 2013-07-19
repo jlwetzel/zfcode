@@ -488,6 +488,22 @@ def jsDiv(f, g):
     jsd = 0.5*(klDiv(f, m) + klDiv(g, m))
     return jsd
 
+def normEntropy(f):
+    # Computes a normalized Shannon Entropy for the 
+    # distribution f in base 2.  Follows the convention that 
+    # plog(p) = 0 if p = 0.  Entropy is normalized to 
+    # between 0 and 1 by dividing by the maximum 
+    # possible entropy for a distribution of this size.
+
+    # Compute maximum possible entropy
+    unifProbs = np.empty(len(f))
+    unifProbs.fill(1/float(len(f)))
+    emax = -np.sum(unifProbs*np.log2(unifProbs))
+
+    # Return normalized entropy for f
+    return -np.sum(f*np.log2(f))/emax
+
+
 def getCodingDiversityStats(prot, codonDict, nnsBiasEcoli):
     # Returns the JS diveregnce for the frequency of
     # different codon combinations for a protein 
@@ -538,14 +554,14 @@ def getCodingDiversityStats(prot, codonDict, nnsBiasEcoli):
     g = g/g.sum()
 
     # Return the (#possible combos, JSD) of the distributions
-    return len(comboList), jsDiv(f, g)
+    return len(comboList), jsDiv(f, g), normEntropy(f)
 
 def getProtStatTuples(protDict, nnsBiasEcoli):
     tList = []
     for prot in protDict.keys():
         numPos, jsd, entropy = \
             getCodingDiversityStats(prot, protDict[prot],
-                                        nnsBiasEcoli)
+                                    nnsBiasEcoli)
         totProtFreq = 0.0
         for s in protDict[prot]:
             totProtFreq += protDict[prot][s]
