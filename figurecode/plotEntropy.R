@@ -4,33 +4,33 @@ frequencyVsNumCombos <- function(data) {
 	# Boxplots of frequencies grouped by number 
 	# of combinations
 	ggplot(data, aes(x = as.factor(V5), y = V3)) +
-	geom_boxplot() + 
+	geom_boxplot(fill = 'dodgerblue1') + 
 	scale_x_continuous(limits = c(0, 0.0015))
 	xlab("# Possible Codon Combinations") +
 	ylab("Protein Frequency") +
-	#opts(axis.text.x=theme_text(angle=90, hjust=1)) + 
-	theme_bw()
+	theme_bw() + 
+	opts(axis.text.x=theme_text(angle=90, hjust=1)) 
 }
 
 targetVsEntropybp <- function(data){
 	# Boxplot the entropy for each target
 	ggplot(data, aes(x = as.factor(V1), y = V7)) +
-	geom_boxplot() + 
+	geom_boxplot(fill = 'dodgerblue1') + 
 	xlab("Target Sequence") +
 	ylab("Normalized Shannon Entropy") +
-	#opts(axis.text.x=theme_text(angle=90, hjust=1)) + 
-	theme_bw()
+	theme_bw() +
+	opts(axis.text.x=theme_text(angle=90, hjust=1))
 }
 
 countVsEntropybp <- function(data) {
 	# Boxplot the entropy for each 
 	# number of codon combinations
 	ggplot(data, aes(x = as.factor(V5), y = V7)) +
-	geom_boxplot() + 
+	geom_boxplot(fill = 'dodgerblue1') + 
 	xlab("# Possible Codon Combinations") +
 	ylab("Normalized Shannon Entropy") +
-	#opts(axis.text.x=theme_text(angle=90, hjust=1)) + 
-	theme_bw()
+	theme_bw() + 
+	opts(axis.text.x=theme_text(angle=90, hjust=1))
 }
 
 entropyHistogram <- function(data) {
@@ -56,6 +56,94 @@ freqVsEntropyscatter <- function(data, xlim = NULL) {
 	theme_bw()
 }
 
+codonComboScatter <- function(data) {
+	# Number of possible codons combinations vs.
+	# fraction of possible codon combinations observed
+	ggplot(data, aes(x = V5, y = V4/V5)) +
+	geom_point(position = position_jitter(w = 0.2, h =0.0),
+	           size = 0.5) +
+	scale_y_continuous(limits = c(0, 1)) + 
+	stat_smooth(method = lm, color = 'blue') + 
+	xlab('# Possible Codon Combinations') + 
+	ylab('# Observed Codon Comb./# Possible Codon Comb.') + 
+	theme_bw()
+}
+
+codonComboBox <- function(data) {
+	# Number of possible codons combinations vs.
+	# fraction of possible codon combinations observed
+	ggplot(data, aes(x = as.factor(V5), y = V4/V5)) +
+	geom_boxplot(fill = 'dodgerblue1') +
+	#stat_smooth(method = lm, color = 'blue') + 
+	xlab('# Possible Codon Combinations') + 
+	ylab('Fraction Observed') + 
+	theme_bw() + 
+	opts(axis.text.x=theme_text(angle=90, hjust=1))
+}
+
+codonComboBar <- function(data) {
+	ggplot(data, aes(x = as.factor(V5))) +
+	geom_bar() + 
+	xlab('# Possible Codon Combinations') + 
+	ylab('# of Proteins') +
+	theme_bw() + 
+	opts(axis.text.x=theme_text(angle=90, hjust=1))
+}
+
+printEntropyHist <- function (data, fdir, pref) {
+	pdf(paste0(fdir, pref,'_entropy_hist.pdf'), 
+		height=4.55,width=6.25)
+	print(entropyHistogram(data))
+	dev.off()
+}
+
+printFreqScatters <- function(data, fdir, pref) {
+	pdf(paste0(fdir, pref,'_entropyVfreq_scatter.pdf'), 
+		height=4.55,width=6.25)
+	print(freqVsEntropyscatter(data))
+	dev.off()
+
+	# Zoom in so can see lower frequencies
+	pdf(paste0(fdir, pref,'_entropyVfreq_scatter_zoom.pdf'), 
+		height=4.55,width=6.25)
+	print(freqVsEntropyscatter(data, c(0, 0.0015)))
+	dev.off()
+}
+				
+printEntopyBoxPlots <- function(data, fdir, pref) {
+	pdf(paste0(fdir, pref,'_entropyVnumComb_box.pdf'), 
+		height=4.55,width=6.25)
+	print(countVsEntropybp(data))
+	dev.off()
+
+	pdf(paste0(fdir, pref,'_entropyVtarget_box.pdf'), 
+		height=4.55,width=6.25)
+	print(targetVsEntropybp(data))
+	dev.off()
+}
+
+printCodonComboScatter <- function(data, fdir, pref) {
+	pdf(paste0(fdir, pref,'_codonCombo_scatter.pdf'), 
+		height=4.55,width=6.25)
+	print(codonComboScatter(data))
+	dev.off()
+}
+
+printCodonComboBox <- function(data, fdir, pref) {
+	pdf(paste0(fdir, pref,'_codonCombo_box.pdf'), 
+		height=4.55,width=6.25)
+	print(codonComboBox(data))
+	dev.off()
+}
+
+printCodonComboBar <- function(data, fdir, pref) {
+	pdf(paste0(fdir, pref,'_codonCombo_bar.pdf'), 
+		height=4.55,width=6.25)
+	print(codonComboBar(data))
+	dev.off()
+}
+
+
 main <- function() {
 	fings <- c('F1', 'F2', 'F3')
 	strins <- c('low', 'high')
@@ -65,61 +153,32 @@ main <- function() {
 			for (k in kept) {
 				npos <- '_6pos_'
 				pref <- paste0(f,'_',s,npos,k)
-				#dfile <- paste0('../../rsessions/', pref, '.rda')
-				fdir <- '../../figures/entropy_plots/'
-				#load(dfile)
-				#if (k == 'cut10')
-			#		data <- cut10data
-
+				
+				fdir <- '../../figures/entropy_plots/cut10_filter0s/'
 				data <- read.delim(paste0('../../data/b1hdata/',
 				                   'newDatabase/6varpos/', f, '/', s, 
 				                   '/protein_seqs_JSD/all_cut10.txt'),
 									header = FALSE)
-				data <- subset(data, V7 > 0.0 | 
-				               (V7 == 0.00 & V4 == 1 & V5 == 1))
+				
+				# Uncomment if want to remove all proteins with 
+				# 0 entropy.
+				print(nrow(data))
+				data <- subset(data, V7 > 0)
 
-				#print(dfile)
-				#print(nrow(data))
-				#print(data)
+				#print(head(data))
+				# Uncomment if want to remove 0 entropy proteins 
+				# EXCEPT for proteins that only CAN code one way.
+				#data <- subset(data, V7 > 0 | 
+				#               (V4 == 1 & V5 == 1))
 
-				# The histogram
-				pdf(paste0(fdir, pref,'_entropy_hist.pdf'), height=4.55,
-				    width=6.25)
-				print(entropyHistogram(data))
-				dev.off()
-
-				if (k == 'cut10') {
-					# The scatterplots
-					#pdf(paste0(fdir, pref,'_entropy_scatter.pdf'), height=4.55,
-				    #	width=6.25)
-					#print(freqVsEntropyscatter(data))
-					#dev.off()
-					pdf(paste0(fdir, pref,'_entropyVfreq_scatter_zoom.pdf'), height=4.55,
-				    	width=6.25)
-					print(freqVsEntropyscatter(data, c(0, 0.0015)))
-					dev.off()
-				}
-
-				# The boxplots
-				pdf(paste0(fdir, pref,'_entropyVnumComb_box.pdf'), height=4.55,
-				    width=6.25)
-				print(countVsEntropybp(data))
-				dev.off()
-
-				#pdf(paste0(fdir, pref,'_freqVnumComb_box.pdf'), height=4.55,
-				#    width=6.25)
-				#print(frequencyVsNumCombos(data))
-				#dev.off()
-
-				#pdf(paste0(fdir, pref,'_freqVnumComb_box_zoom.pdf'), height=4.55,
-				#    width=6.25)
-				#print(frequencyVsNumCombos(data))
-				#dev.off()
-
-				pdf(paste0(fdir, pref,'_entropyVtarget_box.pdf'), height=4.55,
-				    width=6.25)
-				print(targetVsEntropybp(data))
-				dev.off()
+				#printEntropyHist(data, fdir, pref)
+				#printComboVEntropyBoxPlot(data, fdir, pref)
+				#if (k == 'cut10')
+				#printFreqScatters(data, fdir, pref)
+				#printEntopyBoxPlots(data, fdir, pref)
+				printCodonComboBox(data, fdir, pref)
+				printCodonComboBar(data, fdir, pref)
+				#printCodonComboScatter(data, fdir, pref)				
 			}
 }
 
