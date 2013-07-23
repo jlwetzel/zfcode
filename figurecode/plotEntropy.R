@@ -82,6 +82,8 @@ codonComboBox <- function(data) {
 }
 
 codonComboBar <- function(data) {
+	# Plots a bar graph for how many proteins 
+	# there are that have x number of codon combinations
 	ggplot(data, aes(x = as.factor(V5))) +
 	geom_bar() + 
 	xlab('# Possible Codon Combinations') + 

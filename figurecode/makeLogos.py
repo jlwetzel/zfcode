@@ -1,7 +1,5 @@
 import os
 
-def make
-
 def makeLogo(infile, outfile, format = 'pdf', alpha = 'protein',
              composition = 'equiprobable', size = 'small', 
              colScheme = 'chemistry', title = '', xlabel = '', 
