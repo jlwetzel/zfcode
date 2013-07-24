@@ -115,60 +115,60 @@ printPlot <- function (data, figurePath, plotFunc, ...) {
 }
 
 main <- function() {
-	fings <- c('F1', 'F2', 'F3')
+	fings <- c('F2')#c('F1', 'F2', 'F3')
 	strins <- c('low', 'high')
 	kept <- c('cut10')
 	for (f in fings)
 		for (s in strins)
 			for (k in kept) {
-				npos <- '_6pos_'
+				npos <- '_5pos_'
 				pref <- paste0(f,'_',s,npos,k)
 				
 				fdir <- '../../figures/entropy_plots/cut10_filter0s/'
 				data <- read.delim(paste0('../../data/b1hdata/',
-				                   'newDatabase/6varpos/', f, '/', s, 
+				                   'newDatabase/5varpos/', f, '/', s, 
 				                   '/protein_seqs_JSD/all_cut10.txt'),
 									header = FALSE)
 				
 				# Uncomment if want to remove all proteins with 
 				# 0 entropy.
-				data <- subset(data, V7 > 0)
+				#data <- subset(data, V7 > 0)
 
 				# Uncomment if want to remove 0 entropy proteins 
 				# EXCEPT for proteins that only CAN code one way.
-				#data <- subset(data, V7 > 0 | 
-				#               (V4 == 1 & V5 == 1))
+				data <- subset(data, V7 > 0 | 
+				               (V4 == 1 & V5 == 1))
 
 				# Print all the plots
-				#printPlot(data,paste0(fdir, pref,'_entropy_hist.pdf'),
-				#          entropyHistogram)
-                #if (k == 'cut10') {
-               # 	printPlot(data, 
-                #	          paste0(fdir,pref,'_entropyVfreq_scatter.pdf'),
-               # 	          freqVsEntropyscatter)
-               # 	printPlot(data, 
-                #	          paste0(fdir,pref,'_entropyVfreq_scatter_zoom.pdf'),
-               # 	          freqVsEntropyscatter, c(0, 0.0015))
-                #}
-                #printPlot(data, 
-                #          paste0(fdir,pref,'_entropyVnumComb_box.pdf'),
-                #          countVsEntropybp)
-                #printPlot(data, 
-                #          paste0(fdir,pref,'_entropyVtarget_box.pdf'),
-                #          targetVsEntropybp)
+				printPlot(data,paste0(fdir, pref,'_entropy_hist.pdf'),
+				          entropyHistogram)
+                if (k == 'cut10') {
+                	printPlot(data, 
+                	          paste0(fdir,pref,'_entropyVfreq_scatter.pdf'),
+               	          freqVsEntropyscatter)
+                	printPlot(data, 
+                	          paste0(fdir,pref,'_entropyVfreq_scatter_zoom.pdf'),
+                	          freqVsEntropyscatter, c(0, 0.0015))
+                }
+                printPlot(data, 
+                          paste0(fdir,pref,'_entropyVnumComb_box.pdf'),
+                          countVsEntropybp)
+                printPlot(data, 
+                          paste0(fdir,pref,'_entropyVtarget_box.pdf'),
+                          targetVsEntropybp)
 
-				printPlot(data, 
-                          paste0(fdir,pref,'_codonCombo_box_abs.pdf'),
-                          codonComboBox, type = 'abs')				
-                printPlot(data, 
-                          paste0(fdir,pref,'_codonCombo_box_abs_zoom.pdf'),
-                          codonComboBox, type = 'abs', ylims = c(0,10))
-                printPlot(data, 
-                          paste0(fdir,pref,'_codonCombo_box_rel.pdf'),
-                          codonComboBox, 'rel')
-                printPlot(data,
-                	      paste0(fdir,pref,'_codonCombo_bar.pdf'),
-                          codonComboBar)
+				#printPlot(data, 
+                #          paste0(fdir,pref,'_codonCombo_box_abs.pdf'),
+                #          codonComboBox, type = 'abs')				
+                #printPlot(data, 
+                #          paste0(fdir,pref,'_codonCombo_box_abs_zoom.pdf'),
+                #          codonComboBox, type = 'abs', ylims = c(0,10))
+                #printPlot(data, 
+                #          paste0(fdir,pref,'_codonCombo_box_rel.pdf'),
+                #          codonComboBox, 'rel')
+                #printPlot(data,
+               # 	      paste0(fdir,pref,'_codonCombo_bar.pdf'),
+               #           codonComboBar)
 			}
 }
 

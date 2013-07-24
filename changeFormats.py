@@ -5,11 +5,11 @@ import sys
 
 nucs = ['A', 'C', 'G', 'T']
 
-def targetFiles2singleCSV(dirPath, numVarPos):
+def targetFiles2singleCSV(dirPath, numVarPos, fileSuffix):
 	# Just puts a directory of nucleotide triplet binding files 
 	# (NNN.txt) into one a single csv file where columns
 	# are:
-	# freq n1 n2 n3 a0 a1 a2 a3 a5 a6 obsCode possCode jsd
+	# freq n1 n2 n3 a0 a1 a2 a3 a5 a6 obsCode possCode jsd entropy
 	#
 	# Assumes files are named <NNN.txt> and in path dir
 	# Does not remove any files.
@@ -30,10 +30,10 @@ def targetFiles2singleCSV(dirPath, numVarPos):
 				triplet = n1+n2+n3
 				try:
 					tripletFile = open(dirPath + triplet+\
-					                   '_protein_seqs_JSD.txt', 'r')
+					                   fileSuffix, 'r')
 				except IOError:
 					print "Invalid File Name: "+triplet+\
-						'_protein_seqs_JSD.txt'
+						fileSuffix
 					continue
 				i = 0
 				for line in tripletFile:
@@ -53,8 +53,8 @@ def targetFiles2singleCSV(dirPath, numVarPos):
 					obs += '\n'
 					allFile.write(obs)
 					i += 1
-				print "Num proteins in %s_protein_seqs_JSD.txt:  %d" \
-					%(dirPath + triplet, i)
+				print "Num proteins in %s:  %d" \
+					%(dirPath + triplet + fileSuffix, i)
 				j += i
 	print "Total num protein/dna observations in all files:  %d" %j
 	print "Total num unique proteins in all files:  %d" %len(protSet)
