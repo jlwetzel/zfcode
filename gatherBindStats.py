@@ -2,6 +2,7 @@
 
 import os
 import sys
+import math
 
 def getUniqueShilpaZFs(path, contacts):
 	# Returns a list of ZFs for the organism of the specified
@@ -75,6 +76,87 @@ def getProtSet(path, contacts):
 
 	inFile.close()
 	return protSet
+
+def printBindingSetStats(fings, strins, bindset, maxSize):
+    numpos = math.log(maxSize, 20)
+    print "Max Size for %d positions: %d" %(numpos, maxSize)
+    print "#"*64
+    for f in fings:
+        for s in strins:
+            setSize = len(bindset[f,s])
+            print "Size of %s %s: %d" %(f, s, setSize) 
+        
+    print
+    print "Is high a subset of low? (|High - Low|/|High|)"
+    print "#"*64
+    for f in fings:
+        highMinLow = bindset[f,'high'] - bindset[f,'low']
+        print "%s: %.3f" %(f, len(highMinLow)/ \
+                           float(len(bindset[f,'high'])))
+    
+    print 
+    print "Combining Sets"
+    print "#"*64
+    for i in range(len(fings)):
+        for j in range(i + 1, len(fings)):
+            for s in strins:
+            	inter = bindset[fings[i], s] & bindset[fings[j], s]
+            	union = bindset[fings[i], s] | bindset[fings[j], s]
+            	print "%s %s Intersection (%s): %d" \
+            		%(fings[i], fings[j], s, len(inter))
+            	print "%s %s Union (%s)       : %d" \
+            		%(fings[i], fings[j], s, len(union))
+            	print "%s %s Jaccard (%s)     : %.3f" \
+            		%(fings[i], fings[j], s, len(inter)/float(len(union)))
+        	print
+
+    for s in strins:
+    	inter = bindset[fings[0], s]
+    	union = set()
+    	for f in fings:
+    		union = union | bindset[f,s]
+    		inter = inter & bindset[f,s]
+    	print "All Intersection (%s): %d" %(s, len(inter))
+        print "All Union (%s): %d" %(s, len(union))
+
+
+def compareToNatural(bindset, natset, org, fings, strins):
+	# Compares the binding set of to the natural set of 
+	# ZFs.  bindset should be indexed by (fing,strin) tuples.
+    print
+    print "Fraction of %s ZFs (-1,2,3,6) Captured: (%d possible)" \
+    	%(org, len(natset))
+    print "#"*64
+    for f in fings:
+        for s in strins:
+            inter = bindset[f,s] & natset
+            print "%s %s: %.3f" %(f, s, len(inter)/float(len(natset)))
+
+    print
+    for i in range(len(fings)):
+        for j in range(i + 1, len(fings)):
+            for s in strins:
+                inter = (bindset[fings[i], s] & bindset[fings[j], s]) & natset
+                union = (bindset[fings[i], s] | bindset[fings[j], s]) & natset
+                print "%s %s Intersection (%s): %.3f" %(fings[i], fings[j], 
+                                                        s, len(inter)/\
+                                                        float(len(natset)))
+                print "%s %s Union (%s)       : %.3f" %(fings[i], fings[j], 
+                                                        s, len(union)/\
+                                                        float(len(natset)))
+    
+    print            
+    for s in strins:
+    	inter = bindset[fings[0], s]
+    	union = set()
+    	for f in fings:
+    		union = union | bindset[f,s]
+    		inter = inter & bindset[f,s]
+    	union = union & natset
+        inter = inter & natset
+        print "All Intersection (%s): %.3f" %(s, len(inter)/float(len(natset)))
+        print "All Union (%s): %.3f" %(s, len(union)/float(len(natset)))
+
 
 def main():
 
