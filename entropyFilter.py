@@ -22,8 +22,6 @@ def rmBadSeqs(fname, canonIndex):
 		canonSeqs.append(canonSeq)
 	canonSeqs = set(canonSeqs)
 	#print canonSeqs
-	#print len(canonSeqs)
-	del goodSeqs
 
 	# Write all the good sequences from fname into a temp 
 	# file and then replace fname with the tmp file
@@ -36,8 +34,12 @@ def rmBadSeqs(fname, canonIndex):
 			fout.write(line)
 		else:
 			seq = sp_line[0]
+			seq2 = ''
+			for i in canonIndex:
+				seq2 += seq[i]
 			for canonSeq in canonSeqs:
-				if jellyfish.hamming_distance(seq, canonSeq) <= 1:
+				if jellyfish.hamming_distance(seq2, canonSeq) <= 1:
+					#print "Here"
 					fout.write(line)
 					break
 	fout.close()
@@ -90,13 +92,13 @@ def parseAllFile(prefix, rest, cutoff, canonIndex):
 
 def main():
 
-	npos = 5
+	npos = 6
 
 	# For the 6 position data
 	if npos == 6:
-		cutoffs = {('F1', 'high'): 0.25, ('F1', 'low'): 0.25,
-			   	   ('F2', 'high'): 0.25, ('F2', 'low'): 0.25,
-			   	   ('F3', 'high'): 0.25, ('F3', 'low'): 0.25,}
+		cutoffs = {('F1', 'high'): 0.4, ('F1', 'low'): 0.4,
+			   	   ('F2', 'high'): 0.4, ('F2', 'low'): 0.4,
+			   	   ('F3', 'high'): 0.4, ('F3', 'low'): 0.4,}
 		fings = ['F1', 'F2', 'F3']
 		strins = ['low', 'high']
 		tag = '6varpos'
@@ -104,7 +106,7 @@ def main():
 
 	# For the 5 position data
 	elif npos == 5:
-		cutoffs = {('F2', 'high'): 0.25, ('F2', 'low'): 0.25}
+		cutoffs = {('F2', 'high'): 0.4, ('F2', 'low'): 0.4}
 		fings = ['F2']
 		strins = ['low', 'high']
 		tag = '5varpos'
