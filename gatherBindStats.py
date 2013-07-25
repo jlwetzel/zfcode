@@ -157,6 +157,14 @@ def compareToNatural(bindset, natset, org, fings, strins):
         print "All Intersection (%s): %.3f" %(s, len(inter)/float(len(natset)))
         print "All Union (%s): %.3f" %(s, len(union)/float(len(natset)))
 
+def compareBindingSets(bset1, bset2):
+    inter = bset1 & bset2
+    union = bset1 | bset2
+    print "Set 1: %d" %len(bset1)
+    print "Set 2: %d" %len(bset2)
+    print "Intersection: %d" %len(inter)
+    print "Union: %d" %len(union)
+    print "Jaccard: %.3f" %(len(inter)/float(len(union)))
 
 def main():
 
