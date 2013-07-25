@@ -119,4 +119,5 @@ def main():
 			rest = 'protein_seqs_JSD/all_cut10.txt'
 			parseAllFile(prefix, rest, cutoffs[f,s], canonIndex)
 
-main()
+if __name__ == '__main__':
+	main()
