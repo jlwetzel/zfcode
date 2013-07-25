@@ -5,7 +5,8 @@ import sys
 
 nucs = ['A', 'C', 'G', 'T']
 
-def targetFiles2singleCSV(dirPath, numVarPos, fileSuffix):
+def targetFiles2singleCSV(dirPath, numVarPos, fileSuffix,
+                          style = "verbose"):
 	# Just puts a directory of nucleotide triplet binding files 
 	# (NNN.txt) into one a single csv file where columns
 	# are:
@@ -13,15 +14,28 @@ def targetFiles2singleCSV(dirPath, numVarPos, fileSuffix):
 	#
 	# Assumes files are named <NNN.txt> and in path dir
 	# Does not remove any files.
+	# 
+	# style = 'plain' only outputs the frequencies, nuc poisitons,
+	# and amino acid positions, while 'verbose' outputs the 
+	# additional information listed above.
 
 	allFile = open(dirPath + "all.csv", 'w')
 	
+	# Write the header
 	if numVarPos == 6:
-		allFile.write('freq,n1,n2,n3,a0,a1,a2,a3,a4,a6,' + \
-	    	          'obsCode,possCode,jsd,entropy\n')
+		if style == 'verbose':
+			allFile.write('freq,n1,n2,n3,a0,a1,a2,a3,a4,a6,' + \
+	    	          	  'obsCode,possCode,jsd,entropy\n')
+		elif style == 'plain':
+			allFile.write('freq,n1,n2,n3,a0,a1,a2,a3,a4,a6\n')
 	elif numVarPos == 5:
-		allFile.write('freq,n1,n2,n3,a0,a2,a3,a4,a6,' + \
-	    	          'obsCode,possCode,jsd,entropy\n')
+		if style == 'verbose':
+			allFile.write('freq,n1,n2,n3,a0,a2,a3,a4,a6,' + \
+	    	          	'obsCode,possCode,jsd,entropy\n')
+		elif style == 'plain':
+			allFile.write('freq,n1,n2,n3,a0,a2,a3,a4,a6\n')
+
+
 	protSet = set()
 	j = 0
 	for n1 in nucs:
@@ -37,11 +51,10 @@ def targetFiles2singleCSV(dirPath, numVarPos, fileSuffix):
 					continue
 				i = 0
 				for line in tripletFile:
-					sp_line = line.strip().split('\t')
+					sp_line = line.strip().split()
+					#print sp_line
 					obs = ""
 					prot, freq = sp_line[0], sp_line[1]
-					obsCode, possCode, jsd, entropy = sp_line[2], \
-						sp_line[3], sp_line[4], sp_line[5]
 					protSet.add(prot)
 					
 					obs += freq + ','
@@ -49,8 +62,15 @@ def targetFiles2singleCSV(dirPath, numVarPos, fileSuffix):
 						obs += n + ','
 					for a in prot:
 						obs += a + ','
-					obs += ','.join([obsCode, possCode, jsd, entropy])
-					obs += '\n'
+					
+					if style == 'verbose':
+						obsCode, possCode, jsd, entropy = sp_line[2], \
+							sp_line[3], sp_line[4], sp_line[5]
+						obs += ','.join([obsCode, possCode, jsd, entropy])
+						obs += '\n'
+					elif style == 'plain':
+						obs = obs[:-1] + '\n'
+					
 					allFile.write(obs)
 					i += 1
 				print "Num proteins in %s:  %d" \
@@ -61,7 +81,7 @@ def targetFiles2singleCSV(dirPath, numVarPos, fileSuffix):
 	print
 	allFile.close()
 
-def csv2txtFile(dirPath, numVarPos):
+def csv2txtFile(dirPath, numVarPos, style = 'verbose'):
 	# Converts the csv file 'all.csv' inside dirPath to a 
 	# plaintext file 'all.txt' with 3 columns (NNN, AAAAAA, Count).
 	# Does not remove any files.
@@ -76,19 +96,24 @@ def csv2txtFile(dirPath, numVarPos):
 		
 		if numVarPos == 6:
 			prot = ''.join(sp_line[4:10])
-			obsCode = sp_line[10]
-			possCode = sp_line[11]
-			jsd = sp_line[12]
-			entropy = sp_line[13]
+			if style == 'verbose':
+				obsCode = sp_line[10]
+				possCode = sp_line[11]
+				jsd = sp_line[12]
+				entropy = sp_line[13]
 		elif numVarPos == 5:
 			prot = ''.join(sp_line[4:9])
-			obsCode = sp_line[9]
-			possCode = sp_line[10]
-			jsd = sp_line[11]
-			entropy = sp_line[12]
+			if style == 'verbose':
+				obsCode = sp_line[9]
+				possCode = sp_line[10]
+				jsd = sp_line[11]
+				entropy = sp_line[12]
 
-		outStr = '\t'.join([base, prot, freq, obsCode, possCode,
+		if style == 'verbose':
+			outStr = '\t'.join([base, prot, freq, obsCode, possCode,
 		                    jsd, entropy]) + '\n'
+		elif style == 'plain':
+			outStr = '\t'.join([base, prot, freq]) + '\n'
 		outfile.write(outStr)
 		i += 1
 	print "Num obs processed in csv to txt conversion:  %d" %i
