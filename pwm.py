@@ -22,8 +22,8 @@ def makeLogo(infile, outfile, format = 'pdf', alpha = 'protein',
 	pass
 
 def writePWM(dst, posCounts, npos, letters):
-	# Output a PWM file based on the posCounts
-	# dictionary
+	# Output a PWM file based on a posCount
+	# dictionary (pos, letter) -> count/freq
 
 	fout = open(dst, 'w')
 
