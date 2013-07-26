@@ -141,7 +141,7 @@ def main():
 		else:
 			targ = protDict[prot].keys()[0]
 			freq = protDict[prot][targ]
-			bindOnly1file.write('%s\t%s\t%f\n' %(targ, prot, freq))
+			bindOnly1file.write('%s\t%s\t%f\n' %(prot, targ, freq))
 		i += 1
 
 if __name__ == '__main__':
