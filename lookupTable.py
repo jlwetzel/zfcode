@@ -2,6 +2,7 @@ import os
 import re
 from pwm import *
 from gatherBindStats import getProtDict
+from fixTables import normalizeFreq
 
 def getPosIndex(npos, canonical):
 	# Return the set of indices needed depending
@@ -121,14 +122,22 @@ def targListToLogo(dstDir, targList, protein):
 def main():
 	fing = 'F2'
 	strin = 'high'
-	protDir = 'protein_cut10_entr04'
+	protDir = 'threshold025'
 	npos = 6
 	canonical = True
-	logoDir = '/Users/jlwetzel/Desktop/F2_high_entr04_logos_lookupTable/'
+	logoDir = '/Users/jlwetzel/Desktop/Anton_F2_high_entr025' + \
+		'_logos_lookupTable/'
 	ind = getPosIndex(npos, canonical)
+	dirStyle = 'old'    # For Anton's files or my files
 
-	dirpath = '../data/b1hData/newDatabase/6varpos/' + \
-		'/'.join([fing, strin, protDir]) + '/'
+
+	if dirStyle == 'new':
+		dirpath = '../data/b1hData/newDatabase/6varpos/' + \
+			'/'.join([fing, strin, protDir]) + '/'
+	elif dirStyle == 'old':
+		dirpath = '../data/b1hData/oldData/' + \
+			'/'.join([fing, protDir, strin]) + '/'
+
 	protDict = getProtDict(dirpath + 'all.txt', ind)
 
 	bindOnly1file = open(logoDir + 'only1Target.txt', 'w')

@@ -1,5 +1,7 @@
 import os
 import jellyfish
+import numpy as np
+from fixTables import normalizeFreq
 
 def rmBadSeqs(fname, canonIndex):
 	# Remove the sequences that have only one coding 
@@ -43,6 +45,7 @@ def rmBadSeqs(fname, canonIndex):
 					fout.write(line)
 					break
 	fout.close()
+	normalizeFreq('tmp.txt', 1)
 	os.system('mv tmp.txt ' + fname)
 
 def parseAllFile(prefix, rest, cutoff, canonIndex):
@@ -92,13 +95,13 @@ def parseAllFile(prefix, rest, cutoff, canonIndex):
 
 def main():
 
-	npos = 6
+	npos = 5
 
 	# For the 6 position data
 	if npos == 6:
-		cutoffs = {('F1', 'high'): 0.4, ('F1', 'low'): 0.4,
-			   	   ('F2', 'high'): 0.4, ('F2', 'low'): 0.4,
-			   	   ('F3', 'high'): 0.4, ('F3', 'low'): 0.4,}
+		cutoffs = {('F1', 'high'): 0.25, ('F1', 'low'): 0.25,
+			   	   ('F2', 'high'): 0.25, ('F2', 'low'): 0.25,
+			   	   ('F3', 'high'): 0.25, ('F3', 'low'): 0.25,}
 		fings = ['F1', 'F2', 'F3']
 		strins = ['low', 'high']
 		tag = '6varpos'
@@ -106,7 +109,7 @@ def main():
 
 	# For the 5 position data
 	elif npos == 5:
-		cutoffs = {('F2', 'high'): 0.4, ('F2', 'low'): 0.4}
+		cutoffs = {('F2', 'high'): 0.25, ('F2', 'low'): 0.25}
 		fings = ['F2']
 		strins = ['low', 'high']
 		tag = '5varpos'
