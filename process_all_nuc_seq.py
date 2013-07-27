@@ -523,11 +523,11 @@ def normEntropy(f):
     return fentropy/emax
 
 def getCodingDiversityStats(prot, codonDict, nnsBiasEcoli):
-    # Returns the JS diveregnce for the frequency of
-    # different codon combinations for a protein 
-    # from the seltection vs the expected background
-    # freqeuncies for those coding combinations 
-    # based on E. coli codon usage
+    # Returns the JS diveregnce and entropy 
+    # for the frequency of different codon combinations. 
+    # JSD for a protein is distance from seltection vs 
+    # the expected background freqeuncies for those coding 
+    # combinations based on E. coli codon usage
     #
     # prot is the protein
     # codon dict is a dictionary mapping codon 
