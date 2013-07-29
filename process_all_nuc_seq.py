@@ -193,7 +193,8 @@ def outputNucStats(path, nucCounts, numNucs):
         fout.write(line)
     fout.close()
 
-def outputSeqStats(path, lineProc, nonNNS):
+def outputSeqStats(path, lineProc, nonNNS, 
+                   countTooLow, cutoffCount):
     # Output statsistics about number of sequences processed,
     # number of sequencees thrown away, and total counts.
 
@@ -202,6 +203,8 @@ def outputSeqStats(path, lineProc, nonNNS):
                 %(lineProc - nonNNS))
     fout.write('# seqs that contained nonNNS codons: %d\n'
                 %(nonNNS))
+    fout.write('# seqs with counts less than %d: %d\n'
+                %(cutoffCount, countTooLow))
     fout.close()
 
 ###################################################
@@ -227,7 +230,7 @@ def outputNNSNormFile(path, seqCounts):
 
 
 
-def getStatsAndFilterNNS(path):
+def filterNNSandLowCounts(path, cutoffCount = 0):
     # The first level of processing.
     #
     # Processes each all_nuc_seq.txt file in the directory 
@@ -240,7 +243,8 @@ def getStatsAndFilterNNS(path):
 
     # Make directories for nucleotides sequences with 
     # normalized probs
-    newDir = '/'.join(path.split('/')[:-2]) + '/all_nuc_seq_NNSnorm/'
+    newDir = '/'.join(path.split('/')[:-2]) + '/nuc_seq_filter' +\
+        '_log_norm/'
     try:
         os.mkdir(newDir)
     except OSError:
@@ -273,12 +277,17 @@ def getStatsAndFilterNNS(path):
         fin = open(path + fname, 'r')
         lineProc = 0
         nonNNS = 0
+        countTooLow = 0
         
         for line in fin:
             sp_line = line.strip().split()
             count = int(sp_line[1])
             seq, logcount = sp_line[0], \
                 math.log(count + 2,2)
+
+            # Increment for book-keeping
+            if count <= cutoffCount:
+                countTooLow += 1
 
             # Does seq contain only NNS codons?
             lineProc += 1
@@ -291,13 +300,15 @@ def getStatsAndFilterNNS(path):
                 nonNNS += 1
                 continue
 
-            # Update statistics for this file
-            updateSeqCounts(seq, logcount, fileSeqCounts)
-            updateCodonCounts(seq, logcount, fileCodonCounts)
-            updateNucCounts(seq, logcount, fileNucCounts)
+            # Only update stats for seqs with count > cutoffCount
+            if count > cutoffCount:
+                # Update statistics for this file
+                updateSeqCounts(seq, logcount, fileSeqCounts)
+                updateCodonCounts(seq, logcount, fileCodonCounts)
+                updateNucCounts(seq, logcount, fileNucCounts)
 
         # Output the new files
-        newfname = fname.split('.')[0] + '_NNS_norm.txt'
+        newfname = fname.split('.')[0] + '_filter_log_norm.txt'
         outputNNSNormFile(newDir + newfname, fileSeqCounts)
         newfname = fname.split('.')[0] + '_codonStats.txt'
         outputCodonStats(newDir + 'statistics/' + newfname,
@@ -307,7 +318,8 @@ def getStatsAndFilterNNS(path):
                        fileNucCounts, len(seq))
         newfname = fname.split('.')[0] + '_seqStats.txt'
         outputSeqStats(newDir + 'statistics/' + newfname,
-                       lineProc, nonNNS)
+                       lineProc, nonNNS, countTooLow,
+                       cutoffCount)
         fin.close()
 
 ###################################################
@@ -523,11 +535,11 @@ def normEntropy(f):
     return fentropy/emax
 
 def getCodingDiversityStats(prot, codonDict, nnsBiasEcoli):
-    # Returns the JS diveregnce for the frequency of
-    # different codon combinations for a protein 
-    # from the seltection vs the expected background
-    # freqeuncies for those coding combinations 
-    # based on E. coli codon usage
+    # Returns the JS diveregnce and entropy 
+    # for the frequency of different codon combinations. 
+    # JSD for a protein is distance from seltection vs 
+    # the expected background freqeuncies for those coding 
+    # combinations based on E. coli codon usage
     #
     # prot is the protein
     # codon dict is a dictionary mapping codon 
@@ -648,7 +660,7 @@ def convertToProteins(path):
 
     # Make directories for nucleotides sequences with 
     # normalized probs
-    newDir = '/'.join(path.split('/')[:-2]) + '/protein_seqs_JSD/'
+    newDir = '/'.join(path.split('/')[:-2]) + '/protein_seq/'
     try:
         os.mkdir(newDir)
     except OSError:
@@ -690,7 +702,7 @@ def convertToProteins(path):
         tList = sorted(tList, reverse = True)
 
         print "Writing protein and statistics files."
-        fout = open(newDir + targ + '_protein_seqs_JSD.txt', 'w')
+        fout = open(newDir + targ + '_protein_seq.txt', 'w')
         for x in tList:
             fout.write(x[1] + '\t' + str(x[0]) + '\t' \
                        + str(x[2]) + '\t' + str(x[3]) + '\t' \
@@ -715,21 +727,26 @@ def convertToProteins(path):
 
 def main():
 
+    cutoffCount = 10
+
     # For 6 variable positions
     fings = ['F3', 'F2', 'F1']
     strins = ['low', 'high']
+
     for fing in fings:
         for strin in strins:
-            # Step 1 -- Filter and gather stats.
             """
+            # Step 1 -- Filter and gather stats.
             path = '../data/b1hData/newDatabase/6varpos/' + \
                 fing + '/' + strin + '/all_nuc_seq/'
-            getStatsAndFilterNNS(path)
+            filterNNSandLowCounts(path, cutoffCount)
+
 
             # Step 2 -- Combine multiple experiment frequencies
             path = '../data/b1hData/newDatabase/6varpos/' + \
-                fing + '/' + strin + '/all_nuc_seq_NNSnorm/'
+                fing + '/' + strin + '/nuc_seq_filter_log_norm/'
             combineExperiments(path)
+
             """
             # Step 3 -- Convert to proteins and compute
             #           JS divergence/entropy for each protein
@@ -737,22 +754,24 @@ def main():
                     fing + '/' + strin + '/combined_nuc_seq/'
             convertToProteins(path)
             
+
     # For 5 variable positions
     fings = ['F2', 'F3']
     strins = ['low', 'high']
     for fing in fings:
         for strin in strins:
             
-            # Step 1 -- Filter and gather stats.
             """
+            # Step 1 -- Filter and gather stats.
             path = '../data/b1hData/newDatabase/5varpos/' + \
                 fing + '/' + strin + '/all_nuc_seq/'
-            getStatsAndFilterNNS(path)
+            filterNNSandLowCounts(path, cutoffCount)
 
             # Step 2 -- Combine multiple experiment frequencies
             path = '../data/b1hData/newDatabase/5varpos/' + \
-                fing + '/' + strin + '/all_nuc_seq_NNSnorm/'
+                fing + '/' + strin + '/nuc_seq_filter_log_norm/'
             combineExperiments(path)
+
             """
             # Step 3 -- Convert to proteins and compute
             #            JS divergence/entropy for each protein

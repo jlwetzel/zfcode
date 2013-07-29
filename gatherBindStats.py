@@ -22,7 +22,7 @@ def getUniqueShilpaZFs(path, contacts):
 
 	return prots
 
-def getProtDict(path, contacts, cut = 0):
+def getProtDict(path, contacts):
 	# Returns a dictionary mapping unique proteins 
 	# (when using only given list of contact positions)
 	# to a list of tuples (3-mer target bound, count).
@@ -42,15 +42,15 @@ def getProtDict(path, contacts, cut = 0):
 		prot = ""
 		for c in contacts:
 			prot += sp_line[1][c]
-		if freq >= cut:
-			if protDict.has_key(prot):
-				if protDict[prot].has_key(targ):
-					protDict[prot][targ] += freq
-				else:
-					protDict[prot][targ] = freq
+            
+		if protDict.has_key(prot):
+			if protDict[prot].has_key(targ):
+				protDict[prot][targ] += freq
 			else:
-				protDict[prot] = {}
 				protDict[prot][targ] = freq
+		else:
+			protDict[prot] = {}
+			protDict[prot][targ] = freq
 
 	inFile.close()
 	return protDict
