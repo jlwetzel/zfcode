@@ -1,126 +1,99 @@
 import os
-import jellyfish
-import numpy as np
+import re
+from jellyfish import hamming_distance
 from fixTables import normalizeFreq
+from gatherBindStats import getProtSet
 
-def rmBadSeqs(fname, canonIndex):
-	# Remove the sequences that have only one coding 
-	# posibility and are more than edit distance 1 
-	# away from all canonical sequences for this target 
-	# that meet the entropy cutoff.
-	
-	# Get all sequences meeting the entropy threshold
-	fin = open(fname, 'r')
-	goodSeqs = [i.strip().split('\t')[0] for i in fin.readlines()\
-	            if eval(i.strip().split('\t')[3]) != 1]
-	fin.close()
-	
-	# Convert to canonical set of sequences
-	canonSeqs = []
-	for seq in goodSeqs:
-		canonSeq = ''
-		for i in canonIndex:
-			canonSeq += seq[i]
-		canonSeqs.append(canonSeq)
-	canonSeqs = set(canonSeqs)
-	#print canonSeqs
+def hasSupport(seq, keepSeqs, canInd):
+	# Returns True if seq is at hamming 
+	# distance of one from at least one 
+	# other seq in keepSeqs when using 
+	# only the canonical indices
 
-	# Write all the good sequences from fname into a temp 
-	# file and then replace fname with the tmp file
-	fin = open(fname, 'r')
-	fout = open('tmp.txt', 'w')
+	canSeq1 = ''
+	for j in canInd:
+		canSeq1 += seq[j]
+
+	for s in keepSeqs:
+
+		# Make sure this is not the exact same sequence
+		if seq == s:
+			continue
+
+		canSeq2 = ''
+		for j in canInd:
+			canSeq2 += s[j]
+		if hamming_distance(canSeq1, canSeq2) <= 1:
+			return True
+
+	return False
+
+
+def filterEntropySupport(oldFile, newFile, cutoff, canInd):
+	# Scans oldFile for lines that don't pass entropy cutoff.
+	# These lines are removed, except in the case of proteins
+	# with only one possible coding combination.  
+	# The remaining lines will then be scanned once more to 
+	# see if they have "support".  
+	# Support means that there is at least one other sequence
+	# that is hamming distance at most 1 from the sequence in 
+	# the canonical positions -1,2,3,6.
+
+	# Get list of lines/seqs we could potentially keep
+	# (either pass entropy filter or only one way of coding)
+	print "Processing %s" %oldFile
+	fin = open(oldFile, 'r')
+	keepLines = []
 	for line in fin:
-		sp_line = line.strip().split('\t')
+		sp_line = line.strip().split()
+		entropy = eval(sp_line[5])
 		numPoss = eval(sp_line[3])
-		if numPoss > 1:
-			fout.write(line)
-		else:
-			seq = sp_line[0]
-			seq2 = ''
-			for i in canonIndex:
-				seq2 += seq[i]
-			for canonSeq in canonSeqs:
-				if jellyfish.hamming_distance(seq2, canonSeq) <= 1:
-					#print "Here"
-					fout.write(line)
-					break
-	fout.close()
-	normalizeFreq('tmp.txt', 1)
-	os.system('mv tmp.txt ' + fname)
-
-def parseAllFile(prefix, rest, cutoff, canonIndex):
-	# Create a set of new files with that have 
-	# been filtered for entropy in a new directory.
-
-	fin = open(prefix + rest, 'r')
-	newdir = prefix + 'protein_cut10_entr' + \
-	         str(cutoff).replace('.', '') + '/'
-	try:
-		os.mkdir(newdir)
-	except OSError:
-		pass
-
-	lastTarg = 'AAA'
-	fout = open(newdir + lastTarg + '.txt', 'w')
-	print 'Processing '+ newdir + lastTarg + '.txt'
-	i = 0
-	j = 0
-	for line in fin:
-		sp_line = line.strip().split('\t')
-		targ = sp_line[0]
-		numObs = eval(sp_line[3])
-		numPoss = eval(sp_line[4])
-		entropy = eval(sp_line[6])
-
-		if targ != lastTarg:
-			fout.close()
-			if i == 0:
-				os.system('rm ' + newdir + 'AAA.txt')
-				fout = open(newdir + targ + '.txt', 'w')
-			else:
-				print "%d unique sequences" %j
-				rmBadSeqs(newdir + lastTarg + '.txt', canonIndex)
-				j = 0
-				fout = open(newdir + targ + '.txt', 'w')
-				print 'Processing '+ newdir + targ + '.txt'
-		lastTarg = targ
-			
-		if entropy >= cutoff or (numPoss == 1 and numObs == 1):
-			fout.write('\t'.join(sp_line[1:]) + '\n')
-			j += 1
-		i += 1
-	fout.close()
-	rmBadSeqs(newdir + targ + '.txt', canonIndex)
+		if entropy >= cutoff or numPoss == 1:
+			keepLines.append(line)
 	fin.close()
+
+	# Only keep seqs from keepLines that are supported 
+	# by at least one other seq in keepLines
+	fout = open(newFile, 'w')
+	keepSeqs = [i.strip().split()[0] for i in keepLines]
+	for i, seq in enumerate(keepSeqs):
+		if hasSupport(seq, keepSeqs, canInd):
+			fout.write(keepLines[i])	
+	fout.close()
 
 def main():
-
-	npos = 5
-
-	# For the 6 position data
-	if npos == 6:
-		cutoffs = {('F1', 'high'): 0.25, ('F1', 'low'): 0.25,
-			   	   ('F2', 'high'): 0.25, ('F2', 'low'): 0.25,
-			   	   ('F3', 'high'): 0.25, ('F3', 'low'): 0.25,}
-		fings = ['F1', 'F2', 'F3']
-		strins = ['low', 'high']
-		tag = '6varpos'
-		canonIndex = [0,2,3,5]
-
-	# For the 5 position data
-	elif npos == 5:
-		cutoffs = {('F2', 'high'): 0.25, ('F2', 'low'): 0.25}
-		fings = ['F2']
-		strins = ['low', 'high']
-		tag = '5varpos'
-		canonIndex = [0,1,2,4]
-
+	
+	varpos = '5varpos'
+	fings = ['F2', 'F3']
+	strins = ['low', 'high']
+	cutoff = 0.25
 	for f in fings:
 		for s in strins:
-			prefix = '../data/b1hData/newDatabase/' + tag \
-				+ '/' + f + '/' + s + '/'
-			rest = 'protein_seqs_JSD/all_cut10.txt'
-			parseAllFile(prefix, rest, cutoffs[f,s], canonIndex)
+			oldDir = '../data/b1hData/newDatabase/' + \
+				'/'.join([varpos, f, s, 'protein_seq']) + '/'
+
+			# Make a new directory for the filtered proteins
+			newDir = '/'.join(oldDir.split('/')[:-2]) + \
+				'/protein_seq_'+ (str(cutoff)).replace('.', '') + '/'
+			try:
+				os.mkdir(newDir)
+			except OSError:
+				pass
+
+			# Step through each protein file
+			handle = os.popen('ls ' + oldDir)
+			for fname in handle:
+				fname = fname.strip()
+				if re.match(r'[ACGT]{3}(.)*.txt', fname) == None:
+					continue
+
+				if varpos == '6varpos':
+					canInd = [0,2,3,5]
+				elif varpos == '5varpos':
+					canInd = [0,1,2,4]
+				filterEntropySupport(oldDir + fname, newDir + fname,
+				                     cutoff, canInd)
+				normalizeFreq(newDir + fname, 1)
 
 if __name__ == '__main__':
 	main()
