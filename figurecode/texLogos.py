@@ -48,8 +48,8 @@ def makeTexTable(logoDir, f, s, t):
 def main():
 	prefix = '../../data/b1hData/newDatabase/6varpos/'
 	fings = ['F2']
-	strins = ['high', 'low']
-	thresh = ['protein_cut10_entr04', 'protein_cut10_entr025']
+	strins = ['low']#['high', 'low']
+	thresh = ['protein_seq_025']
 	for f in fings:
 		for s in strins:
 			for t in thresh:

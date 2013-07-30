@@ -5,7 +5,8 @@ import re
 
 def makeLogo(infile, outfile, format = 'pdf', alpha = 'protein',
              composition = 'none', size = 'large', 
-             colScheme = 'chemistry', xlab = 'X'):
+             colScheme = 'chemistry', xlab = None,
+             annot = None, fineprint = None):
 	# Creates a logo based on a pwm by calling weblogo.
 	#
 	# - infile is a path to a pwm file in the transfac 
@@ -13,8 +14,14 @@ def makeLogo(infile, outfile, format = 'pdf', alpha = 'protein',
 	# - outfile is the path where the file will be saved
 	# The remaining parameters correspond ot flags for weblogo.
 	# See weblogo CLI for more info about them.
-	opts = '-F %s -A %s -i 0 -s %s -c %s --composition %s -x %s' \
-			%(format, alpha, size, colScheme, composition, xlab)
+	opts = '-F %s -A %s -i 0 -s %s -c %s --composition %s' \
+			%(format, alpha, size, colScheme, composition)
+	if xlab != None:
+		opts += ' -x %s' %xlab
+	if annot != None:
+		opts += ' --annotate %s' %annot
+	if fineprint != None:
+		opts +  ' --fineprint %s' %fineprint
 	print opts
 	print infile
 	print outfile
