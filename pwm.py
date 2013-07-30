@@ -125,7 +125,7 @@ def makePWMDir(prefix):
 
 def main():
 	prefix = '../data/b1hData/newDatabase/6varpos/' + \
-		'F2/low/protein_cut10_entr025/'
+		'F2/low/protein_seq_025/'
 	makePWMDir(prefix)
 
 if __name__ == '__main__':
