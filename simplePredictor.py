@@ -17,6 +17,7 @@ class SimplePredictor():
 		self.numNucs = numNucs
 		self.numAminos = numAminos
 		self.pairMap = self.makePosPairMap()
+		self.revPairMap = self.makeRevPairMap()
 		self.numObs, self.freqs = self.makePositionSpecFreqs()
 		self.notObserved = {}
 		self.pairMats = self.makePairMats()
@@ -37,6 +38,16 @@ class SimplePredictor():
 				posPairMap[i*self.numAminos + j] = (nval, aval)
 
 		return posPairMap
+
+	def makeRevPairMap(self):
+		# Make the map from actual position pairs to 
+		# x values.
+		vals = [i[1] for i in self.pairMap.items()]
+		keys = [i[0] for i in self.pairMap.items()]
+		revPairMap = {}
+		for i, val in enumerate(vals):
+			revPairMap[val] = keys[i]
+		return revPairMap
 
 	def makePositionSpecFreqs(self):
 		# Returns a dictionary of position specific pairwise
@@ -152,6 +163,46 @@ class SimplePredictor():
 			         xlab = posStr, fineprint = '')
 
 
+	def predictCanon(self, prot):
+		# Returns the predicted logo when given the canonical
+		# positions of a particular protein
+
+		canMap = {0: -1, 1: 2, 2: 3, 3: 6}
+		
+				
+		nucMat = np.zeros(shape = (3,4))
+		
+		nucMat[0,:] = \
+			self.pairMats[self.revPairMap[(1,6)]]\
+				[aminos.index(prot[3]),:]
+		nucMat[1,:] = \
+			self.pairMats[self.revPairMap[(2,3)]]\
+				[aminos.index(prot[2]),:]
+		nucMat[2,:] = \
+			(self.pairMats[self.revPairMap[(3,-1)]]\
+			 	[aminos.index(prot[0]),:]+\
+			self.pairMats[self.revPairMap[(3,2)]]\
+			 	[aminos.index(prot[1]),:])/2
+		
+		return nucMat
+
+def makeNucMatFile(path, prot, nucMat, a = 'dna'):
+	# Write a transfac style frequency matrix to file
+
+	fout = open(path + prot + '.txt', 'w')
+	# Write a dummy header
+	fout.write('ID idNum\nBF species\n')
+	fout.write('P0\t' + '\t'.join(nucs) + '\n')
+	for i in range(len(nucMat)):
+		outstr = str(i+1).zfill(2)
+		for j in range(len(nucMat[i,:])):
+			outstr += '\t%.4f' %nucMat[i,j]
+		outstr += '\tX\n'
+		fout.write(outstr)
+	fout.write('XX\n\\\\\n')
+	fout.close()
+
+
 def main():
 	numAminos = 6
 	proteinDir = '../data/b1hData/newDatabase/6varpos/' +\
@@ -163,8 +214,19 @@ def main():
 	#for i in sorted(predictor.pairMats.keys()):
 	#	print predictor.pairMap[i]
 	#	print predictor.pairMats[i]
-	predictor.writePosSpecPWMs(outputDir)
-	predictor.makePosSpecLogos(outputDir)
+	#predictor.writePosSpecPWMs(outputDir)
+	#predictor.makePosSpecLogos(outputDir)
+	
+	prots = ['QGNT', 'DSNH', 'FSNA', 'QATN', 'HSTN', 'RDTN',
+			 'FSTN', 'QGHT', 'WSSN']
+	for prot in prots:
+		nmat = predictor.predictCanon(prot)
+		print prot
+		predicitonDir = outputDir+'predictions/'
+		makeNucMatFile(predicitonDir, prot, nmat)
+		makeLogo(predicitonDir+prot+'.txt', predicitonDir+prot+'.pdf',
+		         alpha = 'dna', colScheme = 'classic',
+		         annot = "'5,M,3'", xlab = prot)
 
 if __name__ == '__main__':
 	main()
