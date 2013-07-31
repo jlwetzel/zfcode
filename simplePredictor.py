@@ -155,8 +155,8 @@ class SimplePredictor():
 def main():
 	numAminos = 6
 	proteinDir = '../data/b1hData/newDatabase/6varpos/' +\
-		'F2/low/protein_seq_025/'
-	outputDir = '../data/simplePredictor/cut10bc_025/'
+		'F2/low/protein_seq_cut3bc_025/'
+	outputDir = '../data/simplePredictor/cut3bc_025/'
 
 	predictor = SimplePredictor(proteinDir + 'all.txt', 
 	                            3, numAminos)

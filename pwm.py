@@ -39,6 +39,10 @@ def writePWM(dst, posCounts, npos, letters):
 		rowTot = 0
 		for j in letters:
 			rowTot += posCounts[i,j]	
+		if rowTot == 0:
+			fout.close()
+			os.remove(dst)
+			return
 		for j in letters:
 			posCounts[i,j] = posCounts[i,j]/float(rowTot)
 
@@ -132,7 +136,7 @@ def makePWMDir(prefix):
 
 def main():
 	prefix = '../data/b1hData/newDatabase/6varpos/' + \
-		'F2/low/protein_seq_025/'
+		'F2/low/protein_seq_cut3bc_025/'
 	makePWMDir(prefix)
 
 if __name__ == '__main__':

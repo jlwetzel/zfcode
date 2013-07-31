@@ -20,12 +20,15 @@ def hasSupport(seq, keepSeqs, canInd):
 		if seq == s:
 			continue
 
+		# If find a canonical version within ham dist 1
+		# then return True
 		canSeq2 = ''
 		for j in canInd:
 			canSeq2 += s[j]
 		if hamming_distance(canSeq1, canSeq2) <= 1:
 			return True
 
+	# Found no canonical sequence within ham dist 1.
 	return False
 
 
@@ -63,18 +66,19 @@ def filterEntropySupport(oldFile, newFile, cutoff, canInd):
 
 def main():
 	
-	varpos = '5varpos'
-	fings = ['F2', 'F3']
+	varpos = '6varpos'
+	fings = ['F1', 'F2', 'F3']
 	strins = ['low', 'high']
 	cutoff = 0.25
 	for f in fings:
 		for s in strins:
 			oldDir = '../data/b1hData/newDatabase/' + \
-				'/'.join([varpos, f, s, 'protein_seq']) + '/'
+				'/'.join([varpos, f, s, 'protein_seq_cut3bc']) + '/'
 
 			# Make a new directory for the filtered proteins
 			newDir = '/'.join(oldDir.split('/')[:-2]) + \
-				'/protein_seq_'+ (str(cutoff)).replace('.', '') + '/'
+				'/protein_seq_cut3bc_'+ \
+				(str(cutoff)).replace('.', '') + '/'
 			try:
 				os.mkdir(newDir)
 			except OSError:

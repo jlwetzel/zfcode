@@ -243,8 +243,8 @@ def filterNNSandLowCounts(path, cutoffCount = 0):
 
     # Make directories for nucleotides sequences with 
     # normalized probs
-    newDir = '/'.join(path.split('/')[:-2]) + '/nuc_seq_filter' +\
-        '_log_norm/'
+    newDir = '/'.join(path.split('/')[:-2]) + \
+        '/nuc_seq_noNSS_cut%dbc/' %cutoffCount 
     try:
         os.mkdir(newDir)
     except OSError:
@@ -353,7 +353,7 @@ def outputCombinedNucFile(path, targ, seqDict, numTargFiles):
     print 'Output results to %s' \
         %(path + targ + '_combined_nuc_seq.txt')
 
-def combineExperiments(path):
+def combineExperiments(path, cutoffCount):
     # Combines the multiple experiments for into one file
     # per 3-mer by taking the arithmetic mean of frequencies
     # for each sequence of nucleotides across the experiments.
@@ -361,7 +361,8 @@ def combineExperiments(path):
     nucs = ['A', 'C', 'T', 'G']
 
     # Make a directory for nucleotide and codon stats
-    newDir = '/'.join(path.split('/')[:-2]) + '/combined_nuc_seq/'
+    newDir = '/'.join(path.split('/')[:-2]) + \
+        '/combined_nuc_seq_cut%dbc/' %cutoffCount
     try:
         os.mkdir(newDir)
     except OSError:
@@ -646,7 +647,7 @@ def processCombinedNucSeqFile(fpath, protDict,
     return nucseq
 
 
-def convertToProteins(path):
+def convertToProteins(path, cutoffCount):
     # Converts a directory with files of nucleotide
     # sequences and frequencies to the corresponding
     # combined set of proteins and frequencies.  Also JS
@@ -660,7 +661,8 @@ def convertToProteins(path):
 
     # Make directories for nucleotides sequences with 
     # normalized probs
-    newDir = '/'.join(path.split('/')[:-2]) + '/protein_seq/'
+    newDir = '/'.join(path.split('/')[:-2]) + \
+        '/protein_seq_cut%dbc/' %cutoffCount
     try:
         os.mkdir(newDir)
     except OSError:
@@ -702,7 +704,7 @@ def convertToProteins(path):
         tList = sorted(tList, reverse = True)
 
         print "Writing protein and statistics files."
-        fout = open(newDir + targ + '_protein_seq.txt', 'w')
+        fout = open(newDir + targ + '.txt', 'w')
         for x in tList:
             fout.write(x[1] + '\t' + str(x[0]) + '\t' \
                        + str(x[2]) + '\t' + str(x[3]) + '\t' \
@@ -727,7 +729,7 @@ def convertToProteins(path):
 
 def main():
 
-    cutoffCount = 10
+    cutoffCount = 3
 
     # For 6 variable positions
     fings = ['F3', 'F2', 'F1']
@@ -743,14 +745,16 @@ def main():
 
             # Step 2 -- Combine multiple experiment frequencies
             path = '../data/b1hData/newDatabase/6varpos/' + \
-                fing + '/' + strin + '/nuc_seq_filter_log_norm/'
-            combineExperiments(path)
+                fing + '/' + strin + \
+                '/nuc_seq_noNSS_cut%dbc/' %cutoffCount
+            combineExperiments(path, cutoffCount)
 
             # Step 3 -- Convert to proteins and compute
             #           JS divergence/entropy for each protein
             path = '../data/b1hData/newDatabase/6varpos/' + \
-                    fing + '/' + strin + '/combined_nuc_seq/'
-            convertToProteins(path)
+                    fing + '/' + strin + \
+                    '/combined_nuc_seq_cut%dbc/' %cutoffCount
+            convertToProteins(path, cutoffCount)
             
 
     # For 5 variable positions
@@ -763,16 +767,19 @@ def main():
                 fing + '/' + strin + '/all_nuc_seq/'
             filterNNSandLowCounts(path, cutoffCount)
 
+
             # Step 2 -- Combine multiple experiment frequencies
             path = '../data/b1hData/newDatabase/5varpos/' + \
-                fing + '/' + strin + '/nuc_seq_filter_log_norm/'
-            combineExperiments(path)
+                fing + '/' + strin + \
+                '/nuc_seq_noNSS_cut%dbc/' %cutoffCount
+            combineExperiments(path, cutoffCount)
 
             # Step 3 -- Convert to proteins and compute
-            #            JS divergence/entropy for each protein
+            #           JS divergence/entropy for each protein
             path = '../data/b1hData/newDatabase/5varpos/' + \
-                    fing + '/' + strin + '/combined_nuc_seq/'
-            convertToProteins(path)
+                    fing + '/' + strin + \
+                    '/combined_nuc_seq_cut%dbc/' %cutoffCount
+            convertToProteins(path, cutoffCount)
 
 if __name__ == '__main__':
     main()
