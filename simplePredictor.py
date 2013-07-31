@@ -148,7 +148,7 @@ class SimplePredictor():
 			logofname = outputDir + 'posSpecLogos/' + \
 				'posPair_%s.pdf' %(posStr)
 			makeLogo(pwmfname, logofname, alpha = 'dna',
-			         colScheme = 'chemistry', annot = annotList,
+			         colScheme = 'classic', annot = annotList,
 			         xlab = posStr, fineprint = '')
 
 
