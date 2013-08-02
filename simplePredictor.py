@@ -5,6 +5,7 @@
 import numpy as np
 import os
 from pwm import makeLogo
+#from revExpParseUtils import get700Prots
 
 nucs = ['A', 'C', 'G', 'T']
 aminos = ['A', 'C', 'D', 'E', 'F', 'G', 'I', 'H', 'K', 'L', 
@@ -164,12 +165,12 @@ class SimplePredictor():
 
 
 	def predictCanon(self, prot):
-		# Returns the predicted logo when given the canonical
-		# positions of a particular protein
+		# Returns a 2d numpy array for the predicted logo
+		# of the given protein.
+		# Prot is assumed to be given as a length 4 
+		# string representing the -1,2,3,6 positions 
+		# of the alpha helix of the ZF domain.
 
-		canMap = {0: -1, 1: 2, 2: 3, 3: 6}
-		
-				
 		nucMat = np.zeros(shape = (3,4))
 		
 		nucMat[0,:] = \
@@ -186,10 +187,26 @@ class SimplePredictor():
 		
 		return nucMat
 
-def makeNucMatFile(path, prot, nucMat, a = 'dna'):
+	def predictCanonArray(self, canonZFs):
+		# Returns a 2d numpy array of the predicted pwm for 
+		# a list of arrayed ZFs.  Assumes that the each ZF
+		# in canonZFs is simply a length 4 string corresponding
+		# to positions -1,2,3,6 of the alpha helix.
+
+		numZFs = len(canonZFs)
+		pwm = np.zeros(shape = (numZFs*3, 4))
+		
+		for i in range(numZFs):
+			nmat = self.predictCanon(canonZFs[i])
+			for j in range(len(nmat)):
+				pwm[i*len(nmat) + j,:] = nmat[j,:]
+		
+		return pwm
+
+def makeNucMatFile(path, prot, protLabel, nucMat, a = 'dna'):
 	# Write a transfac style frequency matrix to file
 
-	fout = open(path + prot + '.txt', 'w')
+	fout = open(path + protLabel + '.txt', 'w')
 	# Write a dummy header
 	fout.write('ID idNum\nBF species\n')
 	fout.write('P0\t' + '\t'.join(nucs) + '\n')
@@ -202,7 +219,6 @@ def makeNucMatFile(path, prot, nucMat, a = 'dna'):
 	fout.write('XX\n\\\\\n')
 	fout.close()
 
-
 def main():
 	numAminos = 6
 	proteinDir = '../data/b1hData/newDatabase/6varpos/' +\
@@ -211,20 +227,27 @@ def main():
 
 	predictor = SimplePredictor(proteinDir + 'all.txt', 
 	                            3, numAminos)
-	#for i in sorted(predictor.pairMats.keys()):
-	#	print predictor.pairMap[i]
-	#	print predictor.pairMats[i]
+	
+	# ONly need these lines once.
 	#predictor.writePosSpecPWMs(outputDir)
 	#predictor.makePosSpecLogos(outputDir)
 	
-	prots = ['QGNT', 'DSNH', 'FSNA', 'QATN', 'HSTN', 'RDTN',
-			 'FSTN', 'QGHT', 'WSSN']
-	for prot in prots:
+	prots = get700Prots('../data/revExp/revExpBarcodes/' + \
+	                    'revExper_GAG_700s.txt')
+	print prots
+
+	for p in prots:
+		protNum = str(p[0])
+		prot = ''.join([p[1][0],p[1][2],p[1][3],p[1][6]])
+		protLabel = protNum + '-' + prot
+		#print p, prot, protNum, protLabel
+
 		nmat = predictor.predictCanon(prot)
-		print prot
 		predicitonDir = outputDir+'predictions/'
-		makeNucMatFile(predicitonDir, prot, nmat)
-		makeLogo(predicitonDir+prot+'.txt', predicitonDir+prot+'.pdf',
+		makeNucMatFile(predicitonDir + 'pwms/', prot,
+		               protLabel, nmat)
+		makeLogo(predicitonDir+ 'pwms/' + protLabel+'.txt', 
+		         predicitonDir+ 'logos/' + protLabel+'.pdf',
 		         alpha = 'dna', colScheme = 'classic',
 		         annot = "'5,M,3'", xlab = prot)
 
