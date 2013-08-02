@@ -114,59 +114,82 @@ printPlot <- function (data, figurePath, plotFunc, ...) {
 	dev.off()
 }
 
+zfilterPlots <- function(fdir, pref, data) {
+	# Do plots with filtering out zero entropy values
+	# either completely or with only leaving zeros 
+	# entropy if there's exactly one coding variant possible
+
+	data1 <- subset(data, V7 > 0)
+
+	# Uncomment if want to remove 0 entropy proteins 
+	# EXCEPT for proteins that only CAN code one way.
+	data2 <- subset(data, V7 > 0 | 
+	               (V4 == 1 & V5 == 1))
+
+	# Plots w/ all 0 entropy EXCEPT only one coding 
+	# combination possible removed
+	printPlot(data2,paste0(fdir, pref,'_entropy_hist.pdf'),
+	          entropyHistogram)
+    printPlot(data2, 
+    	      paste0(fdir,pref,'_entropyVfreq_scatter.pdf'),
+   	          freqVsEntropyscatter)
+    printPlot(data2, 
+    	  	  paste0(fdir,pref,'_entropyVfreq_scatter_zoom.pdf'),
+    	      freqVsEntropyscatter, c(0, 0.0015))
+    printPlot(data2, 
+              paste0(fdir,pref,'_entropyVnumComb_box.pdf'),
+              countVsEntropybp)
+    printPlot(data2, 
+              paste0(fdir,pref,'_entropyVtarget_box.pdf'),
+              targetVsEntropybp)
+
+    # Plots w/ ALL 0 ENTROPY REMOVED
+	printPlot(data1, 
+              paste0(fdir,pref,'_codonCombo_box_abs.pdf'),
+              codonComboBox, type = 'abs')				
+    printPlot(data1, 
+              paste0(fdir,pref,'_codonCombo_box_abs_zoom.pdf'),
+              codonComboBox, type = 'abs', ylims = c(0,10))
+    printPlot(data1, 
+              paste0(fdir,pref,'_codonCombo_box_rel.pdf'),
+              codonComboBox, 'rel')
+    printPlot(data1,
+    	      paste0(fdir,pref,'_codonCombo_bar.pdf'),
+              codonComboBar)
+}
+
+noFilterPlots <- function(fdir, pref, data){
+	# Do plots without filtering anything from the data
+	printPlot(data,paste0(fdir, pref,'_entropy_hist.pdf'),
+	          entropyHistogram)
+	printPlot(data, 
+              paste0(fdir,pref,'_entropyVnumComb_box.pdf'),
+              countVsEntropybp)
+    printPlot(data, 
+              paste0(fdir,pref,'_entropyVtarget_box.pdf'),
+              targetVsEntropybp)
+}
+
 main <- function() {
-	fings <- c('F2')#c('F1', 'F2', 'F3')
+	fings <- c('F1', 'F2', 'F3')
 	strins <- c('low', 'high')
 	for (f in fings)
 		for (s in strins){
-			npos <- '_5pos_'
+
+			# Change next four statements for each different dataset
+			npos <- '_6pos_'
 			pref <- paste0(f,'_',s,npos)
-			
-			fdir <- '../../figures/entropy_plots/filter0s/'
+			fdirStem <- '../../figures/entropy_plots/cut10bc/' 
 			alldata <- read.delim(paste0('../../data/b1hdata/',
-			                   'newDatabase/5varpos/', f, '/', s, 
-			                   '/protein_seq/all.txt'),
+			                   'newDatabase/6varpos/', f, '/', s, 
+			                   '/protein_seq_cut10bc/all.txt'),
 								header = FALSE)
 			
-			# Uncomment if want to remove all proteins with 
-			# 0 entropy.
-			data1 <- subset(alldata, V7 > 0)
-
-			# Uncomment if want to remove 0 entropy proteins 
-			# EXCEPT for proteins that only CAN code one way.
-			data2 <- subset(alldata, V7 > 0 | 
-			               (V4 == 1 & V5 == 1))
-
-			# Plots w/ all 0 entropy EXCEPT only one coding 
-			# combination possible removed
-			printPlot(data2,paste0(fdir, pref,'_entropy_hist.pdf'),
-			          entropyHistogram)
-            printPlot(data2, 
-            	      paste0(fdir,pref,'_entropyVfreq_scatter.pdf'),
-           	          freqVsEntropyscatter)
-            printPlot(data2, 
-            	  	  paste0(fdir,pref,'_entropyVfreq_scatter_zoom.pdf'),
-            	      freqVsEntropyscatter, c(0, 0.0015))
-            printPlot(data2, 
-                      paste0(fdir,pref,'_entropyVnumComb_box.pdf'),
-                      countVsEntropybp)
-            printPlot(data2, 
-                      paste0(fdir,pref,'_entropyVtarget_box.pdf'),
-                      targetVsEntropybp)
-
-            # Plots w/ ALL 0 ENTROPY REMOVED
-			printPlot(data1, 
-                      paste0(fdir,pref,'_codonCombo_box_abs.pdf'),
-                      codonComboBox, type = 'abs')				
-            printPlot(data1, 
-                      paste0(fdir,pref,'_codonCombo_box_abs_zoom.pdf'),
-                      codonComboBox, type = 'abs', ylims = c(0,10))
-            printPlot(data1, 
-                      paste0(fdir,pref,'_codonCombo_box_rel.pdf'),
-                      codonComboBox, 'rel')
-            printPlot(data1,
-            	      paste0(fdir,pref,'_codonCombo_bar.pdf'),
-                      codonComboBar)
+			# Plot the stuff with filtering zeros
+			fdir <- paste0(fdirStem, 'filter0s/')
+			zfilterPlots(fdir, pref, alldata)
+			fdir <- paste0(fdirStem, 'noFilter/')
+			noFilterPlots(fdir, pref, alldata)
 		}
 }
 
