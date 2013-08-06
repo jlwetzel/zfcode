@@ -1,81 +1,225 @@
 import numpy as np
+from pwm import makeLogo
 
-def get700Prots(fname):
-	# Parses the file with all 700 proteins and
-	# returns a tuple list of the for (number, F2 protein)
+nucs = ['A', 'C', 'G', 'T']
 
-	print fname
-	fin = open(fname, 'r')
-	fin.readline()   # Skip the header line
-	tList = []
-	for line in fin:
-		print line
-		sp_line = line.strip().split()
-		num = int(sp_line[0])
-		prot = sp_line[2]
-		tList.append((num,prot))
-	fin.close()
+def makeNucMatFile(path, label, nucMat):
+	# Write a transfac style frequency matrix to file
 
-	return tList
+	fout = open(path + label + '.txt', 'w')
+	# Write a dummy header
+	fout.write('ID idNum\nBF species\n')
+	fout.write('P0\t' + '\t'.join(nucs) + '\n')
+	for i in range(len(nucMat)):
+		outstr = str(i+1).zfill(2)
+		for j in range(len(nucMat[i,:])):
+			outstr += '\t%.4f' %nucMat[i,j]
+		outstr += '\tX\n'
+		fout.write(outstr)
+	fout.write('XX\n\\\\\n')
+	fout.close()
+
 
 def normalizePWM(pwm):
 	# Normalizes each inner array of 
 	# a 2d numpy array
-	for i in len(pwm):
+	for i in range(len(pwm)):
 		pwm[i,:] = pwm[i,:]/np.sum(pwm[i,:])
 	return pwm
 
 def parseMemeFile(fpath):
 	# Returns a PWM of the width of the alignment in the
 	# MEME.txt file.
-	nucs = ['A', 'C', 'G', 'T']
+	
+	try:
+		fin = open(fpath, 'r')
+	except IOError:
+		print "File: %s not found!" %fpath
+		return None, None
 
-	fin = open(fpath, 'r')
-	# Find the alignments width
-	line = ''
+	# Find the background nuc frequencies
 	for line in fin:
-		print line
-		if line.strip() == '':
-			continue
 		sp_line = line.strip().split()
-		if sp_line[0] == 'MOTIF':
-			alWid = eval(sp_line[4])
-		if line.strip() == 'Motif 1 sites sorted by position p-value':
+		if len(sp_line) > 1:
+			if sp_line[0] == "Background":
+				break				
+	for i, line in enumerate(fin):
+		if i > 0:
 			break
-	fin.readline()
-	fin.readline()
-	fin.readline()
+		sp_line = line.strip().split()
+		bgFreq = {}
+		bgFreq['A'] = eval(sp_line[1])
+		bgFreq['C'] = eval(sp_line[3])
+		bgFreq['G'] = eval(sp_line[5])
+		bgFreq['T'] = eval(sp_line[7])
 
-	# Build the count per-position count matrix
-	pwm = np.zeros((alWid, len(nucs)), float)
-
+	# Find the motif width
 	for line in fin:
+		sp_line = line.strip().split()
+		if len(sp_line) > 1:
+			if ' '.join([sp_line[0], sp_line[1]]) == "MOTIF 1":
+				mWid = eval(sp_line[4])
+				break
+
+	# Get to the first alignment line
+	countDash = 0
+	for line in fin:
+		line = line.strip()
+		#print line
+		if len(line) > 0 and line[0] == '-':
+			countDash += 1
+			if countDash > 5:
+				break
+	
+	# Build the count per-position count matrix
+	pwm = np.zeros((mWid, len(nucs)), float)
+	for line in fin:
+		if line[1] == '-':
+			break
 		sp_line = line.strip().split()
 		count = np.log2(eval(sp_line[0].split('_')[1]))
 		nucseq = sp_line[4]
 		for i, n in enumerate(nucseq):
 			pwm[i,nucs.index(n)] += count
+	
+	# Close the file
+	fin.close()
 
-	return normalizePWM(pwm)
+	# Return the normalized pwm
+	return normalizePWM(pwm), bgFreq
 
-def makeallpwms700s(listfile): 
+def get_GAG_pwm(pwm):
+	# Find the index in the pwm where the 
+	# GAG motif starts and then return a new
+	# pwm that begins at this index.
+
+	# Find the start index of the GAG motif
+	G1Found = False
+	A1Found = False
+	GAGFound = False
+	G1ind = 0
+	A1ind = 0
+	for i in range(len(pwm)):
+		if GAGFound:
+			break
+		argmax = np.argmax(pwm[i,:])
+		if G1Found and A1Found and argmax == nucs.index('G') and \
+			i - 1 == A1ind:
+			GAGFound = True
+		elif G1Found and argmax == nucs.index('A') and \
+			i - 1 == G1ind:
+			A1Found = True
+			A1ind = i
+		elif argmax == nucs.index('G'):
+			G1Found = True
+			G1ind = i
+	startInd = G1ind
+	#print startInd
+
+	if startInd > 3:
+		return None
+	
+	# Copy the appropriate positions into the new PWM
+	trimmedPWM = np.zeros((len(pwm) - startInd, 4), float)
+	for i in range(len(trimmedPWM)):
+		trimmedPWM[i,:] = pwm[i+startInd,:]
+
+	return trimmedPWM
+
+def make3posPWM(outDir, label, pwm, targ, prot):
+	# Make pwms and logos for just the 3 positons
+	# following the GAG motif
+
+	pwm3 = np.zeros((3, 4), float)
+	for i in range(3):
+		pwm3[i,:] = pwm[i+3,:]
+	makeNucMatFile(outDir + 'pwms3/', label, pwm3)
+	logoIn = outDir + 'pwms3/' + label + '.txt'
+	logoOut = outDir + 'logos3/' + label + '.pdf'
+	makeLogo(logoIn, logoOut, alpha = 'dna',
+	         colScheme = 'classic', annot = "'5,M,3'",
+	         xlab = '_'.join([targ,prot]))
+
+def makeallpwms700s(listfile, targDict): 
 	# Makes pwms for all of the proteins that end 
 	# in a 700 (Think this is all F2s?)
 	bcKey = {1: 'TC', 2: 'AA', 3: 'GG'}
 	fin = open(listfile, 'r')
+	fileNotFound = 0
+	GAG_notFound = 0
+	numPwms = 0
+	keysNotFound = []
 	for line in fin:
 		sp_line = line.strip().split()
 		bc = bcKey[eval(sp_line[4][-1])] + '_' + sp_line[2]
 		dset = sp_line[0].split('-')[0]
-		fpath = '../data/revExp/MN28-37/%s/%s/meme.txt' \
+		targNum = eval(sp_line[0].split('-')[-1])
+		fpath = '../data/revExp/MN28-37/%s/%s/' \
 			%(dset, bc)
-		pwm = parseMemeFile(fpath)
-		print pwm
+		pwm, bgFreq = parseMemeFile(fpath + 'meme.txt')
+		
+		# If the file was found, trim the uniformative 
+		# positions from front of pwm and then write 
+		# the pwm to a file in two location and create 
+		# a logo.
+		if pwm == None:
+			fileNotFound += 1
+			continue
+		pwm = get_GAG_pwm(pwm)
+		if pwm == None:
+			print '%smeme.txt has no valid GAG motif!' %fpath
+			GAG_notFound += 1
+			continue
+		
+		# Found a matrix with a valid GAG motif near beginning
+		# Write the pwm and logo to the F2_GAG directory
+		numPwms += 1
+		try:
+			targ = targDict[targNum][0]
+			prot = targDict[targNum][1]
+		except KeyError:
+			keysNotFound.append(targNum)
+			continue
 
+		outDir = '../data/revExp/F2_GAG/'
+		label = '_'.join([str(targNum), targ, prot])
+		makeNucMatFile(outDir + 'pwms/', label, pwm)
+		logoIn = outDir + 'pwms/' + label + '.txt'
+		logoOut = outDir + 'logos/' + label + '.pdf'
+		makeLogo(logoIn, logoOut, alpha = 'dna',
+		         colScheme = 'classic', 
+		         xlab = '_'.join([targ,prot]))
+		make3posPWM(outDir, label, pwm, targ, prot)
+
+	fin.close()
+	print "Number of pwms created: %d" %numPwms
+	print "Number of files not found: %d" %fileNotFound
+	print "Number where GAG motif not found: %d" %GAG_notFound
+	print "Number of keys not found: %d" %len(keysNotFound)
+	print "Keys not found: "
+	for k in keysNotFound:
+		print k
+
+def getTargDict(targfname):
+	# Get a dictionary mapping each protNum 
+	# to a (targ, protein) tuple
+
+	targDict = {}
+	fin = open(targfname, 'r')
+	fin.readline()  # Skip the header
+	for line in fin:
+		sp_line = line.strip().split()
+		targNum = eval(sp_line[0])
+		targ = sp_line[4].split('-')[1]
+		prot = sp_line[2]
+		targDict[targNum] = (targ, prot)
+	return targDict
 
 def main():
-	fname = '../data/revExp/revExpBarcodes/all700Entries.txt'
-	makeallpwms700s(fname)
+	bcfname = '../data/revExp/revExpBarcodes/all700Entries.txt'
+	targfname = '../data/revExp/revExpBarcodes/revExper_GAG_700s.txt'
+	targDict = getTargDict(targfname)
+	makeallpwms700s(bcfname, targDict)
 
 if __name__ == '__main__':
 	main()

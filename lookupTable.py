@@ -120,6 +120,10 @@ def targListToLogo(dstDir, targList, protein):
 	makeLogo(pwmfile, logofile, alpha = 'dna', xlab = protein)
 
 def main():
+	pass
+
+"""
+def main():
 	fing = 'F2'
 	strin = 'high'
 	protDir = 'threshold025'
@@ -152,6 +156,7 @@ def main():
 			freq = protDict[prot][targ]
 			bindOnly1file.write('%s\t%s\t%f\n' %(prot, targ, freq))
 		i += 1
+		"""
 
 if __name__ == '__main__':
 	main()

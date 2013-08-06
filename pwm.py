@@ -2,6 +2,62 @@
 
 import os
 import re
+import numpy as np
+from scipy import stats
+
+def infoEntr(f):
+	# Returns the information entropy of the 
+	# distribution f (base 2), using the convention
+	# that plg(p) = 0 when p = 0.
+
+	ent = 0.0
+	for i in range(len(f)):
+		if f[i] == 0:
+			continue
+		ent -= f[i] * np.log2(f[i])
+
+	return ent
+
+def comparePWMs(predPWM, expPWM, threshold = 0.25):
+	# This function asumes that the two PWMs 
+	# are already aligned to one another and 
+	# are of the same length.
+	#
+	# It scores the columns based on the information
+	# content weighted Pearson correlation, adding 
+	# the following for each column, i:
+	# PCC(pred_i, exp_i) * IC(exp_i)/2
+	score = 0
+	numCorrect = 0
+	for i in range(len(predPWM)):
+		corr = stats.pearsonr(predPWM[i,:], expPWM[i,:])
+		ic = 2 - infoEntr(expPWM[i,:])
+		colScore = corr[0] * ic/2
+		if corr[0] >= threshold:
+			numCorrect += 1
+		score += colScore
+		
+	return score, numCorrect, len(predPWM)
+
+def pwmfile2matrix(pwmFile):
+	# Converts a file of the transfac format to 
+	# a matrix representaiton of the file
+	fin = open(pwmFile, 'r')
+	fin.readline()  # Skip the headers
+	fin.readline()
+	numLetters = len(fin.readline().strip().split()) - 1
+
+	numList = []
+	line = fin.readline()
+	while line.strip() != 'XX':
+		numList.append(line.strip().split()[1:-1])
+		line = fin.readline()
+
+	pwm = np.zeros((len(numList), numLetters), float)
+	for i in range(len(numList)):
+		pwm[i,:] = numList[i]
+
+	return pwm
 
 def makeLogo(infile, outfile, format = 'pdf', alpha = 'protein',
              composition = 'none', size = 'large', 
@@ -22,9 +78,9 @@ def makeLogo(infile, outfile, format = 'pdf', alpha = 'protein',
 		opts += ' --annotate %s' %annot
 	if fineprint != None:
 		opts +  ' --fineprint %s' %fineprint
-	print opts
-	print infile
-	print outfile
+	#print opts
+	#print infile
+	#print outfile
 	os.system('weblogo %s < %s > %s' %(opts, infile, outfile)) 
 	pass
 

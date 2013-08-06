@@ -4,8 +4,8 @@
 
 import numpy as np
 import os
-from pwm import makeLogo
-from revExpParseUtils import get700Prots
+from pwm import makeLogo, pwmfile2matrix, comparePWMs
+from revExpParseUtils import getTargDict
 
 nucs = ['A', 'C', 'G', 'T']
 aminos = ['A', 'C', 'D', 'E', 'F', 'G', 'I', 'H', 'K', 'L', 
@@ -203,10 +203,10 @@ class SimplePredictor():
 		
 		return pwm
 
-def makeNucMatFile(path, prot, protLabel, nucMat, a = 'dna'):
+def makeNucMatFile(path, label, nucMat):
 	# Write a transfac style frequency matrix to file
 
-	fout = open(path + protLabel + '.txt', 'w')
+	fout = open(path + label + '.txt', 'w')
 	# Write a dummy header
 	fout.write('ID idNum\nBF species\n')
 	fout.write('P0\t' + '\t'.join(nucs) + '\n')
@@ -219,6 +219,53 @@ def makeNucMatFile(path, prot, protLabel, nucMat, a = 'dna'):
 	fout.write('XX\n\\\\\n')
 	fout.close()
 
+def outputPosSpecPWMs(predictor, outputDir):
+	# Output the position-pair logos
+	predictor.writePosSpecPWMs(outputDir)
+	predictor.makePosSpecLogos(outputDir)
+
+def predict700s(predictor, outputDir):
+	# Make predictions for the F2 reverse experiments.
+
+	prots = getTargDict('../data/revExp/revExpBarcodes/' + \
+	                   'revExper_GAG_700s.txt')
+
+	predictionDir = outputDir+'predictions/'
+	expDir = '../data/revExp/F2_GAG/pwms3/'
+	fout = open(predictionDir + 'F2compare.txt', 'w')
+	fout.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %('num', \
+	           'targ','prot','canonprot','score','colcor', \
+	           'totcol'))
+			
+
+	for fname in os.popen('ls ' + expDir):
+		# Get the info about this prediction
+		fname = fname.strip()
+		sp_fname = fname.split('_')
+		protNum = sp_fname[0]
+		targ = sp_fname[1]
+		prot = sp_fname[2].split('.')[0]
+		canonProt = prot[0] + prot[2] + prot[3] + prot[6]
+		label = '_'.join([str(protNum), targ, prot])
+		
+		# Make the prediciton and write out to the 
+		# correct files.
+		nmat = predictor.predictCanon(canonProt)
+		makeNucMatFile(predictionDir + 'pwms/', label, nmat)
+		logoIn = predictionDir + 'pwms/' + label + '.txt'
+		logoOut = predictionDir + 'logos/' + label + '.pdf'
+		makeLogo(logoIn, logoOut,
+		         alpha = 'dna', colScheme = 'classic',
+		         annot = "'5,M,3'",
+		         xlab = '_'.join([targ,prot]))
+
+		score, colcor, totCol = comparePWMs(nmat, 
+		                pwmfile2matrix(expDir + label + '.txt'))
+		fout.write("%s\t%s\t%s\t%s\t%.3f\t%d\t%d\n" %(protNum, \
+		           targ, prot, canonProt, score, colcor, totCol)) \
+			
+	fout.close()
+
 def main():
 	numAminos = 6
 	proteinDir = '../data/b1hData/newDatabase/6varpos/' +\
@@ -228,28 +275,13 @@ def main():
 	predictor = SimplePredictor(proteinDir + 'all.txt', 
 	                            3, numAminos)
 	
-	# ONly need these lines once.
-	predictor.writePosSpecPWMs(outputDir)
-	predictor.makePosSpecLogos(outputDir)
+	# Output position specific matrices/logos
+	# Only need this line once.
+	#outputPosSpecPWMs(predictor, outputDir)
 	
-	prots = get700Prots('../data/revExp/revExpBarcodes/' + \
-	                    'revExper_GAG_700s.txt')
-	#print prots
+	predict700s(predictor, outputDir)
 
-	for p in prots:
-		protNum = str(p[0])
-		prot = ''.join([p[1][0],p[1][2],p[1][3],p[1][6]])
-		protLabel = protNum + '-' + prot
-		#print p, prot, protNum, protLabel
-
-		nmat = predictor.predictCanon(prot)
-		predicitonDir = outputDir+'predictions/'
-		makeNucMatFile(predicitonDir + 'pwms/', prot,
-		               protLabel, nmat)
-		makeLogo(predicitonDir+ 'pwms/' + protLabel+'.txt', 
-		         predicitonDir+ 'logos/' + protLabel+'.pdf',
-		         alpha = 'dna', colScheme = 'classic',
-		         annot = "'5,M,3'", xlab = prot)
+	
 
 if __name__ == '__main__':
 	main()
