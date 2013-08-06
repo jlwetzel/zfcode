@@ -233,9 +233,9 @@ def predict700s(predictor, outputDir):
 	predictionDir = outputDir+'predictions/'
 	expDir = '../data/revExp/F2_GAG/pwms3/'
 	fout = open(predictionDir + 'F2compare.txt', 'w')
-	fout.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %('num', \
+	fout.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %('num', \
 	           'targ','prot','canonprot','score','colcor', \
-	           'totcol'))
+	           'colcorIC', 'totcol'))
 			
 
 	for fname in os.popen('ls ' + expDir):
@@ -259,10 +259,11 @@ def predict700s(predictor, outputDir):
 		         annot = "'5,M,3'",
 		         xlab = '_'.join([targ,prot]))
 
-		score, colcor, totCol = comparePWMs(nmat, 
+		score, colcor, colcorIC, totCol = comparePWMs(nmat, 
 		                pwmfile2matrix(expDir + label + '.txt'))
-		fout.write("%s\t%s\t%s\t%s\t%.3f\t%d\t%d\n" %(protNum, \
-		           targ, prot, canonProt, score, colcor, totCol)) \
+		fout.write("%s\t%s\t%s\t%s\t%.3f\t%d\t%d\t%d\n" %(protNum, \
+		           targ, prot, canonProt, score, colcor, \
+		           colcorIC, totCol))
 			
 	fout.close()
 

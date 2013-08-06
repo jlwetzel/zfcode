@@ -29,15 +29,18 @@ def comparePWMs(predPWM, expPWM, threshold = 0.25):
 	# PCC(pred_i, exp_i) * IC(exp_i)/2
 	score = 0
 	numCorrect = 0
+	numCorrectIC = 0
 	for i in range(len(predPWM)):
 		corr = stats.pearsonr(predPWM[i,:], expPWM[i,:])
 		ic = 2 - infoEntr(expPWM[i,:])
 		colScore = corr[0] * ic/2
 		if corr[0] >= threshold:
 			numCorrect += 1
+		if colScore >= threshold:
+			numCorrectIC += 1
 		score += colScore
 		
-	return score, numCorrect, len(predPWM)
+	return score, numCorrect, numCorrectIC, len(predPWM)
 
 def pwmfile2matrix(pwmFile):
 	# Converts a file of the transfac format to 
