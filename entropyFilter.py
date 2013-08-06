@@ -69,7 +69,7 @@ def main():
 	varpos = '6varpos'
 	fings = ['F1', 'F2', 'F3']
 	strins = ['low', 'high']
-	cutoff = 0.25
+	cutoff = 0
 	for f in fings:
 		for s in strins:
 			oldDir = '../data/b1hData/newDatabase/' + \

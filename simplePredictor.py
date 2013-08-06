@@ -5,7 +5,7 @@
 import numpy as np
 import os
 from pwm import makeLogo
-#from revExpParseUtils import get700Prots
+from revExpParseUtils import get700Prots
 
 nucs = ['A', 'C', 'G', 'T']
 aminos = ['A', 'C', 'D', 'E', 'F', 'G', 'I', 'H', 'K', 'L', 
@@ -222,19 +222,19 @@ def makeNucMatFile(path, prot, protLabel, nucMat, a = 'dna'):
 def main():
 	numAminos = 6
 	proteinDir = '../data/b1hData/newDatabase/6varpos/' +\
-		'F2/low/protein_seq_cut3bc_025/'
-	outputDir = '../data/simplePredictor/cut3bc_025/'
+		'F2/low/protein_seq_cut10bc_025/'
+	outputDir = '../data/simplePredictor/cut10bc_025/'
 
 	predictor = SimplePredictor(proteinDir + 'all.txt', 
 	                            3, numAminos)
 	
 	# ONly need these lines once.
-	#predictor.writePosSpecPWMs(outputDir)
-	#predictor.makePosSpecLogos(outputDir)
+	predictor.writePosSpecPWMs(outputDir)
+	predictor.makePosSpecLogos(outputDir)
 	
 	prots = get700Prots('../data/revExp/revExpBarcodes/' + \
 	                    'revExper_GAG_700s.txt')
-	print prots
+	#print prots
 
 	for p in prots:
 		protNum = str(p[0])
