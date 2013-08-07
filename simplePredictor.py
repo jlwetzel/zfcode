@@ -227,9 +227,6 @@ def outputPosSpecPWMs(predictor, outputDir):
 def predict700s(predictor, outputDir):
 	# Make predictions for the F2 reverse experiments.
 
-	prots = getTargDict('../data/revExp/revExpBarcodes/' + \
-	                   'revExper_GAG_700s.txt')
-
 	predictionDir = outputDir+'predictions/'
 	expDir = '../data/revExp/F2_GAG/pwms3/'
 	fout = open(predictionDir + 'F2compare.txt', 'w')
@@ -270,8 +267,8 @@ def predict700s(predictor, outputDir):
 def main():
 	numAminos = 6
 	proteinDir = '../data/b1hData/newDatabase/6varpos/' +\
-		'F2/low/protein_seq_cut10bc_025/'
-	outputDir = '../data/simplePredictor/cut10bc_025/'
+		'F2/low/protein_seq_cut10bc_0/'
+	outputDir = '../data/simplePredictor/cut10bc_0/'
 
 	predictor = SimplePredictor(proteinDir + 'all.txt', 
 	                            3, numAminos)

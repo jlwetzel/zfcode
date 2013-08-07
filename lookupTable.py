@@ -4,6 +4,8 @@ from pwm import *
 from gatherBindStats import getProtDict
 from fixTables import normalizeFreq
 
+nucs = ['A', 'C', 'G', 'T']
+
 def getPosIndex(npos, canonical):
 	# Return the set of indices needed depending
 	# whether we need canonical sequences or 
@@ -98,11 +100,10 @@ def get3merList(dirpath, varpos, protein, canonical = False):
 
 	return [(i[0], i[1]) for i in targList]
 
-def targListToLogo(dstDir, targList, protein):
+def targListToLogo(dstDir, targList, protein,
+                   targ, label):
 	# Converts a list of (3mer, frequency) tuples
 	# into a sequence logo
-
-	nucs = ['A', 'C', 'G', 'T']
 
 	# Convert the targList into a dictionary that can
 	# be passed into the 
@@ -111,16 +112,77 @@ def targListToLogo(dstDir, targList, protein):
 		targ, freq = k[0], k[1]
 		for i in range(3):
 			posCounts[i, targ[i]] += freq
+	###
+	#if protein == 'LNDHLQN':
+	#	print posCounts
 
-	pwmfile = dstDir + protein + '.txt'
-	logofile = dstDir + protein + '.pdf'
+	pwmfile = dstDir + 'pwms/' + label + '.txt'
+	logofile = dstDir + 'logos/' + label + '.pdf'
 	writePWM(pwmfile, posCounts, 3, nucs)
 
 	print "Creating %s" %logofile
-	makeLogo(pwmfile, logofile, alpha = 'dna', xlab = protein)
+	makeLogo(pwmfile, logofile, alpha = 'dna', 
+	         colScheme = 'classic',
+	         annot = "'5,M,3'",
+	         xlab = '_'.join([targ,protein]))
+
+def lookup700s(inDir, outputDir):
+	# Make predictions for the F2 reverse experiments.
+
+	predictionDir = outputDir+'predictions/'
+	expDir = '../data/revExp/F2_GAG/pwms3/'
+	fout = open(predictionDir + 'F2compare.txt', 'w')
+	fout.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %('num', \
+	           'targ','prot','canonprot','score','colcor', \
+	           'colcorIC', 'totcol'))
+	
+	npos = 6
+	canonical = True
+	ind = getPosIndex(npos, canonical)
+	protDict = getProtDict(inDir + 'all.txt', ind)
+
+	for fname in os.popen('ls ' + expDir):
+		# Get the info about this prediction
+		fname = fname.strip()
+		sp_fname = fname.split('_')
+		protNum = sp_fname[0]
+		targ = sp_fname[1]
+		prot = sp_fname[2].split('.')[0]
+		canonProt = prot[0] + prot[2] + prot[3] + prot[6]
+		label = '_'.join([str(protNum), targ, prot])
+		
+		# Make the prediciton and write out to the 
+		# correct files.
+		targList = get3merList(inDir, 6, canonProt, canonical)
+		if targList == []:
+			continue
+		targListToLogo(predictionDir, targList, prot, targ, label)
+		
+		# Compare this pwm to the reverse experiment
+		score, colcor, colcorIC, totCol = \
+			comparePWMs(pwmfile2matrix(predictionDir + \
+			            'pwms/' + label + '.txt'), 
+		                pwmfile2matrix(expDir + label + '.txt'))
+		fout.write("%s\t%s\t%s\t%s\t%.3f\t%d\t%d\t%d\n" %(protNum, \
+		           targ, prot, canonProt, score, colcor, \
+		           colcorIC, totCol))
+	fout.close()
 
 def main():
-	pass
+
+
+	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/' + \
+		'protein_seq_cut10bc_0/'
+	outDir = '../data/lookupTable/cut10bc_0/'
+	lookup700s(inDir, outDir)
+
+
+if __name__ == '__main__':
+	main()
+
+
+## Old version fo main that predicts for all extant sequences
+## in a given protein directory
 
 """
 def main():
@@ -157,6 +219,3 @@ def main():
 			bindOnly1file.write('%s\t%s\t%f\n' %(prot, targ, freq))
 		i += 1
 		"""
-
-if __name__ == '__main__':
-	main()
