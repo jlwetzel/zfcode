@@ -136,10 +136,10 @@ def lookup700s(inDir, outputDir):
 	           'targ','prot','canonprot','score','colcor', \
 	           'colcorIC', 'totcol'))
 	
-	npos = 6
-	canonical = True
-	ind = getPosIndex(npos, canonical)
-	protDict = getProtDict(inDir + 'all.txt', ind)
+	#npos = 6
+	#canonical = True
+	#ind = getPosIndex(npos, canonical)
+	#protDict = getProtDict(inDir + 'all.txt', ind)
 
 	for fname in os.popen('ls ' + expDir):
 		# Get the info about this prediction
@@ -156,6 +156,8 @@ def lookup700s(inDir, outputDir):
 		targList = get3merList(inDir, 6, canonProt, canonical)
 		if targList == []:
 			continue
+			# Apply nearest neighbor strategy here if targList 
+			# is empty instead of just ignoring?
 		targListToLogo(predictionDir, targList, prot, targ, label)
 		
 		# Compare this pwm to the reverse experiment
