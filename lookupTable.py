@@ -176,9 +176,9 @@ def main():
 
 
 	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/' + \
-		'protein_seq_cut10bc_0/'
-	outDir = '../data/lookupTable/cut10bc_0/'
-	lookup700s(inDir, outDir, 'c10_0')
+		'protein_seq_cut3bc_025/'
+	outDir = '../data/lookupTable/cut3bc_025/'
+	lookup700s(inDir, outDir, 'c3_025')
 
 
 if __name__ == '__main__':

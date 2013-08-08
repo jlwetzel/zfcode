@@ -6,6 +6,7 @@ import numpy as np
 import os
 from pwm import makeLogo, pwmfile2matrix, comparePWMs
 from revExpParseUtils import getTargDict
+import re
 
 nucs = ['A', 'C', 'G', 'T']
 aminos = ['A', 'C', 'D', 'E', 'F', 'G', 'I', 'H', 'K', 'L', 
@@ -224,20 +225,22 @@ def outputPosSpecPWMs(predictor, outputDir):
 	predictor.writePosSpecPWMs(outputDir)
 	predictor.makePosSpecLogos(outputDir)
 
-def predict700s(predictor, outputDir):
+def predict700s(predictor, outputDir, filt, pred = 'simp'):
 	# Make predictions for the F2 reverse experiments.
 
 	predictionDir = outputDir+'predictions/'
 	expDir = '../data/revExp/F2_GAG/pwms3/'
 	fout = open(predictionDir + 'F2compare.txt', 'w')
-	fout.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %('num', \
+	fout.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %('num', \
 	           'targ','prot','canonprot','score','colcor', \
-	           'colcorIC', 'totcol'))
+	           'colcorIC', 'totcol', 'pred.filt'))
 			
 
 	for fname in os.popen('ls ' + expDir):
 		# Get the info about this prediction
 		fname = fname.strip()
+		if re.match(r'(.)*_5mM.txt', fname) == None:
+			continue
 		sp_fname = fname.split('_')
 		protNum = sp_fname[0]
 		targ = sp_fname[1]
@@ -257,18 +260,18 @@ def predict700s(predictor, outputDir):
 		         xlab = '_'.join([targ,prot]))
 
 		score, colcor, colcorIC, totCol = comparePWMs(nmat, 
-		                pwmfile2matrix(expDir + label + '.txt'))
-		fout.write("%s\t%s\t%s\t%s\t%.3f\t%d\t%d\t%d\n" %(protNum, \
+		                pwmfile2matrix(expDir + fname))
+		fout.write("%s\t%s\t%s\t%s\t%.3f\t%d\t%d\t%d\t%s\n" %(protNum, \
 		           targ, prot, canonProt, score, colcor, \
-		           colcorIC, totCol))
+		           colcorIC, totCol, pred+'.'+filt))
 			
 	fout.close()
 
 def main():
 	numAminos = 6
 	proteinDir = '../data/b1hData/newDatabase/6varpos/' +\
-		'F2/low/protein_seq_cut10bc_0/'
-	outputDir = '../data/simplePredictor/cut10bc_0/'
+		'F2/low/protein_seq_cut3bc_025/'
+	outputDir = '../data/simplePredictor/cut3bc_025/'
 
 	predictor = SimplePredictor(proteinDir + 'all.txt', 
 	                            3, numAminos)
@@ -277,7 +280,7 @@ def main():
 	# Only need this line once.
 	#outputPosSpecPWMs(predictor, outputDir)
 	
-	predict700s(predictor, outputDir)
+	predict700s(predictor, outputDir, 'c3_025')
 
 	
 
