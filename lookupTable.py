@@ -126,15 +126,15 @@ def targListToLogo(dstDir, targList, protein,
 	         annot = "'5,M,3'",
 	         xlab = '_'.join([targ2bind,protein]))
 
-def lookup700s(inDir, outputDir):
+def lookup700s(inDir, outputDir, filt, pred = 'look'):
 	# Make predictions for the F2 reverse experiments.
 
 	predictionDir = outputDir+'predictions/'
 	expDir = '../data/revExp/F2_GAG/pwms3/'
 	fout = open(predictionDir + 'F2compare.txt', 'w')
-	fout.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %('num', \
+	fout.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %('num', \
 	           'targ','prot','canonprot','score','colcor', \
-	           'colcorIC', 'totcol'))
+	           'colcorIC', 'totcol', 'pred.filt'))
 	
 	npos = 6
 	canonical = True
@@ -167,9 +167,9 @@ def lookup700s(inDir, outputDir):
 			comparePWMs(pwmfile2matrix(predictionDir + \
 			            'pwms/' + label + '.txt'), 
 		                pwmfile2matrix(expDir + fname))
-		fout.write("%s\t%s\t%s\t%s\t%.3f\t%d\t%d\t%d\n" %(protNum, \
+		fout.write("%s\t%s\t%s\t%s\t%.3f\t%d\t%d\t%d\t%s\n" %(protNum, \
 		           targ, prot, canonProt, score, colcor, \
-		           colcorIC, totCol))
+		           colcorIC, totCol, pred+'.'+filt))
 	fout.close()
 
 def main():
@@ -178,7 +178,7 @@ def main():
 	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/' + \
 		'protein_seq_cut10bc_0/'
 	outDir = '../data/lookupTable/cut10bc_0/'
-	lookup700s(inDir, outDir)
+	lookup700s(inDir, outDir, 'c10_0')
 
 
 if __name__ == '__main__':
