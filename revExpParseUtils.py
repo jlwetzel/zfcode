@@ -37,8 +37,8 @@ def get_GAG_pwm(pwm):
 	G1Found = False
 	A1Found = False
 	GAGFound = False
-	G1ind = 0
-	A1ind = 0
+	G1ind = None
+	A1ind = None
 	for i in range(len(pwm)):
 		if GAGFound:
 			break
@@ -56,9 +56,11 @@ def get_GAG_pwm(pwm):
 	startInd = G1ind
 	#print startInd
 
-	if startInd > 3:
+	if not GAGFound:
 		return None
-	
+	if startInd == None or startInd > 3:
+		return None
+		
 	# Copy the appropriate positions into the new PWM
 	trimmedPWM = np.zeros((len(pwm) - startInd, 4), float)
 	for i in range(len(trimmedPWM)):
@@ -66,13 +68,64 @@ def get_GAG_pwm(pwm):
 
 	return trimmedPWM
 
-def make3posPWM(outDir, label, pwm, targ, prot):
+def get_GCG_pwm(pwm):
+	# Find the index in the pwm where the 
+	# GCG motif starts and then return a new
+	# pwm that begins 6 positions earlier than this.
+
+	# Find the start index of the GAG motif
+	G1Found = False
+	C1Found = False
+	GCGFound = False
+	G1ind = None
+	C1ind = None
+	for i in range(len(pwm) - 1, 0, -1):
+		if GCGFound:
+			break
+		argmax = np.argmax(pwm[i,:])
+		#print argmax
+		if G1Found and C1Found and argmax == nucs.index('G') and \
+			i + 1 == C1ind:
+			#print "Found GCG"
+			GCGFound = True
+		elif G1Found and argmax == nucs.index('C') and \
+			i + 1 == G1ind:
+			#print "Found C1"
+			C1Found = True
+			C1ind = i
+		elif argmax == nucs.index('G'):
+			#print "Found G1"
+			G1Found = True
+			G1ind = i
+	
+	if not GCGFound:
+		return None
+	
+	startInd = G1ind - 3
+	if startInd == None or startInd > 9 or startInd < 6:
+		return None
+	
+	# Copy the appropriate positions into the new PWM
+	offset = startInd - 5
+	trimmedPWM = np.zeros((startInd + 3, 4), float)
+	for i in range(len(trimmedPWM)):
+		trimmedPWM[i,:] = pwm[i+offset,:]
+
+	return trimmedPWM
+
+def make3posPWM(outDir, label, pwm, targ, prot, finger):
 	# Make pwms and logos for just the 3 positons
 	# following the GAG motif
 
 	pwm3 = np.zeros((3, 4), float)
-	for i in range(3):
-		pwm3[i,:] = pwm[i+3,:]
+
+	if finger == 'F2':
+		for i in range(3):
+			pwm3[i,:] = pwm[i+3,:]
+	elif finger == 'F3':
+		for i in range(3):
+			pwm3[i,:] = pwm[i,:]
+
 	makeNucMatFile(outDir + 'pwms3/', label, pwm3)
 	logoIn = outDir + 'pwms3/' + label + '.txt'
 	logoOut = outDir + 'logos3/' + label + '.pdf'
@@ -151,7 +204,7 @@ def makeallpwms(listfile, targDict, finger):
 	
 	fin = open(listfile, 'r')
 	fileNotFound = 0        # of times no file was found
-	GAG_notFound = 0        # of times no GAG motif was found
+	motif_notFound = 0      # of times no sentinel motif was found
 	numPwms = 0             # total number of pwms created
 	keysNotFound = []       # of times a file was found, but 
 	                        # we don't have a mapping to the protein
@@ -162,7 +215,7 @@ def makeallpwms(listfile, targDict, finger):
 		dset = sp_line[0].split('-')[0]
 		targNum = eval(sp_line[0].split('-')[-1])
 		stringency = sp_line[1]
-		fpath = '../data/revExp/MN28-37/%s/%s/' \
+		fpath = '../data/revExp/revExpAllData/%s/%s/' \
 			%(dset, bc)
 
 		pwm, bgFreq = parseMemeFile(fpath + 'meme.txt')
@@ -174,10 +227,16 @@ def makeallpwms(listfile, targDict, finger):
 		if pwm == None:
 			fileNotFound += 1
 			continue
-		pwm = get_GAG_pwm(pwm)
+		if finger == 'F2':
+			pwm = get_GAG_pwm(pwm)
+		if finger == 'F3':
+			pwm = get_GCG_pwm(pwm)
 		if pwm == None:
-			print '%smeme.txt has no valid GAG motif!' %fpath
-			GAG_notFound += 1
+			if finger == 'F2':
+				print '%smeme.txt has no valid GAG motif!' %fpath
+			if finger == 'F3':
+				print '%smeme.txt has no valid GCG motif!' %fpath
+			motif_notFound += 1
 			continue
 		
 		# Found a matrix with a valid GAG motif near beginning
@@ -190,7 +249,11 @@ def makeallpwms(listfile, targDict, finger):
 			keysNotFound.append(targNum)
 			continue
 
-		outDir = '../data/revExp/F2_GAG/'
+		if finger == 'F2':
+			outDir = '../data/revExp/F2_GAG/'
+		elif finger == 'F3':
+			outDir = '../data/revExp/F3_GCG/'
+
 		label = '_'.join([str(targNum), targ, prot, stringency])
 		makeNucMatFile(outDir + 'pwms/', label, pwm)
 		logoIn = outDir + 'pwms/' + label + '.txt'
@@ -198,12 +261,17 @@ def makeallpwms(listfile, targDict, finger):
 		makeLogo(logoIn, logoOut, alpha = 'dna',
 		         colScheme = 'classic', 
 		         xlab = '_'.join([targ,prot]))
-		make3posPWM(outDir, label, pwm, targ, prot)
+		make3posPWM(outDir, label, pwm, targ, prot, finger)
 
 	fin.close()
 	print "Number of pwms created: %d" %numPwms
 	print "Number of files not found: %d" %fileNotFound
-	print "Number where GAG motif not found: %d" %GAG_notFound
+
+	if finger == 'F2':
+		print "Number where GAG motif not found: %d" %motif_notFound
+	elif finger == 'F3':
+		print "Number where GCG motif not found: %d" %motif_notFound
+
 	print "Number of keys not found: %d" %len(keysNotFound)
 	print "Keys not found: "
 	for k in keysNotFound:
@@ -251,13 +319,22 @@ def main():
 	getPatternbcs(allbcfile, bc100sfile, r'[0-9]?1[0-9]{2}')
 	"""
 
+	"""
+	# Make the F2 pwms
 	finger = 'F2'
 	bcfname = '../data/revExp/revExpBarcodes/all700Entries.txt'
 	targfname = '../data/revExp/revExpBarcodes/revExper_GAG_700s.txt'
 	targDict = getTargDict(targfname, finger)
-	print targDict[711]
 	makeallpwms(bcfname, targDict, finger)
+	"""
 
+	# Make the F3 pwms
+	finger = 'F3'
+	bcfname = '../data/revExp/revExpBarcodes/all100Entries.txt'
+	targfname = '../data/revExp/revExpBarcodes/revExper_GAG_100s.txt'
+	targDict = getTargDict(targfname, finger)
+	makeallpwms(bcfname, targDict, finger)
+	
 
 	
 

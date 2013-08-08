@@ -126,26 +126,59 @@ def targListToLogo(dstDir, targList, protein,
 	         annot = "'5,M,3'",
 	         xlab = '_'.join([targ2bind,protein]))
 
-def lookup700s(inDir, outputDir, filt, pred = 'look'):
-	# Make predictions for the F2 reverse experiments.
+def makeDir(path):
+	# Try to make a path and pass if it can't be created
+	try:
+		os.mkdir(path)
+	except OSError:
+		pass
 
+def lookupMarcusPWMs(inDir, outputDir, finger, strin, 
+                     filt, pred = 'look'):
+	# Make predcitions for each of the proteins that 
+	# Marcus made experimental PWMs for
+
+	# Create the prediction directory structure
 	predictionDir = outputDir+'predictions/'
-	expDir = '../data/revExp/F2_GAG/pwms3/'
-	fout = open(predictionDir + 'F2compare.txt', 'w')
-	fout.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %('num', \
-	           'targ','prot','canonprot','score','colcor', \
-	           'colcorIC', 'totcol', 'pred.filt'))
+	pwmdir = predictionDir + 'pwms/'
+	logodir = predictionDir + 'logos/'
+	makeDir(predictionDir)
+	makeDir(pwmdir)
+	makeDir(logodir)
 	
+	# Get the directory containing the 3 position
+	# experimental PWMs for this finger and set up
+	# the output file for writing results
+	if finger == 'F2':
+		expDir = '../data/revExp/F2_GAG/pwms3/'
+	elif finger == 'F3':
+		expDir = '../data/revExp/F3_GCG/pwms3/'
+	fout = open(predictionDir + 'compare.txt', 'w')
+	# Write header to results file
+	fout.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
+	           %('num', 'targ','prot','canonprot','score','colcor', \
+	           'colcorIC', 'totcol', 'pred.filt', 'finger', 'strin'))
+	
+	# Right now only working with 6 variable position 
+	# B1H forward experiments.  Need to update if start 
+	# using the 5 position ones
 	npos = 6
 	canonical = True
 	ind = getPosIndex(npos, canonical)
 	protDict = getProtDict(inDir + 'all.txt', ind)
 
+	# Try to do a lookup table prediction for each of the 
+	# proteins for which we have an experimental 3pos pwm
 	for fname in os.popen('ls ' + expDir):
-		# Get the info about this prediction
+
+		# Skip if this is the wrong stringency.
 		fname = fname.strip()
-		if re.match(r'(.)*_5mM.txt', fname) == None:
+		if strin == 'low' and re.match(r'(.)*_5mM.txt', fname) == None:
 			continue
+		if strin == 'high' and re.match(r'(.)*_20mM.txt', fname) == None:
+			continue
+
+		# Get the info about this experiment
 		sp_fname = fname.split('_')
 		protNum = sp_fname[0]
 		targ = sp_fname[1]
@@ -153,32 +186,43 @@ def lookup700s(inDir, outputDir, filt, pred = 'look'):
 		canonProt = prot[0] + prot[2] + prot[3] + prot[6]
 		label = '_'.join([str(protNum), targ, prot])
 		
-		# Make the prediciton and write out to the 
-		# correct files.
+		# Make the prediciton and write it to the correct files.
 		targList = get3merList(inDir, 6, canonProt, canonical)
+		# Do something else if the target list is empty
 		if targList == []:
 			continue
 			# Apply nearest neighbor strategy here if targList 
 			# is empty instead of just ignoring?
+
+		# Convert the target list to a logo.
 		targListToLogo(predictionDir, targList, prot, targ, label)
 		
 		# Compare this pwm to the reverse experiment
 		score, colcor, colcorIC, totCol = \
-			comparePWMs(pwmfile2matrix(predictionDir + \
-			            'pwms/' + label + '.txt'), 
+			comparePWMs(pwmfile2matrix(pwmdir + label + '.txt'), 
 		                pwmfile2matrix(expDir + fname))
-		fout.write("%s\t%s\t%s\t%s\t%.3f\t%d\t%d\t%d\t%s\n" %(protNum, \
-		           targ, prot, canonProt, score, colcor, \
-		           colcorIC, totCol, pred+'.'+filt))
+
+		# Write the comparison results to file
+		fout.write("%s\t%s\t%s\t%s\t%.3f\t%d\t%d\t%d\t%s\t%s\t%s\n" \
+		           %(protNum, targ, prot, canonProt, score, colcor, \
+		           colcorIC, totCol, pred+'.'+filt, finger, strin))
 	fout.close()
 
 def main():
 
-
-	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/' + \
-		'protein_seq_cut3bc_025/'
-	outDir = '../data/lookupTable/cut3bc_025/'
-	lookup700s(inDir, outDir, 'c3_025')
+	fings = ['F2']
+	strins = ['low']
+	filts = ['cut3bc_025', 'cut10bc_025', 'cut10bc_0']
+	filtsLabs = ['c3_025', 'c10_025', 'c10_0']
+	for f in fings:
+		for s in strins:
+			for i, filt in enumerate(filts):
+				inDir = '../data/b1hData/newDatabase/6varpos/' \
+					+ f + '/' + s + '/' + 'protein_seq_' + filt + '/'
+				outDir = '../data/lookupTable/'	+ f + '/' + s + \
+					'/' + filt + '/'
+				
+				lookupMarcusPWMs(inDir, outDir, f, s, filtsLabs[i])
 
 
 if __name__ == '__main__':

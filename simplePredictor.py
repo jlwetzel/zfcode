@@ -225,22 +225,50 @@ def outputPosSpecPWMs(predictor, outputDir):
 	predictor.writePosSpecPWMs(outputDir)
 	predictor.makePosSpecLogos(outputDir)
 
-def predict700s(predictor, outputDir, filt, pred = 'simp'):
+def makeDir(path):
+	# Try to make a path and pass if it can't be created
+	try:
+		os.mkdir(path)
+	except OSError:
+		pass
+
+def predictMarcusPWMs(predictor, outputDir, finger, strin, 
+                      filt, pred = 'simp'):
 	# Make predictions for the F2 reverse experiments.
 
+	# Create the prediction directory structure
 	predictionDir = outputDir+'predictions/'
-	expDir = '../data/revExp/F2_GAG/pwms3/'
-	fout = open(predictionDir + 'F2compare.txt', 'w')
-	fout.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %('num', \
-	           'targ','prot','canonprot','score','colcor', \
-	           'colcorIC', 'totcol', 'pred.filt'))
-			
+	pwmdir = predictionDir + 'pwms/'
+	logodir = predictionDir + 'logos/'
+	makeDir(predictionDir)
+	makeDir(pwmdir)
+	makeDir(logodir)
 
+	# Get the directory containing the 3 position
+	# experimental PWMs for this finger and set up
+	# the output file for writing results
+	if finger == 'F2':
+		expDir = '../data/revExp/F2_GAG/pwms3/'
+	elif finger == 'F3':
+		expDir = '../data/revExp/F3_GCG/pwms3/'
+	fout = open(predictionDir + 'compare.txt', 'w')
+	# Write header to results file
+	fout.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
+	           %('num', 'targ','prot','canonprot','score','colcor', \
+	           'colcorIC', 'totcol', 'pred.filt', 'finger', 'strin'))
+
+	# Try to do a simple prediction for each of the 
+	# proteins for which we have an experimental 3pos pwm
 	for fname in os.popen('ls ' + expDir):
-		# Get the info about this prediction
+
+		# Skip if this is the wrong stringency.
 		fname = fname.strip()
-		if re.match(r'(.)*_5mM.txt', fname) == None:
+		if strin == 'low' and re.match(r'(.)*_5mM.txt', fname) == None:
 			continue
+		if strin == 'high' and re.match(r'(.)*_20mM.txt', fname) == None:
+			continue
+
+		# Get the info about this experiment
 		sp_fname = fname.split('_')
 		protNum = sp_fname[0]
 		targ = sp_fname[1]
@@ -248,39 +276,50 @@ def predict700s(predictor, outputDir, filt, pred = 'simp'):
 		canonProt = prot[0] + prot[2] + prot[3] + prot[6]
 		label = '_'.join([str(protNum), targ, prot])
 		
-		# Make the prediciton and write out to the 
-		# correct files.
+		# Make the prediciton and write out to the correct files.
 		nmat = predictor.predictCanon(canonProt)
-		makeNucMatFile(predictionDir + 'pwms/', label, nmat)
-		logoIn = predictionDir + 'pwms/' + label + '.txt'
-		logoOut = predictionDir + 'logos/' + label + '.pdf'
+		makeNucMatFile(pwmdir, label, nmat)
+		logoIn = pwmdir + label + '.txt'
+		logoOut = logodir + label + '.pdf'
 		makeLogo(logoIn, logoOut,
 		         alpha = 'dna', colScheme = 'classic',
 		         annot = "'5,M,3'",
 		         xlab = '_'.join([targ,prot]))
 
+		# Compare this pwm to the reverse experiment
 		score, colcor, colcorIC, totCol = comparePWMs(nmat, 
 		                pwmfile2matrix(expDir + fname))
-		fout.write("%s\t%s\t%s\t%s\t%.3f\t%d\t%d\t%d\t%s\n" %(protNum, \
-		           targ, prot, canonProt, score, colcor, \
-		           colcorIC, totCol, pred+'.'+filt))
-			
+		
+		# Write the comparison results to file
+		fout.write("%s\t%s\t%s\t%s\t%.3f\t%d\t%d\t%d\t%s\t%s\t%s\n" \
+		           %(protNum, targ, prot, canonProt, score, colcor, \
+		           colcorIC, totCol, pred+'.'+filt, finger, strin))			
 	fout.close()
 
 def main():
 	numAminos = 6
-	proteinDir = '../data/b1hData/newDatabase/6varpos/' +\
-		'F2/low/protein_seq_cut3bc_025/'
-	outputDir = '../data/simplePredictor/cut3bc_025/'
 
-	predictor = SimplePredictor(proteinDir + 'all.txt', 
-	                            3, numAminos)
+	fings = ['F2']
+	strins = ['low']
+	filts = ['cut3bc_025', 'cut10bc_025', 'cut10bc_0']
+	filtsLabs = ['c3_025', 'c10_025', 'c10_0']
+	for f in fings:
+		for s in strins:
+			for i, filt in enumerate(filts):
+				inDir = '../data/b1hData/newDatabase/6varpos/' \
+					+ f + '/' + s + '/' + 'protein_seq_' + filt + '/'
+				outDir = '../data/SimplePredictor/'	+ f + '/' + s + \
+					'/' + filt + '/'
+				predictor = SimplePredictor(inDir + 'all.txt', 
+	                            			3, numAminos)
+				predictMarcusPWMs(predictor, outDir, f, s, filtsLabs[i])
+
 	
 	# Output position specific matrices/logos
 	# Only need this line once.
 	#outputPosSpecPWMs(predictor, outputDir)
 	
-	predict700s(predictor, outputDir, 'c3_025')
+	
 
 	
 
