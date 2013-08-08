@@ -1,5 +1,6 @@
 import numpy as np
 from pwm import makeLogo
+import re
 
 nucs = ['A', 'C', 'G', 'T']
 
@@ -27,10 +28,62 @@ def normalizePWM(pwm):
 		pwm[i,:] = pwm[i,:]/np.sum(pwm[i,:])
 	return pwm
 
+def get_GAG_pwm(pwm):
+	# Find the index in the pwm where the 
+	# GAG motif starts and then return a new
+	# pwm that begins at this index.
+
+	# Find the start index of the GAG motif
+	G1Found = False
+	A1Found = False
+	GAGFound = False
+	G1ind = 0
+	A1ind = 0
+	for i in range(len(pwm)):
+		if GAGFound:
+			break
+		argmax = np.argmax(pwm[i,:])
+		if G1Found and A1Found and argmax == nucs.index('G') and \
+			i - 1 == A1ind:
+			GAGFound = True
+		elif G1Found and argmax == nucs.index('A') and \
+			i - 1 == G1ind:
+			A1Found = True
+			A1ind = i
+		elif argmax == nucs.index('G'):
+			G1Found = True
+			G1ind = i
+	startInd = G1ind
+	#print startInd
+
+	if startInd > 3:
+		return None
+	
+	# Copy the appropriate positions into the new PWM
+	trimmedPWM = np.zeros((len(pwm) - startInd, 4), float)
+	for i in range(len(trimmedPWM)):
+		trimmedPWM[i,:] = pwm[i+startInd,:]
+
+	return trimmedPWM
+
+def make3posPWM(outDir, label, pwm, targ, prot):
+	# Make pwms and logos for just the 3 positons
+	# following the GAG motif
+
+	pwm3 = np.zeros((3, 4), float)
+	for i in range(3):
+		pwm3[i,:] = pwm[i+3,:]
+	makeNucMatFile(outDir + 'pwms3/', label, pwm3)
+	logoIn = outDir + 'pwms3/' + label + '.txt'
+	logoOut = outDir + 'logos3/' + label + '.pdf'
+	makeLogo(logoIn, logoOut, alpha = 'dna',
+	         colScheme = 'classic', annot = "'5,M,3'",
+	         xlab = '_'.join([targ,prot]))
+
 def parseMemeFile(fpath):
 	# Returns a PWM of the width of the alignment in the
 	# MEME.txt file.
-	
+
 	try:
 		fin = open(fpath, 'r')
 	except IOError:
@@ -88,74 +141,30 @@ def parseMemeFile(fpath):
 	# Return the normalized pwm
 	return normalizePWM(pwm), bgFreq
 
-def get_GAG_pwm(pwm):
-	# Find the index in the pwm where the 
-	# GAG motif starts and then return a new
-	# pwm that begins at this index.
-
-	# Find the start index of the GAG motif
-	G1Found = False
-	A1Found = False
-	GAGFound = False
-	G1ind = 0
-	A1ind = 0
-	for i in range(len(pwm)):
-		if GAGFound:
-			break
-		argmax = np.argmax(pwm[i,:])
-		if G1Found and A1Found and argmax == nucs.index('G') and \
-			i - 1 == A1ind:
-			GAGFound = True
-		elif G1Found and argmax == nucs.index('A') and \
-			i - 1 == G1ind:
-			A1Found = True
-			A1ind = i
-		elif argmax == nucs.index('G'):
-			G1Found = True
-			G1ind = i
-	startInd = G1ind
-	#print startInd
-
-	if startInd > 3:
-		return None
+def makeallpwms(listfile, targDict, finger): 
+	# Makes pwms for the barcode listfile
+	# assuming we have all the information 
+	# neccessary to do so
 	
-	# Copy the appropriate positions into the new PWM
-	trimmedPWM = np.zeros((len(pwm) - startInd, 4), float)
-	for i in range(len(trimmedPWM)):
-		trimmedPWM[i,:] = pwm[i+startInd,:]
-
-	return trimmedPWM
-
-def make3posPWM(outDir, label, pwm, targ, prot):
-	# Make pwms and logos for just the 3 positons
-	# following the GAG motif
-
-	pwm3 = np.zeros((3, 4), float)
-	for i in range(3):
-		pwm3[i,:] = pwm[i+3,:]
-	makeNucMatFile(outDir + 'pwms3/', label, pwm3)
-	logoIn = outDir + 'pwms3/' + label + '.txt'
-	logoOut = outDir + 'logos3/' + label + '.pdf'
-	makeLogo(logoIn, logoOut, alpha = 'dna',
-	         colScheme = 'classic', annot = "'5,M,3'",
-	         xlab = '_'.join([targ,prot]))
-
-def makeallpwms700s(listfile, targDict): 
-	# Makes pwms for all of the proteins that end 
-	# in a 700 (Think this is all F2s?)
+	# For mapping REV1, REV2, REV3 to barcode prefixes
 	bcKey = {1: 'TC', 2: 'AA', 3: 'GG'}
+	
 	fin = open(listfile, 'r')
-	fileNotFound = 0
-	GAG_notFound = 0
-	numPwms = 0
-	keysNotFound = []
+	fileNotFound = 0        # of times no file was found
+	GAG_notFound = 0        # of times no GAG motif was found
+	numPwms = 0             # total number of pwms created
+	keysNotFound = []       # of times a file was found, but 
+	                        # we don't have a mapping to the protein
+
 	for line in fin:
 		sp_line = line.strip().split()
 		bc = bcKey[eval(sp_line[4][-1])] + '_' + sp_line[2]
 		dset = sp_line[0].split('-')[0]
 		targNum = eval(sp_line[0].split('-')[-1])
+		stringency = sp_line[1]
 		fpath = '../data/revExp/MN28-37/%s/%s/' \
 			%(dset, bc)
+
 		pwm, bgFreq = parseMemeFile(fpath + 'meme.txt')
 		
 		# If the file was found, trim the uniformative 
@@ -182,7 +191,7 @@ def makeallpwms700s(listfile, targDict):
 			continue
 
 		outDir = '../data/revExp/F2_GAG/'
-		label = '_'.join([str(targNum), targ, prot])
+		label = '_'.join([str(targNum), targ, prot, stringency])
 		makeNucMatFile(outDir + 'pwms/', label, pwm)
 		logoIn = outDir + 'pwms/' + label + '.txt'
 		logoOut = outDir + 'logos/' + label + '.pdf'
@@ -199,27 +208,58 @@ def makeallpwms700s(listfile, targDict):
 	print "Keys not found: "
 	for k in keysNotFound:
 		print k
-
-def getTargDict(targfname):
+		
+def getTargDict(targfname, finger):
 	# Get a dictionary mapping each protNum 
 	# to a (targ, protein) tuple
-
 	targDict = {}
 	fin = open(targfname, 'r')
 	fin.readline()  # Skip the header
 	for line in fin:
 		sp_line = line.strip().split()
 		targNum = eval(sp_line[0])
-		targ = sp_line[4].split('-')[1]
-		prot = sp_line[2]
+		if finger == 'F2':
+			targ = sp_line[4].split('-')[1]
+			prot = sp_line[2]
+		elif finger == 'F3':
+			targ = sp_line[4].split('-')[0]
+			prot = sp_line[3]
 		targDict[targNum] = (targ, prot)
 	return targDict
 
+def getPatternbcs(inFile, outFile, bcRegex):
+	# Find the lines of inFile that match 
+	# pattern regex and write only those 
+	# lines to outFile
+
+	fin = open(inFile, 'r')
+	fout = open(outFile, 'w')
+	for line in fin:
+		sp_line = line.strip().split()
+		if re.match(bcRegex, sp_line[0].split('-')[-1]) != None:
+			fout.write(line)
+	fout.close()
+	fin.close()
+
 def main():
+	"""
+	# Make the barcode files for F2 and F3 experiments
+	allbcfile = '../data/revExp/revExpBarcodes/allBarcodes.txt'
+	bc700sfile = '../data/revExp/revExpBarcodes/all700Entries.txt'
+	bc100sfile = '../data/revExp/revExpBarcodes/all100Entries.txt'
+	getPatternbcs(allbcfile, bc700sfile, r'[0-9]?7[0-9]{2}')
+	getPatternbcs(allbcfile, bc100sfile, r'[0-9]?1[0-9]{2}')
+	"""
+
+	finger = 'F2'
 	bcfname = '../data/revExp/revExpBarcodes/all700Entries.txt'
 	targfname = '../data/revExp/revExpBarcodes/revExper_GAG_700s.txt'
-	targDict = getTargDict(targfname)
-	makeallpwms700s(bcfname, targDict)
+	targDict = getTargDict(targfname, finger)
+	print targDict[711]
+	makeallpwms(bcfname, targDict, finger)
+
+
+	
 
 if __name__ == '__main__':
 	main()

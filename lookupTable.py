@@ -101,7 +101,7 @@ def get3merList(dirpath, varpos, protein, canonical = False):
 	return [(i[0], i[1]) for i in targList]
 
 def targListToLogo(dstDir, targList, protein,
-                   targ, label):
+                   targ2bind, label):
 	# Converts a list of (3mer, frequency) tuples
 	# into a sequence logo
 
@@ -124,7 +124,7 @@ def targListToLogo(dstDir, targList, protein,
 	makeLogo(pwmfile, logofile, alpha = 'dna', 
 	         colScheme = 'classic',
 	         annot = "'5,M,3'",
-	         xlab = '_'.join([targ,protein]))
+	         xlab = '_'.join([targ2bind,protein]))
 
 def lookup700s(inDir, outputDir):
 	# Make predictions for the F2 reverse experiments.
@@ -136,14 +136,16 @@ def lookup700s(inDir, outputDir):
 	           'targ','prot','canonprot','score','colcor', \
 	           'colcorIC', 'totcol'))
 	
-	#npos = 6
-	#canonical = True
-	#ind = getPosIndex(npos, canonical)
-	#protDict = getProtDict(inDir + 'all.txt', ind)
+	npos = 6
+	canonical = True
+	ind = getPosIndex(npos, canonical)
+	protDict = getProtDict(inDir + 'all.txt', ind)
 
 	for fname in os.popen('ls ' + expDir):
 		# Get the info about this prediction
 		fname = fname.strip()
+		if re.match(r'(.)*_5mM.txt', fname) == None:
+			continue
 		sp_fname = fname.split('_')
 		protNum = sp_fname[0]
 		targ = sp_fname[1]
@@ -164,7 +166,7 @@ def lookup700s(inDir, outputDir):
 		score, colcor, colcorIC, totCol = \
 			comparePWMs(pwmfile2matrix(predictionDir + \
 			            'pwms/' + label + '.txt'), 
-		                pwmfile2matrix(expDir + label + '.txt'))
+		                pwmfile2matrix(expDir + fname))
 		fout.write("%s\t%s\t%s\t%s\t%.3f\t%d\t%d\t%d\n" %(protNum, \
 		           targ, prot, canonProt, score, colcor, \
 		           colcorIC, totCol))
