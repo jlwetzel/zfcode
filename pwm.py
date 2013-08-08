@@ -5,6 +5,12 @@ import re
 import numpy as np
 from scipy import stats
 
+nucs = ['A', 'C', 'G', 'T']
+aminos = ['A', 'C', 'D', 'E', 'F', 'G', 'I', 'H', 'K', 'L', 
+	      'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y']
+
+# Used by other modules
+
 def infoEntr(f):
 	# Returns the information entropy of the 
 	# distribution f (base 2), using the convention
@@ -17,6 +23,24 @@ def infoEntr(f):
 		ent -= f[i] * np.log2(f[i])
 
 	return ent
+
+def makeNucMatFile(path, label, nucMat):
+	# Write a transfac style frequency matrix to file
+
+	fout = open(path + label + '.txt', 'w')
+	# Write a dummy header
+	fout.write('ID idNum\nBF species\n')
+	fout.write('P0\t' + '\t'.join(nucs) + '\n')
+	for i in range(len(nucMat)):
+		outstr = str(i+1).zfill(2)
+		for j in range(len(nucMat[i,:])):
+			outstr += '\t%.4f' %nucMat[i,j]
+		outstr += '\tX\n'
+		fout.write(outstr)
+	fout.write('XX\n\\\\\n')
+	fout.close()
+	
+
 
 def comparePWMs(predPWM, expPWM, threshold = 0.25):
 	# This function asumes that the two PWMs 
@@ -86,6 +110,10 @@ def makeLogo(infile, outfile, format = 'pdf', alpha = 'protein',
 	#print outfile
 	os.system('weblogo %s < %s > %s' %(opts, infile, outfile)) 
 	pass
+
+
+
+## Specific to this program ... not used by other modules.
 
 def writePWM(dst, posCounts, npos, letters):
 	# Output a PWM file based on a posCount

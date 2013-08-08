@@ -4,7 +4,7 @@
 
 import numpy as np
 import os
-from pwm import makeLogo, pwmfile2matrix, comparePWMs
+from pwm import makeLogo, pwmfile2matrix, comparePWMs, makeNucMatFile
 from revExpParseUtils import getTargDict
 import re
 
@@ -274,7 +274,7 @@ def predictMarcusPWMs(predictor, outputDir, finger, strin,
 		targ = sp_fname[1]
 		prot = sp_fname[2].split('.')[0]
 		canonProt = prot[0] + prot[2] + prot[3] + prot[6]
-		label = '_'.join([str(protNum), targ, prot])
+		label = '_'.join([str(protNum), targ, prot, strin])
 		
 		# Make the prediciton and write out to the correct files.
 		nmat = predictor.predictCanon(canonProt)
