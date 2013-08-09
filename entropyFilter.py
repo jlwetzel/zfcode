@@ -4,16 +4,17 @@ from jellyfish import hamming_distance
 from fixTables import normalizeFreq
 from gatherBindStats import getProtSet
 
-def hasSupport(seq, keepSeqs, canInd):
+def hasSupport(seq, keepSeqs, supportCutoff, canInd):
 	# Returns True if seq is at hamming 
-	# distance of one from at least one 
-	# other seq in keepSeqs when using 
-	# only the canonical indices
+	# distance of at most one from at least <supportCutoff> 
+	# other (non-identical) seqs in keepSeqs when 
+	# looking in canonical positions (-1,2,3,6)
 
 	canSeq1 = ''
 	for j in canInd:
 		canSeq1 += seq[j]
 
+	supportFound = 0
 	for s in keepSeqs:
 
 		# Make sure this is not the exact same sequence
@@ -26,13 +27,16 @@ def hasSupport(seq, keepSeqs, canInd):
 		for j in canInd:
 			canSeq2 += s[j]
 		if hamming_distance(canSeq1, canSeq2) <= 1:
-			return True
+			supportFound += 1
+			if supportFound == supportCutoff:
+				return True
 
-	# Found no canonical sequence within ham dist 1.
+	# Did not find enough support sequences
 	return False
 
 
-def filterEntropySupport(oldFile, newFile, cutoff, canInd):
+def filterEntropySupport(oldFile, newFile, entCutoff, 
+                         supportCutoff, canInd):
 	# Scans oldFile for lines that don't pass entropy cutoff.
 	# These lines are removed, except in the case of proteins
 	# with only one possible coding combination.  
@@ -51,7 +55,7 @@ def filterEntropySupport(oldFile, newFile, cutoff, canInd):
 		sp_line = line.strip().split()
 		entropy = eval(sp_line[5])
 		numPoss = eval(sp_line[3])
-		if entropy >= cutoff or numPoss == 1:
+		if entropy >= entCutoff or numPoss == 1:
 			keepLines.append(line)
 	fin.close()
 
@@ -60,7 +64,7 @@ def filterEntropySupport(oldFile, newFile, cutoff, canInd):
 	fout = open(newFile, 'w')
 	keepSeqs = [i.strip().split()[0] for i in keepLines]
 	for i, seq in enumerate(keepSeqs):
-		if hasSupport(seq, keepSeqs, canInd):
+		if hasSupport(seq, keepSeqs, supportCutoff, canInd):
 			fout.write(keepLines[i])	
 	fout.close()
 
@@ -69,16 +73,20 @@ def main():
 	varpos = '6varpos'
 	fings = ['F1', 'F2', 'F3']
 	strins = ['low', 'high']
-	cutoff = 0
+	entCutoff = 0
+	supportCutoff = 5
+	oldProts = 'protein_seq_cut3bc'
+
 	for f in fings:
 		for s in strins:
 			oldDir = '../data/b1hData/newDatabase/' + \
-				'/'.join([varpos, f, s, 'protein_seq_cut3bc']) + '/'
+				'/'.join([varpos, f, s, oldProts]) + '/'
 
 			# Make a new directory for the filtered proteins
 			newDir = '/'.join(oldDir.split('/')[:-2]) + \
-				'/protein_seq_cut3bc_'+ \
-				(str(cutoff)).replace('.', '') + '/'
+				'/' + oldProts + '_' + \
+				(str(entCutoff)).replace('.', '') + \
+				'_' + str(supportCutoff) + '/'
 			try:
 				os.mkdir(newDir)
 			except OSError:
@@ -96,7 +104,7 @@ def main():
 				elif varpos == '5varpos':
 					canInd = [0,1,2,4]
 				filterEntropySupport(oldDir + fname, newDir + fname,
-				                     cutoff, canInd)
+				                     entCutoff, supportCutoff, canInd)
 				normalizeFreq(newDir + fname, 1)
 
 if __name__ == '__main__':
