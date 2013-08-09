@@ -290,7 +290,7 @@ def main():
 	# Don't use nearest neighbors
 	fings = ['F2']
 	strins = ['low']
-	filts = ['cut3bc_025']# 'cut10bc_025', 'cut10bc_0']
+	filts = [ 'cut10bc_0', 'cut3bc_025', 'cut10bc_025']
 	filtsLabs = ['c3_025', 'c10_025', 'c10_0']
 	for f in fings:
 		for s in strins:
@@ -323,7 +323,7 @@ def main():
 	# Use nearest neighbors and skip all exact matches
 	fings = ['F2']
 	strins = ['low']
-	filts = ['cut3bc_025', 'cut10bc_025', 'cut10bc_0']
+	filts = ['cut10bc_0', 'cut3bc_025', 'cut10bc_025']
 	filtsLabs = ['c3_025', 'c10_025', 'c10_0']
 	for f in fings:
 		for s in strins:

@@ -319,22 +319,21 @@ def main():
 	getPatternbcs(allbcfile, bc100sfile, r'[0-9]?1[0-9]{2}')
 	"""
 
-	"""
 	# Make the F2 pwms
 	finger = 'F2'
 	bcfname = '../data/revExp/revExpBarcodes/all700Entries.txt'
 	targfname = '../data/revExp/revExpBarcodes/revExper_GAG_700s.txt'
 	targDict = getTargDict(targfname, finger)
 	makeallpwms(bcfname, targDict, finger)
-	"""
 
+	"""
 	# Make the F3 pwms
 	finger = 'F3'
 	bcfname = '../data/revExp/revExpBarcodes/all100Entries.txt'
 	targfname = '../data/revExp/revExpBarcodes/revExper_GAG_100s.txt'
 	targDict = getTargDict(targfname, finger)
 	makeallpwms(bcfname, targDict, finger)
-	
+	"""
 
 	
 
