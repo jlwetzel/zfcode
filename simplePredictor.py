@@ -301,8 +301,8 @@ def main():
 
 	fings = ['F2']
 	strins = ['low']
-	filts = ['cut3bc_025', 'cut10bc_025', 'cut10bc_0']
-	filtsLabs = ['c3_025', 'c10_025', 'c10_0']
+	filts = ['cut10bc_0_5', 'cut3bc_0_5'] #[ 'cut10bc_0', 'cut3bc_025', 'cut10bc_025']
+	filtsLabs = ['c10_0_5', 'c3_0_5'] #['c3_025', 'c10_025', 'c10_0']
 	for f in fings:
 		for s in strins:
 			for i, filt in enumerate(filts):

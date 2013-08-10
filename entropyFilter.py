@@ -70,8 +70,8 @@ def filterEntropySupport(oldFile, newFile, entCutoff,
 
 def main():
 	
-	varpos = '6varpos'
-	fings = ['F1', 'F2', 'F3']
+	varpos = '5varpos' #6varpos'
+	fings = ['F2', 'F3']#['F1', 'F2', 'F3']
 	strins = ['low', 'high']
 	entCutoff = 0
 	supportCutoff = 5
