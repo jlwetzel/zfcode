@@ -74,6 +74,7 @@ def updateTargListNN(fname, targList, protein,
 
 	targ = fname.split('/')[-1].split('.')[0]
 	fin = open(fname, 'r')
+	found = False
 	
 	# For each line of the binding file
 	totFreq = 0.0
@@ -92,11 +93,13 @@ def updateTargListNN(fname, targList, protein,
 		# Add to the frquency if this binder is a neighbor
 		if binder in neighbors:
 			totFreq += freq
+			if not found:
+				found = True
 
 	# Append to the targList
 	#print targ, totFreq
-	targList.append([targ, totFreq])
-
+	if found:
+		targList.append([targ, totFreq])
 
 def get3merList(dirpath, varpos, protein, canonical = False,
                 useNN = False, skipExact = False):
@@ -202,7 +205,7 @@ def makeDir(path):
 	except OSError:
 		pass
 
-def lookupCanonZFArray(inDir, zfArray, useNN = True, 
+def lookupCanonZFArray(inDir, canonZFs, useNN = True, 
                        skipExact = False):
 	# Performs modular lookup for an array of canonical 
 	# helix-position ZF domains.  Domains should be given
@@ -212,13 +215,14 @@ def lookupCanonZFArray(inDir, zfArray, useNN = True,
 	pwm = np.zeros(shape = (numZFs*3, 4))
 	
 	for i in range(numZFs):
-		nmat = self.predictCanon(canonZFs[i])
+		nmat = lookupCanonZF(inDir, canonZFs[i], 
+		                     useNN, skipExact)
 		for j in range(len(nmat)):
 			pwm[i*len(nmat) + j,:] = nmat[j,:]
 	
 	return pwm
 
-def lookupCanonZF(inDir, zfDomain, useNN = True, skipExact = False):
+def lookupCanonZF(inDir, canonProt, useNN = True, skipExact = False):
 	# Takes as input a ZF domain (canoical positions  only,
 	# helix positions -1, 2, 3, 6) and returns the predicted 
 	# 3-base binding specificity as a normalized 2d frequency 
@@ -250,6 +254,7 @@ def lookupCanonZF(inDir, zfDomain, useNN = True, skipExact = False):
 		for i in range(len(nucmat)):
 			for j in range(len(nucmat[i,:])):
 				nucmat[i,j] = 0.25
+		return nucmat
 
 	# Convert the target list to a position freq mat and return
 	return targListToFreqMat(targList)
