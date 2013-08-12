@@ -202,6 +202,59 @@ def makeDir(path):
 	except OSError:
 		pass
 
+def lookupCanonZFArray(inDir, zfArray, useNN = True, 
+                       skipExact = False):
+	# Performs modular lookup for an array of canonical 
+	# helix-position ZF domains.  Domains should be given
+	# in reverse order of their appearance on the protein.
+
+	numZFs = len(canonZFs)
+	pwm = np.zeros(shape = (numZFs*3, 4))
+	
+	for i in range(numZFs):
+		nmat = self.predictCanon(canonZFs[i])
+		for j in range(len(nmat)):
+			pwm[i*len(nmat) + j,:] = nmat[j,:]
+	
+	return pwm
+
+def lookupCanonZF(inDir, zfDomain, useNN = True, skipExact = False):
+	# Takes as input a ZF domain (canoical positions  only,
+	# helix positions -1, 2, 3, 6) and returns the predicted 
+	# 3-base binding specificity as a normalized 2d frequency 
+	# matrix.  The matrix is produced by using the 
+	# reverse look-up table approach on the forward selection 
+	# data directory inDir.
+	#
+	# Is useNN is set to True, then then if we can't find the 
+	# domain by direct reverse lookup, we look at nearest neighbors
+	# by varying each of helix positions (-1,3,6) one at a time.
+	# If skipExact is True, then we skip the direct look-up and 
+	# go directly to nearest neighbors.
+
+
+	# B1H forward experiments.  Need to update if start 
+	# using the 5 position experiments.
+	npos = 6
+	canonical = True
+	ind = getPosIndex(npos, canonical)
+
+	# Make the list of targets bound and normalized frequencies.
+	targList = get3merList(inDir, 6, canonProt, canonical,
+	                       useNN, skipExact)
+
+	# If the target list is empty, we can't return a specificity,
+	# so we just return a uniform distribution for each base
+	if targList == []:
+		nucmat = np.zeros((3,4), float)
+		for i in range(len(nucmat)):
+			for j in range(len(nucmat[i,:])):
+				nucmat[i,j] = 0.25
+
+	# Convert the target list to a position freq mat and return
+	return targListToFreqMat(targList)
+
+
 def lookupMarcusPWMs(inDir, outputDir, finger, strin, 
                      filt, pred, 
                      useNN = False, skipExact = False):
@@ -229,7 +282,7 @@ def lookupMarcusPWMs(inDir, outputDir, finger, strin,
 	           %('num', 'targ','prot','canonprot','score','colcor', \
 	           'colcorIC', 'totcol', 'pred.filt', 'finger', 'strin'))
 	
-	# Right now only working with 6 variable position 
+	
 	# B1H forward experiments.  Need to update if start 
 	# using the 5 position ones
 	npos = 6
@@ -254,7 +307,7 @@ def lookupMarcusPWMs(inDir, outputDir, finger, strin,
 		prot = sp_fname[2].split('.')[0]
 		canonProt = prot[0] + prot[2] + prot[3] + prot[6]
 		label = '_'.join([str(protNum), goal, prot, strin])
-		
+	
 		# Make the list of targets bound and normalized frequencies.
 		targList = get3merList(inDir, 6, canonProt, canonical,
 		                       useNN, skipExact)
