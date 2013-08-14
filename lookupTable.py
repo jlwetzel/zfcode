@@ -164,7 +164,7 @@ def decomposeNeighbors(protein, neighbors, decompose):
 		neighborDict[bpos] = []
 		# For each neighbor
 		for n in neighbors:
-			
+
 			# For each amino position to remain fixed for this bpos
 			keepNeighbor = True
 			for apos in neighbors:
@@ -173,7 +173,6 @@ def decomposeNeighbors(protein, neighbors, decompose):
 				neighborDict[bpos].append(n)
 
 	return neighborDict
-
 
 def normalizeTargList(targList):
 	# targList is a list of tuples where first element 
@@ -544,6 +543,8 @@ def main():
 				lookupMarcusPWMs(inDir, outDir, f, s, filtsLabs[i],
 				                 'look', useNN = TRUE, skipExact = False)
 	"""
+	decompose = {1: [2,3], 2: [1,2], 3: [0,1]}
+
 	# Use nearest neighbors and skip all exact matches
 	fings = ['F2']
 	strins = ['low']
@@ -554,10 +555,11 @@ def main():
 			for i, filt in enumerate(filts):
 				inDir = '../data/b1hData/newDatabase/6varpos/' \
 					+ f + '/' + s + '/' + 'protein_seq_' + filt + '/'
-				outDir = '../data/lookupTableNNonly_PAM30/' + f + '/' + s + \
+				outDir = '../data/lookupTableNNonly_PAM30_decomp1/' + f + '/' + s + \
 					'/' + filt + '/'
 				lookupMarcusPWMs(inDir, outDir, f, s, filtsLabs[i],
-				                 'look.nnOnly.PAM30', useNN = True, skipExact = True)
+				                 'look.nnOnly.PAM30_decomp1', useNN = True, skipExact = True,
+				                 decompose)
 
 
 if __name__ == '__main__':
