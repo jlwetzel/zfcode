@@ -1,14 +1,36 @@
 import os
 import re
 import numpy as np
+import math
 from pwm import makeLogo, pwmfile2matrix, comparePWMs, makeNucMatFile
 from fixTables import normalizeFreq
 #from gatherBindStats import getProtDict
 
+def getSubDict(fname):
+	# Return a substitution dictionary indicated
+	# by the given file path.
+
+	subDict = {}
+
+	fin = open(fname, 'r')
+	xlabs = fin.readline().strip().split()
+	for line in fin:
+		ylab = line.strip().split()[0]
+		scores = [eval(i) for i in line.strip().split()[1:]]
+		for i, s in enumerate(scores):
+			subDict[ylab, xlabs[i]] = s
+
+	return subDict
+
+###  Possible substitution matrices for nearest neighbors lookups
+# WEIGHTS = None
+# Use a PAM 30 matrix for weighting neighbor sequences
+NEIGHBOR_WEIGHTS = getSubDict("../data/substitution_mats/PAM30.txt")
 
 nucs = ['A', 'C', 'G', 'T']
 aminos = ['A', 'C', 'D', 'E', 'F', 'G', 'I', 'H', 'K', 'L', 
 	      'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y']
+
 
 def getPosIndex(npos, canonical):
 	# Return the set of indices needed depending
@@ -28,6 +50,31 @@ def getPosIndex(npos, canonical):
 		else:
 			ind = range(5)
 	return ind
+
+def getNeighborWeights(prot, neighbors):
+	# Applies the weights to neighbors of prot 
+	# based on the substituiton matrix defined 
+	# by the NEIGHBOR_WEIGHTS parameter
+
+	# Get the list of neighbor weights
+	nWeights = []
+	for n in neighbors:
+		for i, a in enumerate(n):
+			if prot[i] != a:
+				nScore = math.exp(NEIGHBOR_WEIGHTS[prot[i], a])
+		nWeights.append(nScore)
+
+	# Shift so that min weight is zero then normalize 
+	# all weights to between 0 and 1
+	nWeights = np.array(nWeights, dtype=float)
+	nWeights = nWeights - np.min(nWeights)
+	nWeights = nWeights/np.sum(nWeights)
+
+	#print prot
+	#print sorted(nWeights)
+	#print zip(neighbors, nWeights)
+
+	return nWeights
 
 def updateTargList(fname, targList, protein, 
                    canonical, canInd):
@@ -65,7 +112,8 @@ def updateTargList(fname, targList, protein,
 		targList.append([targ, totFreq])
 
 def updateTargListNN(fname, targList, protein, 
-                     canonical, canInd, neighbors):
+                     canonical, canInd, neighbors,
+                     nWeights = None):
 	# Appends a tuple to targList if a nearest
 	# neighbor to the protein is found when 
 	# allowing the 1, 3, or 6 positions of 
@@ -89,20 +137,25 @@ def updateTargListNN(fname, targList, protein,
 			binder = ''
 			for i in canInd:
 				binder += sp_line[0][i]
-			
-		# Add to the frquency if this binder is a neighbor
-		if binder in neighbors:
-			totFreq += freq
-			if not found:
-				found = True
+		
+		# Add to the frequency if this binder is a neighbor,
+		# correcting for weighting if necessary
+		for i, n in enumerate(neighbors):
+			if binder == n:
+				if NEIGHBOR_WEIGHTS != None:
+					totFreq += freq*nWeights[i]
+				else:
+					totFreq += freq
+				if not found:
+					found = True
+					break
 
 	# Append to the targList
-	#print targ, totFreq
 	if found:
 		targList.append([targ, totFreq])
 
 def get3merList(dirpath, varpos, protein, canonical = False,
-                useNN = False, skipExact = False):
+				useNN = False, skipExact = False):
 	# Returns a list of tuples pairs (3mer, freq),
 	# where the 3 mers are DNA 3mer that bound the 
 	# protein and freq is the relative frequency 
@@ -152,16 +205,21 @@ def get3merList(dirpath, varpos, protein, canonical = False,
 		# Get the list of possible neighboring seqs
 		neighbors = []
 		if canonical:
-			swapInd = [0,2,3]
+			#swapInd = [0,2,3]  # old way when fixing position 2
+			swapInd = range(4)
 		else:
-			swapInd = [0,3,5]		
+			#swapInd = [0,3,5]  # old way when fixing pos. 2
+			swapInd = [1, 2, 3, 5]		
 		for i in swapInd:
 			for a in aminos:
 				if a != protein[i]:
 					neighbors.append(protein[:i]+a+\
 					                 protein[i+1:])
-		#print "Neighbors:"
-		#print neighbors
+
+		# Get weights for the potential neighbors based on 
+		# a substitution matrix
+		if NEIGHBOR_WEIGHTS != None:
+			nWeights = getNeighborWeights(protein, neighbors)
 
 		handle = os.popen('ls ' + dirpath, 'r')
 		for fname in handle:
@@ -170,8 +228,7 @@ def get3merList(dirpath, varpos, protein, canonical = False,
 				continue
 			updateTargListNN(dirpath + fname, targList, 
 		                     protein, canonical, canInd, 
-		                     neighbors)
-
+		                     neighbors, nWeights)
 
 	# Normalize the frequencies across the bound 3mers to 1
 	totFreq = 0.0
@@ -316,12 +373,11 @@ def lookupMarcusPWMs(inDir, outputDir, finger, strin,
 		# Make the list of targets bound and normalized frequencies.
 		targList = get3merList(inDir, 6, canonProt, canonical,
 		                       useNN, skipExact)
+
 		# Do something else if the target list is empty
 		if targList == []:
 			continue
-			# Apply nearest neighbor strategy here if targList 
-			# is empty instead of just ignoring?
-		
+
 		# Convert the 3mer target list to a frequency matrix,
 		# write to file, and create a logo
 		nucMat = targListToFreqMat(targList)
@@ -340,11 +396,12 @@ def lookupMarcusPWMs(inDir, outputDir, finger, strin,
 		# Write the comparison results to file
 		fout.write("%s\t%s\t%s\t%s\t%.3f\t%d\t%d\t%d\t%s\t%s\t%s\n" \
 		           %(protNum, goal, prot, canonProt, score, colcor, \
-		           colcorIC, totCol, pred+'.'+filt, finger, strin))
+		           	 colcorIC, totCol, pred+'.'+filt, finger, strin))
 	fout.close()
 
 def main():
 
+	"""
 	# Don't use nearest neighbors
 	fings = ['F2']
 	strins = ['low']
@@ -360,7 +417,7 @@ def main():
 				
 				lookupMarcusPWMs(inDir, outDir, f, s, filtsLabs[i],
 				                 'look', useNN = False, skipExact = False)
-	"""
+
 	# Use nearest neighbors if exact matches can't be found
 	fings = ['F2']
 	strins = ['low']
@@ -377,21 +434,20 @@ def main():
 				lookupMarcusPWMs(inDir, outDir, f, s, filtsLabs[i],
 				                 'look', useNN = TRUE, skipExact = False)
 	"""
-
 	# Use nearest neighbors and skip all exact matches
 	fings = ['F2']
 	strins = ['low']
-	filts = ['cut10bc_0_5', 'cut3bc_0_5'] #[ 'cut10bc_0', 'cut3bc_025', 'cut10bc_025']
-	filtsLabs = ['c10_0_5', 'c3_0_5'] #['c3_025', 'c10_025', 'c10_0']
+	filts = ['cut10bc_0_5', 'cut3bc_0_5', 'cut10bc_0', 'cut3bc_025', 'cut10bc_025']
+	filtsLabs = ['c10_0_5', 'c3_0_5', 'c3_025', 'c10_025', 'c10_0']
 	for f in fings:
 		for s in strins:
 			for i, filt in enumerate(filts):
 				inDir = '../data/b1hData/newDatabase/6varpos/' \
 					+ f + '/' + s + '/' + 'protein_seq_' + filt + '/'
-				outDir = '../data/lookupTableNNonly/' + f + '/' + s + \
+				outDir = '../data/lookupTableNNonly_PAM30/' + f + '/' + s + \
 					'/' + filt + '/'
 				lookupMarcusPWMs(inDir, outDir, f, s, filtsLabs[i],
-				                 'look.nnOnly', useNN = True, skipExact = True)
+				                 'look.nnOnly.PAM30', useNN = True, skipExact = True)
 
 
 if __name__ == '__main__':

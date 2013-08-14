@@ -193,7 +193,7 @@ def makePwm(src, dst, npos, type):
 	writePWM(dst, posCounts, npos, letters)
 
 def makePWMDir(prefix):
-	# Make pwms and logos for each of the files sequence
+	# Make pwms and logos for each of the sequence
 	# files in the dirctory 'prefix'
 
 	# Create the new directories
@@ -223,7 +223,7 @@ def makePWMDir(prefix):
 
 def main():
 	prefix = '../data/b1hData/newDatabase/6varpos/' + \
-		'F2/low/protein_seq_cut3bc_025/'
+		'F2/high/protein_seq_cut10bc_0/'
 	makePWMDir(prefix)
 
 if __name__ == '__main__':

@@ -7,7 +7,12 @@ def makeTexTable(logoDir, f, s, t):
 	# directory and puts them all into one 
 	# large latex table
 
-	texFile = open(logoDir + 'allLogos.tex', 'w')
+	try:
+		texFile = open(logoDir + 'allLogos.tex', 'w')
+	except IOError:
+		os.mkdir(logoDir)
+		texFile = open(logoDir + 'allLogos.tex', 'w')
+
 	preamble = '\n'.join(['\\documentclass[11pt]{article}',
 						  '\\usepackage[latin1]{inputenc}',
 						  '\\usepackage{amsmath}',
@@ -48,8 +53,8 @@ def makeTexTable(logoDir, f, s, t):
 def main():
 	prefix = '../../data/b1hData/newDatabase/6varpos/'
 	fings = ['F2']
-	strins = ['high', 'low']
-	thresh = ['protein_seq_cut10bc_025']
+	strins = ['low', 'high']
+	thresh = ['protein_seq_cut3bc_0_5']
 	for f in fings:
 		for s in strins:
 			for t in thresh:
