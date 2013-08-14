@@ -31,7 +31,6 @@ nucs = ['A', 'C', 'G', 'T']
 aminos = ['A', 'C', 'D', 'E', 'F', 'G', 'I', 'H', 'K', 'L', 
 	      'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y']
 
-
 def getPosIndex(npos, canonical):
 	# Return the set of indices needed depending
 	# whether we need canonical sequences or 
@@ -69,11 +68,6 @@ def getNeighborWeights(prot, neighbors):
 	nWeights = np.array(nWeights, dtype=float)
 	nWeights = nWeights - np.min(nWeights)
 	nWeights = nWeights/np.sum(nWeights)
-
-	#print prot
-	#print sorted(nWeights)
-	#print zip(neighbors, nWeights)
-
 	return nWeights
 
 def updateTargList(fname, targList, protein, 
@@ -154,8 +148,46 @@ def updateTargListNN(fname, targList, protein,
 	if found:
 		targList.append([targ, totFreq])
 
+def decomposeNeighbors(protein, neighbors, decompose):
+	# Returns a dictionary of neighbor lists according 
+	# to the decompose dictionary
+	#
+	# protein is a protein sequence
+	# neighbors is the list of "off-by-one" neighbors for protein
+	# decompose is a dictionary, indexed by base positions,
+	# where each index points to a list of protein positions not 
+	# allowed to vary for the neighbor list for that index
+
+	neighborDict = {}
+	# For each base position
+	for bpos in decompose.keys():
+		neighborDict[bpos] = []
+		# For each neighbor
+		for n in neighbors:
+			
+			# For each amino position to remain fixed for this bpos
+			keepNeighbor = True
+			for apos in neighbors:
+				keepNeighbor = keepNeighbor and (protein[apos] == n[apos])
+			if keepNeighbor:
+				neighborDict[bpos].append(n)
+
+	return neighborDict
+
+
+def normalizeTargList(targList):
+	# targList is a list of tuples where first element 
+	# is a target and second element is a frequency with 
+	# which the target was bound.  This function just 
+	# normalizes the distribution of frequencies.
+	totFreq = 0.0
+	for [targ, freq] in targList:
+		totFreq += freq
+	for i in targList:
+		i[1] = i[1]/float(totFreq)
+
 def get3merList(dirpath, varpos, protein, canonical = False,
-				useNN = False, skipExact = False):
+				useNN = False, skipExact = False, decompose = None):
 	# Returns a list of tuples pairs (3mer, freq),
 	# where the 3 mers are DNA 3mer that bound the 
 	# protein and freq is the relative frequency 
@@ -216,28 +248,51 @@ def get3merList(dirpath, varpos, protein, canonical = False,
 					neighbors.append(protein[:i]+a+\
 					                 protein[i+1:])
 
-		# Get weights for the potential neighbors based on 
-		# a substitution matrix
-		if NEIGHBOR_WEIGHTS != None:
-			nWeights = getNeighborWeights(protein, neighbors)
+		if decompose == None:
+			# Get weights for the potential neighbors based on 
+			# a substitution matrix
+			if NEIGHBOR_WEIGHTS != None:
+				nWeights = getNeighborWeights(protein, neighbors)
 
-		handle = os.popen('ls ' + dirpath, 'r')
-		for fname in handle:
-			fname = fname.strip()
-			if re.match(r'[ACGT]{3}(.)*.txt', fname) == None:
-				continue
-			updateTargListNN(dirpath + fname, targList, 
-		                     protein, canonical, canInd, 
-		                     neighbors, nWeights)
+			# Get the targetList for this protein
+			handle = os.popen('ls ' + dirpath, 'r')
+			for fname in handle:
+				fname = fname.strip()
+				if re.match(r'[ACGT]{3}(.)*.txt', fname) == None:
+					continue
+				updateTargListNN(dirpath + fname, targList, 
+		        	             protein, canonical, canInd, 
+		            	         neighbors, nWeights)
 
-	# Normalize the frequencies across the bound 3mers to 1
-	totFreq = 0.0
-	for [targ, freq] in targList:
-		totFreq += freq
-	for i in targList:
-		i[1] = i[1]/float(totFreq)
+			# Normalize the frequencies across the bound 3mers to 1
+			normalizeTargList(targList)
+			return targList
+			
+		else:
+			# Decompose the list of neghbors on a per base position 
+			# basis, dictated by the dictionary "decompose", and 
+			# return a dictionary of targLists, indexed by base position.
+			neighborDict = decomposeNeighbors(protein, neighbors, decompose)
+			targListDict = {}
+			for k in neighborDict.keys():
+				targListDict[k] = []
 
-	return [(i[0], i[1]) for i in targList]
+				# Get weights for each neighbor
+				if NEIGHBOR_WEIGHTS != None:
+					nWeights = getNeighborWeights(protein, neighbors)
+				
+				# Get the target list for this base
+				handle = os.popen('ls ' + dirpath, 'r')
+				for fname in handle:
+					fname = fname.strip()
+					if re.match(r'[ACGT]{3}(.)*.txt', fname) == None:
+						continue
+					updateTargListNN(dirpath + fname, targListDict[k], 
+			        	             protein, canonical, canInd, 
+			            	         neighbors, nWeights)
+
+			return targListDict
+
 
 def targListToFreqMat(targList):
 	# Converts the 3-mer list into of form
@@ -263,7 +318,7 @@ def makeDir(path):
 		pass
 
 def lookupCanonZFArray(inDir, canonZFs, useNN = True, 
-                       skipExact = False):
+                       skipExact = False, decompose = None):
 	# Performs modular lookup for an array of canonical 
 	# helix-position ZF domains.  Domains should be given
 	# in reverse order of their appearance on the protein.
@@ -273,13 +328,34 @@ def lookupCanonZFArray(inDir, canonZFs, useNN = True,
 	
 	for i in range(numZFs):
 		nmat = lookupCanonZF(inDir, canonZFs[i], 
-		                     useNN, skipExact)
+		                     useNN, skipExact,
+		                     decompose)
 		for j in range(len(nmat)):
 			pwm[i*len(nmat) + j,:] = nmat[j,:]
 	
 	return pwm
 
-def lookupCanonZF(inDir, canonProt, useNN = True, skipExact = False):
+def singleColTargListToFreqVector(bpos, targLists):
+	# Returns the frequency vector corresponding to the 
+	# the frequency of A, C, G, T in for base bpos
+	#
+	# targList is a list of two elecment lists, where the 
+	# first element of each inner list should be a nuc 3mer
+	# and the second element should be the frequency with 
+	# which a protein of interest was bound by the 3mer.
+
+	bposind = bpos - 1
+	baseFreqList = [0.0, 0.0, 0.0, 0.0]
+	for i in targList:
+		base = i[0][bposind]
+		freq = i[1]
+		baseFreqList[nucs.index(base)] += freq
+
+	vect = np.array(baseFreqList, dtype=float)
+	return vect/np.sum(vect)
+
+def lookupCanonZF(inDir, canonProt, useNN = True, skipExact = False,
+                  decompose = None):
 	# Takes as input a ZF domain (canoical positions  only,
 	# helix positions -1, 2, 3, 6) and returns the predicted 
 	# 3-base binding specificity as a normalized 2d frequency 
@@ -292,6 +368,11 @@ def lookupCanonZF(inDir, canonProt, useNN = True, skipExact = False):
 	# by varying each of helix positions (-1,3,6) one at a time.
 	# If skipExact is True, then we skip the direct look-up and 
 	# go directly to nearest neighbors.
+	#
+	# If decompose is not set to None, it should be set to a 
+	# dictionary mapping each base position to a list of important
+	# amino positions for predicting that base.  These preferences
+	# will then be used to decompose the nearest neighbor lookup.
 
 
 	# B1H forward experiments.  Need to update if start 
@@ -300,26 +381,40 @@ def lookupCanonZF(inDir, canonProt, useNN = True, skipExact = False):
 	canonical = True
 	ind = getPosIndex(npos, canonical)
 
-	# Make the list of targets bound and normalized frequencies.
-	targList = get3merList(inDir, 6, canonProt, canonical,
-	                       useNN, skipExact)
+	if decompose == None:
+		# Make the list of targets bound and normalized frequencies.
+		targList = get3merList(inDir, 6, canonProt, canonical,
+		                       useNN, skipExact, decompose)
 
-	# If the target list is empty, we can't return a specificity,
-	# so we just return a uniform distribution for each base
-	if targList == []:
+		# If the target list is empty, we can't return a specificity,
+		# so we just return a uniform distribution for each base
+		if targList == []:
+			nucmat = np.zeros((3,4), float)
+			for i in range(len(nucmat)):
+				for j in range(len(nucmat[i,:])):
+					nucmat[i,j] = 0.25
+			return nucmat
+
+		# Convert the target list to a position freq mat and return
+		return targListToFreqMat(targList)
+
+	else:
+		# Get a dictionary mapping each base position to its own 
+		# specific target list based on the decompose dictionary
+		targLists = get3merList(inDir, 6, canonProt, canonical,
+		                        useNN, skipExact, decompose)
 		nucmat = np.zeros((3,4), float)
-		for i in range(len(nucmat)):
-			for j in range(len(nucmat[i,:])):
-				nucmat[i,j] = 0.25
+		for i, k in enumerate(sorted(targLists.keys())):
+			if targLists[k] == []:
+				nucmat[i,:] = np.array([0.25, 0.25, 0.25, 0.25])
+			else:
+				nucmat[i,:] = singleColTargListToFreqVector(k, targLists[k])
 		return nucmat
-
-	# Convert the target list to a position freq mat and return
-	return targListToFreqMat(targList)
-
 
 def lookupMarcusPWMs(inDir, outputDir, finger, strin, 
                      filt, pred, 
-                     useNN = False, skipExact = False):
+                     useNN = True, skipExact = False,
+                     decompose = None):
 	# Make predcitions for each of the proteins that 
 	# Marcus made experimental PWMs for
 
@@ -370,17 +465,32 @@ def lookupMarcusPWMs(inDir, outputDir, finger, strin,
 		canonProt = prot[0] + prot[2] + prot[3] + prot[6]
 		label = '_'.join([str(protNum), goal, prot, strin])
 	
-		# Make the list of targets bound and normalized frequencies.
-		targList = get3merList(inDir, 6, canonProt, canonical,
-		                       useNN, skipExact)
+		if decompose == None:
+			# Make the list of targets bound and normalized frequencies.
+			targList = get3merList(inDir, 6, canonProt, canonical,
+		    	                   useNN, skipExact, decompose)
 
-		# Do something else if the target list is empty
-		if targList == []:
-			continue
+			# Do something else if the target list is empty
+			if targList == []:
+				continue
 
-		# Convert the 3mer target list to a frequency matrix,
-		# write to file, and create a logo
-		nucMat = targListToFreqMat(targList)
+			# Convert the 3mer target list to a frequency matrix,
+			# write to file, and create a logo
+			nucMat = targListToFreqMat(targList)
+		
+		else:
+			# Get a dictionary mapping each base position to its own 
+			# specific target list based on the decompose dictionary
+			targLists = get3merList(inDir, 6, canonProt, canonical,
+			                        useNN, skipExact, decompose)
+			nucMat = np.zeros((3,4), float)
+			for i, k in enumerate(sorted(targLists.keys())):
+				if targLists[k] == []:
+					nucMat[i,:] = np.array([0.25, 0.25, 0.25, 0.25])
+				else:
+					nucMat[i,:] = singleColTargListToFreqVector(k, targLists[k])
+
+
 		makeNucMatFile(pwmdir, label, nucMat)
 		logoIn = pwmdir + label + '.txt'
 		logoOut = logodir + label + '.pdf'
