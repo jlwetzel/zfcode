@@ -35,7 +35,7 @@ def targetFiles2singleCSV(dirPath, numVarPos, fileSuffix,
 		elif style == 'plain':
 			allFile.write('freq,n1,n2,n3,a0,a2,a3,a4,a6\n')
 
-
+	interface = set()
 	protSet = set()
 	j = 0
 	for n1 in nucs:
@@ -55,6 +55,8 @@ def targetFiles2singleCSV(dirPath, numVarPos, fileSuffix,
 					#print sp_line
 					obs = ""
 					prot, freq = sp_line[0], sp_line[1]
+
+					interface.add((triplet, prot))
 					protSet.add(prot)
 					
 					obs += freq + ','
@@ -80,6 +82,7 @@ def targetFiles2singleCSV(dirPath, numVarPos, fileSuffix,
 	print "Total num unique proteins in all files:  %d" %len(protSet)
 	print
 	allFile.close()
+	return interface
 
 def csv2txtFile(dirPath, numVarPos, style = 'verbose'):
 	# Converts the csv file 'all.csv' inside dirPath to a 

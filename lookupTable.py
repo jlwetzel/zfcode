@@ -25,7 +25,8 @@ def getSubDict(fname):
 ###  Possible substitution matrices for nearest neighbors lookups
 # WEIGHTS = None
 # Use a PAM 30 matrix for weighting neighbor sequences
-NEIGHBOR_WEIGHTS = getSubDict("../data/substitution_mats/PAM30.txt")
+#NEIGHBOR_WEIGHTS = getSubDict("../data/substitution_mats/PAM30.txt")
+NEIGHBOR_WEIGHTS = None
 
 nucs = ['A', 'C', 'G', 'T']
 aminos = ['A', 'C', 'D', 'E', 'F', 'G', 'I', 'H', 'K', 'L', 
@@ -282,6 +283,8 @@ def get3merList(dirpath, varpos, protein, canonical = False,
 				# Get weights for each neighbor
 				if NEIGHBOR_WEIGHTS != None:
 					nWeights = getNeighborWeights(protein, neighbors)
+				else:
+					nWeights = None
 				
 				# Get the target list for this base
 				handle = os.popen('ls ' + dirpath, 'r')
@@ -556,6 +559,7 @@ def main():
 				                 'look', useNN = TRUE, skipExact = False)
 	"""
 	decomp1 = {1: [3], 2: [2,3], 3: [0,1]}
+	decomp2 = {1: [1,2,3], 2: [0,1,2], 3: [0,1,2]}
 
 	# Use nearest neighbors and skip all exact matches
 	fings = ['F2']
@@ -568,11 +572,11 @@ def main():
 				#print f, s, filt
 				inDir = '../data/b1hData/newDatabase/6varpos/' \
 					+ f + '/' + s + '/' + 'protein_seq_' + filt + '/'
-				outDir = '../data/lookupTableNNonly_PAM30_decomp1/' + f + '/' + s + \
+				outDir = '../data/lookupTableNNonly_decomp2/' + f + '/' + s + \
 					'/' + filt + '/'
 				lookupMarcusPWMs(inDir, outDir, f, s, filtsLabs[i],
-				                 'look.nnOnly.PAM30_decomp1', useNN = True, skipExact = True,
-				                 decompose = decomp1)
+				                 'look.nnOnly.decomp2', useNN = True, skipExact = True,
+				                 decompose = decomp2)
 
 
 if __name__ == '__main__':

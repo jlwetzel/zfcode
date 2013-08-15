@@ -290,7 +290,7 @@ def getNumHaveNeighbors(missing, bindset):
     numHaveNeighbors = 0
     for seq in missing:
         neighbors = []
-        for i in [0,2,3]:
+        for i in [0,1,2,3]:
             for a in aminos:
                 if a != seq[i]:
                     neighbors.append(seq[:i] + a\
@@ -313,7 +313,10 @@ def compareToNatural(bindset, natset, org, fings,
     for f in fings:
         for s in strins:
             inter = bindset[f,s] & natset
+            haveNeighbors = getNumHaveNeighbors((natset - inter), bindset[f,s])
             print "%s %s: %.3f" %(f, s, len(inter)/float(len(natset)))
+            print "Reachable via neighbor: %.3f" %( (haveNeighbors + len(inter)) / \
+                                                   float(len(natset)))
 
     print
     for i in range(len(fings)):
@@ -350,13 +353,20 @@ def compareToNatural(bindset, natset, org, fings,
         for j, k2 in enumerate(sorted(bothStrinsUnion.keys())):
             if j > i:
                 union = (bothStrinsUnion[k1] | bothStrinsUnion[k2]) & natset
+                haveNeighbors = getNumHaveNeighbors((natset - union), bindset[f,s])
                 print "All of %s and %s: %.3f" \
                     %(k1, k2, len(union)/float(len(natset)))
+                print "Reachable via neighbor: %.3f" %( (haveNeighbors + len(union))/ \
+                                                         float(len(natset)))
+
     if len(fings) == 3:
         unionAll = (bothStrinsUnion['F1'] | bothStrinsUnion['F2'] \
                     | bothStrinsUnion['F3']) & natset
+        haveNeighbors = getNumHaveNeighbors((natset - unionAll), bindset[f,s])
         print "All of F1, F2, and F3: %.3f" \
             %(len(unionAll)/float(len(natset)))
+        print "Reachable via neighbor: %.3f" %( (haveNeighbors + len(unionAll))/ \
+                                                   float(len(natset)))
 
 
 def compareBindingSets(bset1, bset2):
