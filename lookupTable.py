@@ -568,7 +568,7 @@ def main():
 				#print f, s, filt
 				inDir = '../data/b1hData/newDatabase/6varpos/' \
 					+ f + '/' + s + '/' + 'protein_seq_' + filt + '/'
-				outDir = '../data/lookupTableNNonly_PAM30_decomp1/' + f + '/' + s + \
+				outDir = '../data/lookupTableNNonly_pam30_decomp1/' + f + '/' + s + \
 					'/' + filt + '/'
 				lookupMarcusPWMs(inDir, outDir, f, s, filtsLabs[i],
 				                 'look.nnOnly.PAM30_decomp1', useNN = True, skipExact = True,
