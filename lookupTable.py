@@ -167,7 +167,7 @@ def decomposeNeighbors(protein, neighbors, decompose):
 
 			# For each amino position to remain fixed for this bpos
 			keepNeighbor = True
-			for apos in neighbors:
+			for apos in decompose[bpos]:
 				keepNeighbor = keepNeighbor and (protein[apos] == n[apos])
 			if keepNeighbor:
 				neighborDict[bpos].append(n)
@@ -272,6 +272,9 @@ def get3merList(dirpath, varpos, protein, canonical = False,
 			# basis, dictated by the dictionary "decompose", and 
 			# return a dictionary of targLists, indexed by base position.
 			neighborDict = decomposeNeighbors(protein, neighbors, decompose)
+			#print decompose
+			#for k in neighborDict.keys():
+			#	print "%s: %s -- %d" %(k, repr(neighborDict[k]), len(neighborDict[k]))
 			targListDict = {}
 			for k in neighborDict.keys():
 				targListDict[k] = []
@@ -288,7 +291,12 @@ def get3merList(dirpath, varpos, protein, canonical = False,
 						continue
 					updateTargListNN(dirpath + fname, targListDict[k], 
 			        	             protein, canonical, canInd, 
-			            	         neighbors, nWeights)
+			            	         neighborDict[k], nWeights)
+				normalizeTargList(targListDict[k])
+
+			#for k in targListDict:
+			#	print "%s: %s -- %d" %(k, repr([i for i in targListDict[k]]), 
+			#	                       len(targListDict[k]))
 
 			return targListDict
 
@@ -334,7 +342,7 @@ def lookupCanonZFArray(inDir, canonZFs, useNN = True,
 	
 	return pwm
 
-def singleColTargListToFreqVector(bpos, targLists):
+def singleColTargListToFreqVector(bpos, targList):
 	# Returns the frequency vector corresponding to the 
 	# the frequency of A, C, G, T in for base bpos
 	#
@@ -351,7 +359,10 @@ def singleColTargListToFreqVector(bpos, targLists):
 		baseFreqList[nucs.index(base)] += freq
 
 	vect = np.array(baseFreqList, dtype=float)
-	return vect/np.sum(vect)
+	vect = vect/np.sum(vect)
+	#print targList
+	#print vect
+	return vect
 
 def lookupCanonZF(inDir, canonProt, useNN = True, skipExact = False,
                   decompose = None):
@@ -478,6 +489,7 @@ def lookupMarcusPWMs(inDir, outputDir, finger, strin,
 			nucMat = targListToFreqMat(targList)
 		
 		else:
+			#print protNum, canonProt
 			# Get a dictionary mapping each base position to its own 
 			# specific target list based on the decompose dictionary
 			targLists = get3merList(inDir, 6, canonProt, canonical,
@@ -543,7 +555,7 @@ def main():
 				lookupMarcusPWMs(inDir, outDir, f, s, filtsLabs[i],
 				                 'look', useNN = TRUE, skipExact = False)
 	"""
-	decompose = {1: [2,3], 2: [1,2], 3: [0,1]}
+	decomp1 = {1: [3], 2: [2,3], 3: [0,1]}
 
 	# Use nearest neighbors and skip all exact matches
 	fings = ['F2']
@@ -553,13 +565,14 @@ def main():
 	for f in fings:
 		for s in strins:
 			for i, filt in enumerate(filts):
+				#print f, s, filt
 				inDir = '../data/b1hData/newDatabase/6varpos/' \
 					+ f + '/' + s + '/' + 'protein_seq_' + filt + '/'
 				outDir = '../data/lookupTableNNonly_PAM30_decomp1/' + f + '/' + s + \
 					'/' + filt + '/'
 				lookupMarcusPWMs(inDir, outDir, f, s, filtsLabs[i],
 				                 'look.nnOnly.PAM30_decomp1', useNN = True, skipExact = True,
-				                 decompose)
+				                 decompose = decomp1)
 
 
 if __name__ == '__main__':
