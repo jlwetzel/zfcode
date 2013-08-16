@@ -25,7 +25,7 @@ def getSubDict(fname):
 ###  Possible substitution matrices for nearest neighbors lookups
 # WEIGHTS = None
 # Use a PAM 30 matrix for weighting neighbor sequences
-NEIGHBOR_WEIGHTS = getSubDict("../data/substitution_mats/PAM30.txt")
+NEIGHBOR_WEIGHTS = getSubDict("PAM30.txt")
 #NEIGHBOR_WEIGHTS = None
 
 nucs = ['A', 'C', 'G', 'T']
