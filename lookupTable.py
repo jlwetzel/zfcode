@@ -25,8 +25,8 @@ def getSubDict(fname):
 ###  Possible substitution matrices for nearest neighbors lookups
 # WEIGHTS = None
 # Use a PAM 30 matrix for weighting neighbor sequences
-#NEIGHBOR_WEIGHTS = getSubDict("../data/substitution_mats/PAM30.txt")
-NEIGHBOR_WEIGHTS = None
+NEIGHBOR_WEIGHTS = getSubDict("../data/substitution_mats/PAM30.txt")
+#NEIGHBOR_WEIGHTS = None
 
 nucs = ['A', 'C', 'G', 'T']
 aminos = ['A', 'C', 'D', 'E', 'F', 'G', 'I', 'H', 'K', 'L', 
@@ -82,6 +82,7 @@ def updateTargList(fname, targList, protein,
 	totFreq = 0.0
 	found = False
 
+	binderDict = {}
 	# For each line of the binding file
 	for line in fin:
 		sp_line = line.strip().split()
@@ -98,11 +99,18 @@ def updateTargList(fname, targList, protein,
 			for i in canInd:
 				canBinder += binder[i]
 			if canBinder == protein:
+				if binderDict.has_key(canBinder):
+					binderDict[canBinder] += freq
+				else:
+					binderDict[canBinder] = freq
 				totFreq += freq
 				if not found:
 					found = True
 
 	# Append the combined frequeny for canonical case
+	if binderDict != {}:
+		pass
+		#print targ, binderDict
 	if canonical and found:
 		targList.append([targ, totFreq])
 
@@ -231,9 +239,13 @@ def get3merList(dirpath, varpos, protein, canonical = False,
 		updateTargList(dirpath + fname, targList, 
 		               protein, canonical, canInd)
 
+	if targList != [] or not useNN:
+		normalizeTargList(targList)
+		return targList
+
 	# If the list is empty after looking for exact matches,
 	# then look for nearest neighbors if useNN flag is set.
-	if useNN:
+	else:
 		# Get the list of possible neighboring seqs
 		neighbors = []
 		if canonical:
@@ -253,6 +265,8 @@ def get3merList(dirpath, varpos, protein, canonical = False,
 			# a substitution matrix
 			if NEIGHBOR_WEIGHTS != None:
 				nWeights = getNeighborWeights(protein, neighbors)
+			else:
+				nWeights = None
 
 			# Get the targetList for this protein
 			handle = os.popen('ls ' + dirpath, 'r')
@@ -394,11 +408,12 @@ def lookupCanonZF(inDir, canonProt, useNN = True, skipExact = False,
 	canonical = True
 	ind = getPosIndex(npos, canonical)
 
-	if decompose == None:
-		# Make the list of targets bound and normalized frequencies.
-		targList = get3merList(inDir, 6, canonProt, canonical,
-		                       useNN, skipExact, decompose)
-
+	# Make the list of targets bound and normalized frequencies.
+	targList = get3merList(inDir, 6, canonProt, canonical,
+		                   useNN, skipExact, decompose)
+	
+	# This is a decomposed targetDict
+	if isinstance(targList, list):
 		# If the target list is empty, we can't return a specificity,
 		# so we just return a uniform distribution for each base
 		if targList == []:
@@ -411,17 +426,15 @@ def lookupCanonZF(inDir, canonProt, useNN = True, skipExact = False,
 		# Convert the target list to a position freq mat and return
 		return targListToFreqMat(targList)
 
-	else:
+	elif isinstance(targList, dict):
 		# Get a dictionary mapping each base position to its own 
 		# specific target list based on the decompose dictionary
-		targLists = get3merList(inDir, 6, canonProt, canonical,
-		                        useNN, skipExact, decompose)
 		nucmat = np.zeros((3,4), float)
-		for i, k in enumerate(sorted(targLists.keys())):
-			if targLists[k] == []:
+		for i, k in enumerate(sorted(targList.keys())):
+			if targList[k] == []:
 				nucmat[i,:] = np.array([0.25, 0.25, 0.25, 0.25])
 			else:
-				nucmat[i,:] = singleColTargListToFreqVector(k, targLists[k])
+				nucmat[i,:] = singleColTargListToFreqVector(k, targList[k])
 		return nucmat
 
 def lookupMarcusPWMs(inDir, outputDir, finger, strin, 
@@ -478,31 +491,27 @@ def lookupMarcusPWMs(inDir, outputDir, finger, strin,
 		canonProt = prot[0] + prot[2] + prot[3] + prot[6]
 		label = '_'.join([str(protNum), goal, prot, strin])
 	
-		if decompose == None:
-			# Make the list of targets bound and normalized frequencies.
-			targList = get3merList(inDir, 6, canonProt, canonical,
-		    	                   useNN, skipExact, decompose)
-
-			# Do something else if the target list is empty
+		targList = get3merList(inDir, 6, canonProt, canonical,
+		    	               useNN, skipExact, decompose)
+		
+		if isinstance(targList, list):
+			# If the target list is empty don't output anything
 			if targList == []:
 				continue
-
+			
 			# Convert the 3mer target list to a frequency matrix,
 			# write to file, and create a logo
 			nucMat = targListToFreqMat(targList)
 		
-		else:
-			#print protNum, canonProt
+		elif isinstance(targList, dict):
 			# Get a dictionary mapping each base position to its own 
 			# specific target list based on the decompose dictionary
-			targLists = get3merList(inDir, 6, canonProt, canonical,
-			                        useNN, skipExact, decompose)
 			nucMat = np.zeros((3,4), float)
-			for i, k in enumerate(sorted(targLists.keys())):
-				if targLists[k] == []:
+			for i, k in enumerate(sorted(targList.keys())):
+				if targList[k] == []:
 					nucMat[i,:] = np.array([0.25, 0.25, 0.25, 0.25])
 				else:
-					nucMat[i,:] = singleColTargListToFreqVector(k, targLists[k])
+					nucMat[i,:] = singleColTargListToFreqVector(k, targList[k])
 
 
 		makeNucMatFile(pwmdir, label, nucMat)
@@ -524,6 +533,12 @@ def lookupMarcusPWMs(inDir, outputDir, finger, strin,
 	fout.close()
 
 def main():
+
+	decomp2 = {1: [1,2,3], 2: [0,1,2], 3: [0,1,2]}
+	nmat = lookupCanonZF('../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut3bc_0_5/',
+	                     'RDYN', useNN = False, skipExact = False, 
+	                     decompose = decomp2)
+	print nmat
 
 	"""
 	# Don't use nearest neighbors
@@ -557,7 +572,7 @@ def main():
 				
 				lookupMarcusPWMs(inDir, outDir, f, s, filtsLabs[i],
 				                 'look', useNN = TRUE, skipExact = False)
-	"""
+
 	decomp1 = {1: [3], 2: [2,3], 3: [0,1]}
 	decomp2 = {1: [1,2,3], 2: [0,1,2], 3: [0,1,2]}
 
@@ -577,6 +592,7 @@ def main():
 				lookupMarcusPWMs(inDir, outDir, f, s, filtsLabs[i],
 				                 'look.nnOnly.decomp2', useNN = True, skipExact = True,
 				                 decompose = decomp2)
+	"""
 
 
 if __name__ == '__main__':
