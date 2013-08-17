@@ -292,6 +292,7 @@ def get3merList(dirpath, varpos, protein, canonical = False,
 		# Add the weighted vectors together
 		for i in range(len(baseVectors)):
 			pwm[k-1] = pwm[k-1] + baseVectors[i]
+		#pwm[k-1] = pwm[k-1]/np.sum(pwm[k-1]) 
 
 	return pwm
 
@@ -464,11 +465,12 @@ def main():
 	"""
 	decomp2 = {1: [1,2,3], 2: [0,1,2], 3: [0,1,2]}
 	nmat = lookupCanonZF('../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut3bc_0_5/',
-	                     'RGDM', useNN = True, skipExact = True, 
+	                     'RDYN', useNN = True, skipExact = True, 
 	                     decompose = decomp2)
 	print 
 	print "Final Matrix:"
 	print nmat
+
 
 	# Don't use nearest neighbors
 	fings = ['F2']
@@ -516,12 +518,11 @@ def main():
 			for i, filt in enumerate(filts):
 				inDir = '../data/b1hData/newDatabase/6varpos/' \
 					+ f + '/' + s + '/' + 'protein_seq_' + filt + '/'
-				outDir = '../data/lookNNonly_PAM30_Triples/' + f + '/' + s + \
+				outDir = '../data/lookNNonly_Triples/' + f + '/' + s + \
 					'/' + filt + '/'
 				lookupMarcusPWMs(inDir, outDir, f, s, filtsLabs[i],
-				                 'look.nnOnly.PAM30.trip', useNN = True, skipExact = True,
+				                 'NNOnly.trip', useNN = True, skipExact = True,
 				                 decompose = triples)
-	
 
 
 if __name__ == '__main__':
