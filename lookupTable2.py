@@ -288,12 +288,17 @@ def get3merList(freqDict, protein, canonical = False,
 		# Remove Nones from the baseVector list
 		baseVectors = [i for i in baseVectors if i != None]
 
-		# Add the weighted vectors together
-		for i in range(len(baseVectors)):
-			pwm[k-1] = pwm[k-1] + baseVectors[i]
-
-		# Renormalize since some neighbors may not have been found
-		pwm[k-1] = pwm[k-1]/np.sum(pwm[k-1]) 
+		# If we found at least one neighbor
+		if baseVectors != []:
+			# Add the weighted vectors together
+			for i in range(len(baseVectors)):
+				pwm[k-1] = pwm[k-1] + baseVectors[i]
+			# Renormalize since some neighbors may not have been found
+			pwm[k-1] = pwm[k-1]/np.sum(pwm[k-1]) 
+		
+		# If we found no neighbors use a uniform vector
+		else:
+			pwm[k-1] = np.array([0.25, 0.25, 0.25, 0.25], dtype = float)
 
 	return pwm
 
@@ -442,6 +447,8 @@ def lookupMarcusPWMs(inDir, outputDir, freqDict,
 		else:
 			nucMat = targList
 
+		#if protNum == "3706":
+		#	print nucMat
 		makeNucMatFile(pwmdir, label, nucMat)
 		logoIn = pwmdir + label + '.txt'
 		logoOut = logodir + label + '.pdf'
@@ -494,7 +501,7 @@ def main():
 			for i, filt in enumerate(filts):
 				inDir = '../data/b1hData/newDatabase/6varpos/' \
 					+ f + '/' + s + '/' + 'protein_seq_' + filt + '/'
-				outDir = '../data/lookupTable_new/'	+ f + '/' + s + \
+				outDir = '../data/NNonly_Triples/'	+ f + '/' + s + \
 					'/' + filt + '/'
 
 				# Get the dictionary of binding frequencies
@@ -504,18 +511,18 @@ def main():
 				freqDict = computeFreqDict(inDir, canInd)
 
 				# Lookup each pwm
-				lookupMarcusPWMs(inDir, outDir, freqDict, f, s, filtsLabs[i],
-				                 'look', useNN = False,
-				                 skipExact = False, decompose = None)
+				#lookupMarcusPWMs(inDir, outDir, freqDict, f, s, filtsLabs[i],
+				#                 'look', useNN = False,
+				#                 skipExact = False, decompose = None)
 
 				# Look up each pwm and use neighbors if neccessary
 				#lookupMarcusPWMs(inDir, outDir, freqDict, f, s, filtsLabs[i],
 				#                 'look', useNN = TRUE, skipExact = False,
 				#                 decompose = triples)
 
-				#lookupMarcusPWMs(inDir, outDir, freqDict, f, s, filtsLabs[i],
-				#                 'NNOnly.P30.trip', useNN = True, skipExact = True,
-				#                 decompose = triples)
+				lookupMarcusPWMs(inDir, outDir, freqDict, f, s, filtsLabs[i],
+				                 'NNOnly.trip', useNN = True, skipExact = True,
+				                 decompose = triples)
 
 if __name__ == '__main__':
 	main()
