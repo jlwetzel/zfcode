@@ -72,10 +72,11 @@ def makeTexTable(texFile, logoType, logoTypeDir):
 def main():
 	outDir = '../../figures/predictionLogos/'
 	inDirPrefix = '../../data/'
-	logoType = ['exp', 'lookup', 'lookupNN', 'lookupNNTrip', 'simpleCanon']
+	logoType = ['exp', 'lookup', 'lookNNTripP30', 'N.lookNNTrip', \
+				'N.lookNNTripP30']
 	logoTypeDir = ['revExp/F2_GAG/logos3/', 'lookupTable/', 
-			       'lookupTableNNonly_PAM30/', 'lookupTableNNonly_pam30_decomp2/',
-			       'simplePredictor/']
+			       'lookupTableNNonly_pam30_decomp2/',
+			       'lookNNonly_Triples/', 'lookNNonly_PAM30_Triples/']
 	fing = 'F2'
 	strin = 'low'
 	filters = ['cut3bc_0_5']#['cut10bc_0_5, cut10bc_0']

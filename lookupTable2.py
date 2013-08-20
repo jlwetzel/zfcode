@@ -25,8 +25,8 @@ def getSubDict(fname):
 ###  Possible substitution matrices for nearest neighbors lookups
 # WEIGHTS = None
 # Use a PAM 30 matrix for weighting neighbor sequences
-#NEIGHBOR_WEIGHTS = getSubDict("../data/substitution_mats/PAM30.txt")
-NEIGHBOR_WEIGHTS = None
+NEIGHBOR_WEIGHTS = getSubDict("../data/substitution_mats/PAM30.txt")
+#NEIGHBOR_WEIGHTS = None
 
 nucs = ['A', 'C', 'G', 'T']
 aminos = ['A', 'C', 'D', 'E', 'F', 'G', 'I', 'H', 'K', 'L', 
@@ -518,10 +518,10 @@ def main():
 			for i, filt in enumerate(filts):
 				inDir = '../data/b1hData/newDatabase/6varpos/' \
 					+ f + '/' + s + '/' + 'protein_seq_' + filt + '/'
-				outDir = '../data/lookNNonly_Triples/' + f + '/' + s + \
+				outDir = '../data/lookNNonly_PAM30_Triples/' + f + '/' + s + \
 					'/' + filt + '/'
 				lookupMarcusPWMs(inDir, outDir, f, s, filtsLabs[i],
-				                 'NNOnly.trip', useNN = True, skipExact = True,
+				                 'NNOnly.P30.trip', useNN = True, skipExact = True,
 				                 decompose = triples)
 
 
