@@ -25,8 +25,8 @@ def getSubDict(fname):
 ###  Possible substitution matrices for nearest neighbors lookups
 # WEIGHTS = None
 # Use a PAM 30 matrix for weighting neighbor sequences
-NEIGHBOR_WEIGHTS = getSubDict("../data/substitution_mats/PAM30.txt")
-#NEIGHBOR_WEIGHTS = None
+#NEIGHBOR_WEIGHTS = getSubDict("../data/substitution_mats/PAM30.txt")
+NEIGHBOR_WEIGHTS = None
 
 nucs = ['A', 'C', 'G', 'T']
 aminos = ['A', 'C', 'D', 'E', 'F', 'G', 'I', 'H', 'K', 'L', 
@@ -145,8 +145,7 @@ def singleColTargListToFreqVector(bpos, targList):
 	vect = vect/np.sum(vect)
 	return vect
 
-def getNeighborBaseVect(freqDict, neighbor, bpos,
-                        canonical, canInd):
+def getNeighborBaseVect(freqDict, neighbor, bpos):
 	# Returns the vector of base frequencies for 
 	# bpos for all exact matches to this neighboring protein
 
@@ -156,10 +155,9 @@ def getNeighborBaseVect(freqDict, neighbor, bpos,
 		if freqDict[targ].has_key(neighbor):
 			targList.append([targ, freqDict[targ][neighbor]])
 
-	# In the case that neighbor bound nothing, return the
-	# uniform vector of frequencies.
+	# In the case that neighbor bound nothing, return None
 	if targList == []:
-		return np.array([0.25, 0.25, 0.25, 0.25], dtype=float)
+		return None
 
 	# Otherwise convert the targList to a normalized vector 
 	# of frequencies for the base position indicated
@@ -167,7 +165,7 @@ def getNeighborBaseVect(freqDict, neighbor, bpos,
 		normalizeTargList(targList)
 		return singleColTargListToFreqVector(bpos, targList)
 
-def computeFreqDict(dirpath, varpos, ind): 
+def computeFreqDict(dirpath, ind): 
 	# Run through all the files for this binding dictionary 
 	# and create one large binding dictionary of the form:
 	# 3mer -> bindingProtein -> freq
@@ -198,7 +196,7 @@ def computeFreqDict(dirpath, varpos, ind):
 
 	return freqDict
 
-def get3merList(dirpath, varpos, protein, canonical = False,
+def get3merList(freqDict, protein, canonical = False,
 				useNN = False, skipExact = False, 
 				decompose = {1:[], 2:[], 3:[]}):
 	# Returns a list of tuples pairs (3mer, freq),
@@ -207,9 +205,6 @@ def get3merList(dirpath, varpos, protein, canonical = False,
 	# with which it bound.
 	#
 	# - dir is a path to a directory with binding files.
-	#
-	# - varpos is the number of positions varied in the 
-	# ZF domains in the binding assay for dir.
 	#
 	# - protein is the protein (ZF) domain of interest
 	# assumed to be given using the same positions varied 
@@ -230,9 +225,6 @@ def get3merList(dirpath, varpos, protein, canonical = False,
 	# Read the entire list of target/binder 
 	# frequencies into a hash table
 
-	canInd = getPosIndex(varpos, canonical)
-	freqDict = computeFreqDict(dirpath, varpos, canInd)
-	
 	targList = []  # The list of (3mer, freq) tuples to 
 				   # be returned.
 
@@ -276,23 +268,32 @@ def get3merList(dirpath, varpos, protein, canonical = False,
 		# this base position
 		for n in neighborDict[k]:
 			baseVectors.append(getNeighborBaseVect(freqDict, 
-			           		   n, k, canonical, canInd))
+			           		   n, k))
 		
-		# Weight the frequency vectors according the weights of the
-		# nieghbors they are derived from
+		# Get the weights of the neighbors for the current
+		# weighting scheme.
 		if NEIGHBOR_WEIGHTS != None:
 			nWeights = getNeighborWeights(protein, neighborDict[k])
 		else:
 			unifWeight = 1/float(len(neighborDict[k]))
 			nWeights = np.array([unifWeight]*len(neighborDict[k]),
 			                    dtype = float)
+		
+		# For each neighbor found, weight its vector by that
+		# neighbor's weight.
 		for i in range(len(nWeights)):
-			baseVectors[i] = baseVectors[i] * nWeights[i]
+			if baseVectors[i] != None:
+				baseVectors[i] = baseVectors[i] * nWeights[i]
+
+		# Remove Nones from the baseVector list
+		baseVectors = [i for i in baseVectors if i != None]
 
 		# Add the weighted vectors together
 		for i in range(len(baseVectors)):
 			pwm[k-1] = pwm[k-1] + baseVectors[i]
-		#pwm[k-1] = pwm[k-1]/np.sum(pwm[k-1]) 
+
+		# Renormalize since some neighbors may not have been found
+		pwm[k-1] = pwm[k-1]/np.sum(pwm[k-1]) 
 
 	return pwm
 
@@ -303,7 +304,7 @@ def makeDir(path):
 	except OSError:
 		pass
 
-def lookupCanonZFArray(inDir, canonZFs, useNN = True, 
+def lookupCanonZFArray(freqDict, canonZFs, useNN = True, 
                        skipExact = False, decompose = None):
 	# Performs modular lookup for an array of canonical 
 	# helix-position ZF domains.  Domains should be given
@@ -313,15 +314,14 @@ def lookupCanonZFArray(inDir, canonZFs, useNN = True,
 	pwm = np.zeros(shape = (numZFs*3, 4))
 	
 	for i in range(numZFs):
-		nmat = lookupCanonZF(inDir, canonZFs[i], 
-		                     useNN, skipExact,
-		                     decompose)
+		nmat = lookupCanonZF(freqDict, canonZFs[i], 
+		                     useNN, skipExact, decompose)
 		for j in range(len(nmat)):
 			pwm[i*len(nmat) + j,:] = nmat[j,:]
 	
 	return pwm
 
-def lookupCanonZF(inDir, canonProt, useNN = True, skipExact = False,
+def lookupCanonZF(freqDict, canonProt, useNN = True, skipExact = False,
                   decompose = None):
 	# Takes as input a ZF domain (canoical positions  only,
 	# helix positions -1, 2, 3, 6) and returns the predicted 
@@ -349,7 +349,7 @@ def lookupCanonZF(inDir, canonProt, useNN = True, skipExact = False,
 	ind = getPosIndex(npos, canonical)
 
 	# Make the list of targets bound and normalized frequencies.
-	targList = get3merList(inDir, 6, canonProt, canonical,
+	targList = get3merList(freqDict, canonProt, canonical,
 		                   useNN, skipExact, decompose)
 	
 	# This is target/frequncy list
@@ -371,10 +371,9 @@ def lookupCanonZF(inDir, canonProt, useNN = True, skipExact = False,
 		nucmat = targList
 		return targList
 
-def lookupMarcusPWMs(inDir, outputDir, finger, strin, 
-                     filt, pred, 
-                     useNN = True, skipExact = False,
-                     decompose = None):
+def lookupMarcusPWMs(inDir, outputDir, freqDict,
+                     finger, strin, filt, pred, useNN = True,
+                     skipExact = False, decompose = None):
 	# Make predcitions for each of the proteins that 
 	# Marcus made experimental PWMs for
 
@@ -395,9 +394,10 @@ def lookupMarcusPWMs(inDir, outputDir, finger, strin,
 		expDir = '../data/revExp/F3_GCG/pwms3/'
 	fout = open(predictionDir + 'compare.txt', 'w')
 	# Write header to results file
-	fout.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
-	           %('num', 'targ','prot','canonprot','score','colcor', \
-	           'colcorIC', 'totcol', 'pred.filt', 'finger', 'strin'))
+	fout.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
+	           %('num', 'targ','prot','canonprot','c1pcc','c2pcc',
+	             'c3pcc', 'c1pcc.ic', 'c2pcc.ic', 'c3pcc.ic',
+	             'pred.filt', 'finger', 'strin'))
 	
 	
 	# B1H forward experiments.  Need to update if start 
@@ -425,7 +425,7 @@ def lookupMarcusPWMs(inDir, outputDir, finger, strin,
 		canonProt = prot[0] + prot[2] + prot[3] + prot[6]
 		label = '_'.join([str(protNum), goal, prot, strin])
 	
-		targList = get3merList(inDir, 6, canonProt, canonical,
+		targList = get3merList(freqDict, canonProt, canonical,
 		    	               useNN, skipExact, decompose)
 		
 		# This is target/frequncy list
@@ -451,119 +451,71 @@ def lookupMarcusPWMs(inDir, outputDir, finger, strin,
 		         xlab = '_'.join([goal,prot]))
 		
 		# Compare this pwm to the reverse experiment
-		score, colcor, colcorIC, totCol = \
+		colPcc, colPcc_ic = \
 			comparePWMs(nucMat, pwmfile2matrix(expDir + fname))
 
 		# Write the comparison results to file
-		fout.write("%s\t%s\t%s\t%s\t%.3f\t%d\t%d\t%d\t%s\t%s\t%s\n" \
-		           %(protNum, goal, prot, canonProt, score, colcor, \
-		           	 colcorIC, totCol, pred+'.'+filt, finger, strin))
+		fout.write("%s\t%s\t%s\t%s\t" %(protNum, goal, prot, canonProt))
+		fout.write("%.4f\t"*6 %(colPcc[0], colPcc[1], colPcc[2], \
+		           				colPcc_ic[0], colPcc_ic[1], colPcc_ic[2]))
+		fout.write("%s\t%s\t%s\n" %(pred+'.'+filt, finger, strin))
+
 	fout.close()
 
 def main():
 
 	"""
-	decomp2 = {1: [1,2,3], 2: [0,1,2], 3: [0,1,2]}
-	nmat = lookupCanonZF('../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut3bc_0_5/',
-	                     'RDYN', useNN = True, skipExact = True, 
-	                     decompose = decomp2)
+	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut3bc_0_5/'
+	canonical = True
+	varpos = 6
+	canInd = getPosIndex(varpos, canonical)
+	freqDict = computeFreqDict(inDir, canInd)
+	canonAnton = {1: [3], 2: [2,3], 3: [0,1]}
+	triples = {1: [1,2,3], 2: [0,1,2], 3: [0,1,2]}
+	nmat = lookupCanonZF(freqDict, 'RDYN', useNN = True, skipExact = True, 
+	                     decompose = triples)
+
 	print 
 	print "Final Matrix:"
 	print nmat
-
-
-	# Don't use nearest neighbors
-	fings = ['F2']
-	strins = ['low']
-	filts = ['cut10bc_0_5', 'cut3bc_0_5'] #[ 'cut10bc_0', 'cut3bc_025', 'cut10bc_025']
-	filtsLabs = ['c10_0_5', 'c3_0_5'] #['c3_025', 'c10_025', 'c10_0']
-	for f in fings:
-		for s in strins:
-			for i, filt in enumerate(filts):
-				inDir = '../data/b1hData/newDatabase/6varpos/' \
-					+ f + '/' + s + '/' + 'protein_seq_' + filt + '/'
-				outDir = '../data/lookupTable/'	+ f + '/' + s + \
-					'/' + filt + '/'
-				
-				lookupMarcusPWMs(inDir, outDir, f, s, filtsLabs[i],
-				                 'look', useNN = False, skipExact = False)
-
-	# Use nearest neighbors if exact matches can't be found
-	fings = ['F2']
-	strins = ['low']
-	filts = ['cut3bc_025', 'cut10bc_025', 'cut10bc_0']
-	filtsLabs = ['c3_025', 'c10_025', 'c10_0']
-	for f in fings:
-		for s in strins:
-			for i, filt in enumerate(filts):
-				inDir = '../data/b1hData/newDatabase/6varpos/' \
-					+ f + '/' + s + '/' + 'protein_seq_' + filt + '/'
-				outDir = '../data/lookupTableNN/'	+ f + '/' + s + \
-					'/' + filt + '/'
-				
-				lookupMarcusPWMs(inDir, outDir, f, s, filtsLabs[i],
-				                 'look', useNN = TRUE, skipExact = False)
 	"""
 
+	# Choose style of base decomposition
 	canonAnton = {1: [3], 2: [2,3], 3: [0,1]}
 	triples = {1: [1,2,3], 2: [0,1,2], 3: [0,1,2]}
 
-	# Use nearest neighbors and skip all exact matches
+	# Perform lookup for variety of fingers, stringencies and filters
 	fings = ['F2']
 	strins = ['low']
-	filts = ['cut3bc_0_5', 'cut10bc_0_5', 'cut10bc_0', 'cut3bc_025', 'cut10bc_025']
-	filtsLabs = ['c3_0_5', 'c10_0_5', 'c3_025', 'c10_025', 'c10_0']
+	filts = ['cut10bc_0_5', 'cut3bc_0_5', 'cut10bc_0', 'cut3bc_025', 'cut10bc_025']
+	filtsLabs = ['c10_0_5', 'c3_0_5', 'c3_025', 'c10_025', 'c10_0']
 	for f in fings:
 		for s in strins:
 			for i, filt in enumerate(filts):
 				inDir = '../data/b1hData/newDatabase/6varpos/' \
 					+ f + '/' + s + '/' + 'protein_seq_' + filt + '/'
-				outDir = '../data/lookNNonly_PAM30_Triples/' + f + '/' + s + \
+				outDir = '../data/lookupTable_new/'	+ f + '/' + s + \
 					'/' + filt + '/'
-				lookupMarcusPWMs(inDir, outDir, f, s, filtsLabs[i],
-				                 'NNOnly.P30.trip', useNN = True, skipExact = True,
-				                 decompose = triples)
 
+				# Get the dictionary of binding frequencies
+				canonical = True
+				varpos = 6
+				canInd = getPosIndex(varpos, canonical)
+				freqDict = computeFreqDict(inDir, canInd)
+
+				# Lookup each pwm
+				lookupMarcusPWMs(inDir, outDir, freqDict, f, s, filtsLabs[i],
+				                 'look', useNN = False,
+				                 skipExact = False, decompose = None)
+
+				# Look up each pwm and use neighbors if neccessary
+				#lookupMarcusPWMs(inDir, outDir, freqDict, f, s, filtsLabs[i],
+				#                 'look', useNN = TRUE, skipExact = False,
+				#                 decompose = triples)
+
+				#lookupMarcusPWMs(inDir, outDir, freqDict, f, s, filtsLabs[i],
+				#                 'NNOnly.P30.trip', useNN = True, skipExact = True,
+				#                 decompose = triples)
 
 if __name__ == '__main__':
 	main()
-
-
-## Old version fo main that predicts for all extant sequences
-## in a given protein directory
-
-"""
-def main():
-	fing = 'F2'
-	strin = 'high'
-	protDir = 'threshold025'
-	npos = 6
-	canonical = True
-	logoDir = '/Users/jlwetzel/Desktop/Anton_F2_high_entr025' + \
-		'_logos_lookupTable/'
-	ind = getPosIndex(npos, canonical)
-	dirStyle = 'old'    # For Anton's files or my files
-
-
-	if dirStyle == 'new':
-		dirpath = '../data/b1hData/newDatabase/6varpos/' + \
-			'/'.join([fing, strin, protDir]) + '/'
-	elif dirStyle == 'old':
-		dirpath = '../data/b1hData/oldData/' + \
-			'/'.join([fing, protDir, strin]) + '/'
-
-	protDict = getProtDict(dirpath + 'all.txt', ind)
-
-	bindOnly1file = open(logoDir + 'only1Target.txt', 'w')
-	i = 1
-	for prot in sorted(protDict.keys()):
-		print "%d of %d" %(i, len(protDict))
-		if len(protDict[prot]) > 1:
-			targList = get3merList(dirpath, 6, prot, canonical)
-			targListToLogo(logoDir, targList, prot)
-		else:
-			targ = protDict[prot].keys()[0]
-			freq = protDict[prot][targ]
-			bindOnly1file.write('%s\t%s\t%f\n' %(prot, targ, freq))
-		i += 1
-		"""

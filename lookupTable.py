@@ -561,15 +561,17 @@ def lookupMarcusPWMs(inDir, outputDir, finger, strin,
 
 def main():
 
+	"""
 	decomp2 = {1: [1,2,3], 2: [0,1,2], 3: [0,1,2]}
 	nmat = lookupCanonZF('../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut3bc_0_5/',
-	                     'RGDM', useNN = True, skipExact = True, 
+	                     'RDYN', useNN = True, skipExact = True, 
 	                     decompose = decomp2)
 	print 
 	print "Final Matrix:"
 	print nmat
 
 	"""
+
 	# Don't use nearest neighbors
 	fings = ['F2']
 	strins = ['low']
@@ -586,6 +588,7 @@ def main():
 				lookupMarcusPWMs(inDir, outDir, f, s, filtsLabs[i],
 				                 'look', useNN = False, skipExact = False)
 
+	"""
 	# Use nearest neighbors if exact matches can't be found
 	fings = ['F2']
 	strins = ['low']

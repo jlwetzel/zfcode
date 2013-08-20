@@ -42,7 +42,7 @@ def makeNucMatFile(path, label, nucMat):
 	
 
 
-def comparePWMs(predPWM, expPWM, threshold = 0.25):
+def comparePWMs(predPWM, expPWM):
 	# This function asumes that the two PWMs 
 	# are already aligned to one another and 
 	# are of the same length.
@@ -51,20 +51,17 @@ def comparePWMs(predPWM, expPWM, threshold = 0.25):
 	# content weighted Pearson correlation, adding 
 	# the following for each column, i:
 	# PCC(pred_i, exp_i) * IC(exp_i)/2
-	score = 0
-	numCorrect = 0
-	numCorrectIC = 0
+	colPcc = []
+	colPcc_ic = []
 	for i in range(len(predPWM)):
 		corr = stats.pearsonr(predPWM[i,:], expPWM[i,:])
 		ic = 2 - infoEntr(expPWM[i,:])
 		colScore = corr[0] * ic/2
-		if corr[0] >= threshold:
-			numCorrect += 1
-		if colScore >= threshold:
-			numCorrectIC += 1
-		score += colScore
-		
-	return score, numCorrect, numCorrectIC, len(predPWM)
+		colPcc.append(corr[0])
+		colPcc_ic.append(colScore)
+	
+	#print colPcc, colPcc_ic	
+	return colPcc, colPcc_ic
 
 def pwmfile2matrix(pwmFile):
 	# Converts a file of the transfac format to 
