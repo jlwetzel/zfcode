@@ -58,7 +58,7 @@ def makeTexTable(texFile, logoType, logoTypeDir):
 				              	  %(logoTypeDir[i-1] + fname))
 			else:
 				newfname = '_'.join([logoNum, targ, prot, 'low']) + '.pdf'
-				print logoTypeDir[i-1] + newfname
+				#print logoTypeDir[i-1] + newfname
 				if os.path.exists(logoTypeDir[i-1] + newfname):
 					texFile.write(' & ' + '\\includegraphics[scale=0.5]{%s}' \
 				              	  %(logoTypeDir[i-1] + newfname))
@@ -72,16 +72,15 @@ def makeTexTable(texFile, logoType, logoTypeDir):
 def main():
 	outDir = '../../figures/predictionLogos/'
 	inDirPrefix = '../../data/'
-	logoType = ['exp', 'lookup', 'lookNNTripP30', 'N.lookNNTrip', \
-				'N.lookNNTripP30']
+	decomp = 'triples'
+	logoType = ['Exper.', 'Lookup', 'NN.Only.Trip', 'NNOnly.Trip.PAM30']
 	logoTypeDir = ['revExp/F2_GAG/logos3/', 'lookupTable/', 
-			       'lookupTableNNonly_pam30_decomp2/',
-			       'lookNNonly_Triples/', 'lookNNonly_PAM30_Triples/']
+			       'NNonly_Triples/','NNonly_Triples_PAM30/']
 	fing = 'F2'
 	strin = 'low'
-	filters = ['cut3bc_0_5']#['cut10bc_0_5, cut10bc_0']
+	filters = ['cut3bc_0_5', 'cut10bc_0_5', 'cut10bc_0', 'cut10bc_025', 'cut3bc_025']
 	for f in filters:
-		texFile = open(outDir + '_'.join([fing, strin, f]) + '.tex', 'w')
+		texFile = open(outDir + '_'.join([fing, strin, decomp, f]) + '.tex', 'w')
 		
 		makeTexPreamble(texFile)
 		logoTypeDir2 = logoTypeDir[:]

@@ -23,7 +23,6 @@ def getSubDict(fname):
 	return subDict
 
 ###  Possible substitution matrices for nearest neighbors lookups
-# WEIGHTS = None
 # Use a PAM 30 matrix for weighting neighbor sequences
 #NEIGHBOR_WEIGHTS = getSubDict("../data/substitution_mats/PAM30.txt")
 NEIGHBOR_WEIGHTS = None
@@ -67,7 +66,6 @@ def getNeighborWeights(prot, neighbors):
 	# Shift so that min weight is zero then normalize 
 	# all weights to between 0 and 1
 	nWeights = np.array(nWeights, dtype=float)
-	nWeights = nWeights - np.min(nWeights)
 	nWeights = nWeights/np.sum(nWeights)
 	return nWeights
 
@@ -295,6 +293,7 @@ def get3merList(freqDict, protein, canonical = False,
 				pwm[k-1] = pwm[k-1] + baseVectors[i]
 			# Renormalize since some neighbors may not have been found
 			pwm[k-1] = pwm[k-1]/np.sum(pwm[k-1]) 
+			#print pwm[k-1]
 		
 		# If we found no neighbors use a uniform vector
 		else:
@@ -487,9 +486,15 @@ def main():
 	print nmat
 	"""
 
+	# Set the neighbor weighting scheme
+	#WEIGHT = 'PAM30'
+	WEIGHT = 'None'
+
 	# Choose style of base decomposition
-	canonAnton = {1: [3], 2: [2,3], 3: [0,1]}
-	triples = {1: [1,2,3], 2: [0,1,2], 3: [0,1,2]}
+	#canonAnton = {1: [3], 2: [2,3], 3: [0,1]}
+	triples = {1: [1,2,3], 2: [1,2,3], 3: [0,1,2]}
+	doubles = {1: [2,3], 2: [2,3], 3: [0,1]}
+	singles = {1: [3], 2: [2], 3: [0]}
 
 	# Perform lookup for variety of fingers, stringencies and filters
 	fings = ['F2']
@@ -501,8 +506,16 @@ def main():
 			for i, filt in enumerate(filts):
 				inDir = '../data/b1hData/newDatabase/6varpos/' \
 					+ f + '/' + s + '/' + 'protein_seq_' + filt + '/'
-				outDir = '../data/NNonly_Triples/'	+ f + '/' + s + \
+				outDir = '../data/NNonly_Singles/'	+ f + '/' + s + \
 					'/' + filt + '/'
+
+				# Get the weight matrix
+				global NEIGHBOR_WEIGHTS
+				if WEIGHT == 'PAM30':
+					NEIGHBOR_WEIGHTS = getSubDict("../data/substitution_mats/PAM30.txt")
+				else:
+					NEIGHBOR_WEIGHTS = None
+
 
 				# Get the dictionary of binding frequencies
 				canonical = True
@@ -521,8 +534,8 @@ def main():
 				#                 decompose = triples)
 
 				lookupMarcusPWMs(inDir, outDir, freqDict, f, s, filtsLabs[i],
-				                 'NNOnly.trip', useNN = True, skipExact = True,
-				                 decompose = triples)
+				                 'NNOnly.sing', useNN = True, skipExact = True,
+				                 decompose = singles)
 
 if __name__ == '__main__':
 	main()
