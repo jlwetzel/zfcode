@@ -23,9 +23,8 @@ def getSubDict(fname):
 	return subDict
 
 ###  Possible substitution matrices for nearest neighbors lookups
-# Use a PAM 30 matrix for weighting neighbor sequences
-#NEIGHBOR_WEIGHTS = getSubDict("../data/substitution_mats/PAM30.txt")
 NEIGHBOR_WEIGHTS = None
+NEIGHBOR_ORDER = None
 
 nucs = ['A', 'C', 'G', 'T']
 aminos = ['A', 'C', 'D', 'E', 'F', 'G', 'I', 'H', 'K', 'L', 
@@ -50,17 +49,24 @@ def getPosIndex(npos, canonical):
 			ind = range(5)
 	return ind
 
-def getNeighborWeights(prot, neighbors):
-	# Applies the weights to neighbors of prot 
-	# based on the substituiton matrix defined 
-	# by the NEIGHBOR_WEIGHTS parameter
+def getNeighborWeights(prot, neighbors, matType = 'weight'):
+	# Returns a numpy array of weights for each neighbor in the 
+	# order that the neighbors appear in the list.
+	# matType decides which matrix to use, either the 
+	# one for ordering or the one for weighting.
+
+	# Decide which matrix to use
+	if matType == 'weight':
+		weightMat = NEIGHBOR_WEIGHTS
+	elif matType == 'order':
+		weightMat = NEIGHBOR_ORDER
 
 	# Get the list of neighbor weights
 	nWeights = []
 	for n in neighbors:
 		for i, a in enumerate(n):
 			if prot[i] != a:
-				nScore = math.exp(NEIGHBOR_WEIGHTS[prot[i], a])
+				nScore = math.exp(weightMat[prot[i], a])
 		nWeights.append(nScore)
 
 	# Shift so that min weight is zero then normalize 
@@ -205,50 +211,52 @@ def sortAndWeightNeighbors(prot, bpos, neighbors):
 	# The order in which aminos should be allowed to vary 
 	# for each of the bases.
 	order = {1: [0, 1, 2],  # -1,2,3
-			 2: [1, 0, 3],  #  2,6,3
+			 2: [1, 0, 3],  #  2,-1,6
 			 3: [3, 2, 1]}  #  6,3,2
 
 	# Separate neighbors according to varied positions
-	#print prot
-	#print bpos
-	#print neighbors
-	neighborsOrdered = {}
+	neighborBins = {}
 	for n in neighbors:
 		for i, a in enumerate(n):
 			if a != prot[i]:
 				varpos = i
 				break
-		if neighborsOrdered.has_key(varpos):
-			neighborsOrdered[varpos].append(n)
+		if neighborBins.has_key(varpos):
+			neighborBins[varpos].append(n)
 		else:
-			neighborsOrdered[varpos] = [n]
-	#print neighborsOrdered.keys()
-
-	# Get the weights of the neighbors for the current
-	# weighting scheme and sort with each group according 
-	# to this weighting scheme
+			neighborBins[varpos] = [n]
 	
-	#print neighborsOrdered
+	# Sort within each neighbor group according 
+	# to the matrix associated with NEIGHBOR_ORDER variable
 	neighborsSorted = []
-	nWeights = []
 	for k in order[bpos]:
-		if NEIGHBOR_WEIGHTS != None:
-			weights = getNeighborWeights(prot, neighborsOrdered[k])
+		if NEIGHBOR_ORDER != None:
+			order_weights = getNeighborWeights(prot, neighborBins[k], 
+			                                   matType = 'order')
 		else:
-			unifWeight = 1/float(len(neighborsOrdered[k]))
-			weights = np.array([unifWeight]*len(neighborsOrdered[k]),
-			                       dtype = float)
-		sortOrderInd = [i[0] for i in sorted(enumerate(weights),
-		                                     key = lambda x:x[1],
-		                                     reverse = True)]
+			unifWeight = 1/float(len(neighborBins[k]))
+			order_weights = np.array([unifWeight]*len(neighborBins[k]),
+			                         dtype = float)
+		# Get the indices for the reverse sorted order
+		orderInd = [i[0] for i in sorted(enumerate(order_weights),
+		                                 key = lambda x:x[1],
+		                                 reverse = True)]
 
-		for i in sortOrderInd:
-			neighborsSorted.append(neighborsOrdered[k][i])
-			nWeights.append(weights[i])
+		# Add this bin's neighbors to the list in the sorted order
+		for i in orderInd:
+			neighborsSorted.append(neighborBins[k][i])
+	
+	# Get the weights for the now sorted complete list of neighbors
+	if NEIGHBOR_WEIGHTS != None:
+		nWeights = getNeighborWeights(prot, neighborsSorted,
+		                              matType = 'weight')
+	else:
+		unifWeight = 1/float(len(neighborsSorted))
+		nWeights = np.array([unifWeight]*len(neighborsSorted),
+			                     dtype = float)
 
-	#print neighborsSorted, len(neighborsSorted)
-	#print nWeights, len(nWeights)
-	return neighborsSorted, np.array(nWeights, dtype = float)
+	
+	return neighborsSorted, nWeights
 
 def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk):
 	# Returns a numpy array pwm of for the prediciton
@@ -616,42 +624,49 @@ def getDecompDict(style, decomp):
 	else:
 		return None
 
-def setWeightMatrix(weight_mat):
-	# Set the global weight matrix parameter
+def setWeightMatrices(weight_mat, order_mat):
+	# Set the global weight matrix parameters
 	global NEIGHBOR_WEIGHTS
+	global NEIGHBOR_ORDER
+	
 	if weight_mat == 'PAM30':
 		NEIGHBOR_WEIGHTS = getSubDict("../data/substitution_mats/PAM30.txt")
 	else:
 		NEIGHBOR_WEIGHTS = None
 
+	if order_mat == 'PAM30':
+		NEIGHBOR_ORDER = getSubDict("../data/substitution_mats/PAM30.txt")
+	else:
+		NEIGHBOR_ORDER = None
+
 
 def main():
 
 	"""
-	
 	# Debugging stuff
 	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut3bc_0_5/'
 	canonical = True
 	varpos = 6
 	canInd = getPosIndex(varpos, canonical)
 	freqDict = computeFreqDict(inDir, canInd)
-	setWeightMatrix('PAM30')
+	setWeightMatrices(None, 'PAM30')
+	topk = 40
 	canonAnton = {1: [3], 2: [2,3], 3: [0,1]}
 	triples = {1: [1,2,3], 2: [0,1,2], 3: [0,1,2]}
 	singles = {1: [3], 2: [2], 3: [0]}
-	nmat = lookupCanonZF(freqDict, 'RDYN', useNN = True, skipExact = True, 
-	                     decompose = singles, topk = 25)
+	nmat = lookupCanonZF(freqDict, 'HSAN', useNN = True, skipExact = True, 
+	                     decompose = singles, topk = topk)
 
-	print 
+	print topk
 	print "Final Matrix:"
 	print nmat
-
 	"""
-	
+
 	# Choose the type of analysis and the training set
 	style = 'top40'
 	decomp = 'singles'
-	weight_mat = 'PAM30'
+	weight_mat = None
+	order_mat = 'PAM30'
 	trainFing = "F2"
 	trainStrin = "low"
 	if re.match(r'top[0-9][0-9]', style) != None:
@@ -677,7 +692,7 @@ def main():
 					'/' + filt + '/'
 
 				# Get the weight matrix
-				setWeightMatrix(weight_mat)
+				setWeightMatrices(weight_mat, order_mat)
 
 				# Get the dictionary of binding frequencies
 				canonical = True
@@ -698,7 +713,7 @@ def main():
 					lookupMarcusPWMs(inDir, outDir, freqDict, f, s, filtsLabs[i],
 				                 	label, useNN = True, skipExact = True,
 				                 	decompose = decompDict, topk = topk)	
-				                 		
+				                 	
 
 if __name__ == '__main__':
 	main()
