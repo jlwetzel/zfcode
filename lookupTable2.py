@@ -691,12 +691,11 @@ def runMarcusDataAnalysis(style, decomp, weight_mat, order_mat,
 
 def main():
 
-	"""
 	styles = ['top20', 'top25', 'top30', 'top35', 'top40']
 	weight_mats = [None, 'PAM30']
 	decomp = 'singles'
 	order_mat = 'PAM30'
-	trainFing = "F2"
+	trainFing = "F3"
 	trainStrin = "low"
 
 	# Run the "topk" neighbors analysis
@@ -705,7 +704,6 @@ def main():
 			print "Running:\t%s\t%s\t%s" %(style, weight_mat, order_mat)
 			runMarcusDataAnalysis(style, decomp, weight_mat, order_mat, 
                           		  trainFing, trainStrin)
-
 	"""
 	# Debugging stuff
 	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut3bc_0_5/'
@@ -724,6 +722,7 @@ def main():
 	print topk
 	print "Final Matrix:"
 	print nmat
+	"""
 				                 	
 
 if __name__ == '__main__':
