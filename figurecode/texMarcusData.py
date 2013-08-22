@@ -1,4 +1,5 @@
 import os
+import re
 
 def makeTexPreamble(texFile):
 	preamble = '\n'.join(['\\documentclass[11pt]{article}',
@@ -71,28 +72,34 @@ def makeTexTable(texFile, logoType, logoTypeDir):
 
 def main():
 	
-	decomp = 'singles'
+	style = 'top20'
 	trainFing = 'F3'
 	trainStrin = 'low'
 	outDir = '../../figures/predictionLogos/'
 	inDirPrefix = '../../data/'
 	
-	if decomp == 'triples':
-		logoType = ['Exper.', 'Lookup', 'NN.Only.Trip', 'NNOnly.Trip.PAM30']
+	if re.match(r'top[0-9][0-9]', style) != None:
+		k = style[-2:]
+		logoType = ['Exper.', 'Lookup', 'NNOnly.Top' + k, \
+			'NNOnly.Top' + k + '.PAM30']
+		logoTypeDir = ['revExp/F2_GAG/logos3/', 'lookupTable/', 
+			       	   'NNonly_top' + k + '/','NNonly_top' + k + '_PAM30/']
+	elif style == 'triples':
+		logoType = ['Exper.', 'Lookup', 'NNOnly.Trip', 'NNOnly.Trip.PAM30']
 		logoTypeDir = ['revExp/F2_GAG/logos3/', 'lookupTable/', 
 			       	   'NNonly_Triples/','NNonly_Triples_PAM30/']
-	elif decomp == 'doubles':
-		logoType = ['Exper.', 'Lookup', 'NN.Only.Doub', 'NNOnly.Doub.PAM30']
+	elif style == 'doubles':
+		logoType = ['Exper.', 'Lookup', 'NNOnly.Doub', 'NNOnly.Doub.PAM30']
 		logoTypeDir = ['revExp/F2_GAG/logos3/', 'lookupTable/', 
 			       	   'NNonly_Doubles/','NNonly_Doubles_PAM30/']
-	elif decomp == 'singles':
-		logoType = ['Exper.', 'Lookup', 'NN.Only.Sing', 'NNOnly.Sing.PAM30']
+	elif style == 'singles':
+		logoType = ['Exper.', 'Lookup', 'NNOnly.Sing', 'NNOnly.Sing.PAM30']
 		logoTypeDir = ['revExp/F2_GAG/logos3/', 'lookupTable/', 
-			       	   'NNonly_Singles/','NNonly_Singles_PAM30/']
+			       	   'NNonly_Singles/','NNonly_Singles_PAM30']
 
 	filters = ['cut3bc_0_5', 'cut10bc_0_5', 'cut10bc_0', 'cut10bc_025', 'cut3bc_025']
 	for f in filters:
-		texFile = open(outDir + '_'.join([trainFing, trainStrin, decomp, f]) \
+		texFile = open(outDir + '_'.join([trainFing, trainStrin, style, f]) \
 		               + '.tex', 'w')
 		makeTexPreamble(texFile)
 		logoTypeDir2 = logoTypeDir[:]
