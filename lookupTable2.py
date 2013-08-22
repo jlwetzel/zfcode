@@ -23,7 +23,6 @@ def getSubDict(fname):
 	return subDict
 
 ###  Possible substitution matrices for nearest neighbors lookups
-# WEIGHTS = None
 # Use a PAM 30 matrix for weighting neighbor sequences
 #NEIGHBOR_WEIGHTS = getSubDict("../data/substitution_mats/PAM30.txt")
 NEIGHBOR_WEIGHTS = None
@@ -67,7 +66,6 @@ def getNeighborWeights(prot, neighbors):
 	# Shift so that min weight is zero then normalize 
 	# all weights to between 0 and 1
 	nWeights = np.array(nWeights, dtype=float)
-	nWeights = nWeights - np.min(nWeights)
 	nWeights = nWeights/np.sum(nWeights)
 	return nWeights
 
@@ -196,9 +194,139 @@ def computeFreqDict(dirpath, ind):
 
 	return freqDict
 
+def sortAndWeightNeighbors(prot, bpos, neighbors):
+	# Sorts the neighbors in the order in which we 
+	# would like to process them (most "important"
+	# neighbors first).
+	# 
+	# Returns the newly sorted list of neighbors and 
+	# a list of weights in the same order.
+	
+	# The order in which aminos should be allowed to vary 
+	# for each of the bases.
+	order = {1: [0, 1, 2],  # -1,2,3
+			 2: [1, 0, 3],  #  2,6,3
+			 3: [3, 2, 1]}  #  6,3,2
+
+	# Separate neighbors according to varied positions
+	#print prot
+	#print bpos
+	#print neighbors
+	neighborsOrdered = {}
+	for n in neighbors:
+		for i, a in enumerate(n):
+			if a != prot[i]:
+				varpos = i
+				break
+		if neighborsOrdered.has_key(varpos):
+			neighborsOrdered[varpos].append(n)
+		else:
+			neighborsOrdered[varpos] = [n]
+	#print neighborsOrdered.keys()
+
+	# Get the weights of the neighbors for the current
+	# weighting scheme and sort with each group according 
+	# to this weighting scheme
+	
+	#print neighborsOrdered
+	neighborsSorted = []
+	nWeights = []
+	for k in order[bpos]:
+		if NEIGHBOR_WEIGHTS != None:
+			weights = getNeighborWeights(prot, neighborsOrdered[k])
+		else:
+			unifWeight = 1/float(len(neighborsOrdered[k]))
+			weights = np.array([unifWeight]*len(neighborsOrdered[k]),
+			                       dtype = float)
+		sortOrderInd = [i[0] for i in sorted(enumerate(weights),
+		                                     key = lambda x:x[1],
+		                                     reverse = True)]
+
+		for i in sortOrderInd:
+			neighborsSorted.append(neighborsOrdered[k][i])
+			nWeights.append(weights[i])
+
+	#print neighborsSorted, len(neighborsSorted)
+	#print nWeights, len(nWeights)
+	return neighborsSorted, np.array(nWeights, dtype = float)
+
+def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk):
+	# Returns a numpy array pwm of for the prediciton
+	# given the top k neighbors only in terms of distance
+	# from the original protein.  The neighbor distances 
+	# are ranked in a hierarchical fashion.  First level 
+	# of the hierarchy is based on the position which has 
+	# been allowed to vary.  Position farthest form the
+	# canonical base partner are given highest closeness.
+	# Within each position, we choose in order of the 
+	# rankings by the weight matrix currently being 
+	# used.
+	# 
+	# If topk is set to None, then us all neighbors
+	# ... otherwise use the topk neighbors
+	#
+	# neighborDict is a dictionary of neighbors indexed by 
+	# base.  E.g. neighborDict[1] points to all alowable 
+	# neighbors for base position 1
+
+	# A numpy array to be returned after filling in
+	pwm = np.zeros((3,4), dtype = float)
+	
+	# For each base
+	for k in neighborDict.keys():
+		baseVectors = []
+		neighborsUsed = 0
+		
+		# Sort the neighbors in the order in which we'd like 
+		# to use them.
+		if topk != None:
+			neighborDict[k], nWeights = sortAndWeightNeighbors(prot, k,
+			                                                   neighborDict[k])
+		else:
+			if NEIGHBOR_WEIGHTS != None:
+				nWeights = getNeighborWeights(protein, neighborDict[k])
+			else:
+				unifWeight = 1/float(len(neighborDict[k]))
+				nWeights = np.array([unifWeight]*len(neighborDict[k]),
+			                       dtype = float)
+		
+		# Get the normalized frequency vectors for each neighbor at  
+		# this base position
+		for n in neighborDict[k]:
+			baseVectors.append(getNeighborBaseVect(freqDict, 
+			           		   n, k))
+		
+		# For each neighbor found, weight its vector by that
+		# neighbor's weight.
+		for i in range(len(nWeights)):
+			if baseVectors[i] != None:
+				baseVectors[i] = baseVectors[i] * nWeights[i]
+
+		# Remove Nones from the baseVector list
+		baseVectors = [i for i in baseVectors if i != None]
+
+		# If we found at least one neighbor
+		if baseVectors != []:
+			# Add the weighted vectors together
+			for i in range(len(baseVectors)):
+				if neighborsUsed == topk:
+					break
+				else:
+					pwm[k-1] = pwm[k-1] + baseVectors[i]
+					neighborsUsed += 1
+			# Renormalize since some neighbors may not have been used
+			pwm[k-1] = pwm[k-1]/np.sum(pwm[k-1]) 
+		
+		# If we found no neighbors use a uniform vector
+		else:
+			pwm[k-1] = np.array([0.25, 0.25, 0.25, 0.25], dtype = float)
+
+	return pwm
+
+
 def get3merList(freqDict, protein, canonical = False,
 				useNN = False, skipExact = False, 
-				decompose = {1:[], 2:[], 3:[]}):
+				decompose = None, topk = None):
 	# Returns a list of tuples pairs (3mer, freq),
 	# where the 3 mers are DNA 3mer that bound the 
 	# protein and freq is the relative frequency 
@@ -255,53 +383,11 @@ def get3merList(freqDict, protein, canonical = False,
 
 	# Get the per-base neighbor decomposition
 	neighborDict = decomposeNeighbors(protein, neighbors, decompose)
-	#print neighborDict
-
-	# A numpy array to be returned after filling in
-	pwm = np.zeros((3,4), dtype = float)
 	
-	# For each base
-	for k in neighborDict.keys():
-		baseVectors = []
-		
-		# Get the normalized frequency vectors for each neighbor at  
-		# this base position
-		for n in neighborDict[k]:
-			baseVectors.append(getNeighborBaseVect(freqDict, 
-			           		   n, k))
-		
-		# Get the weights of the neighbors for the current
-		# weighting scheme.
-		if NEIGHBOR_WEIGHTS != None:
-			nWeights = getNeighborWeights(protein, neighborDict[k])
-		else:
-			unifWeight = 1/float(len(neighborDict[k]))
-			nWeights = np.array([unifWeight]*len(neighborDict[k]),
-			                    dtype = float)
-		
-		# For each neighbor found, weight its vector by that
-		# neighbor's weight.
-		for i in range(len(nWeights)):
-			if baseVectors[i] != None:
-				baseVectors[i] = baseVectors[i] * nWeights[i]
-
-		# Remove Nones from the baseVector list
-		baseVectors = [i for i in baseVectors if i != None]
-
-		# If we found at least one neighbor
-		if baseVectors != []:
-			# Add the weighted vectors together
-			for i in range(len(baseVectors)):
-				pwm[k-1] = pwm[k-1] + baseVectors[i]
-			# Renormalize since some neighbors may not have been found
-			pwm[k-1] = pwm[k-1]/np.sum(pwm[k-1]) 
-		
-		# If we found no neighbors use a uniform vector
-		else:
-			pwm[k-1] = np.array([0.25, 0.25, 0.25, 0.25], dtype = float)
-
-	return pwm
-
+	# Return the pwm obtained by decomposing neighbors
+	# and using the top k of them
+	return getTopKNeighborsPWM(freqDict, protein, neighborDict, topk)
+	
 def makeDir(path):
 	# Try to make a path and pass if it can't be created
 	try:
@@ -310,7 +396,7 @@ def makeDir(path):
 		pass
 
 def lookupCanonZFArray(freqDict, canonZFs, useNN = True, 
-                       skipExact = False, decompose = None):
+                       skipExact = False, decompose = None, topk = None):
 	# Performs modular lookup for an array of canonical 
 	# helix-position ZF domains.  Domains should be given
 	# in reverse order of their appearance on the protein.
@@ -320,14 +406,14 @@ def lookupCanonZFArray(freqDict, canonZFs, useNN = True,
 	
 	for i in range(numZFs):
 		nmat = lookupCanonZF(freqDict, canonZFs[i], 
-		                     useNN, skipExact, decompose)
+		                     useNN, skipExact, decompose, topk)
 		for j in range(len(nmat)):
 			pwm[i*len(nmat) + j,:] = nmat[j,:]
 	
 	return pwm
 
 def lookupCanonZF(freqDict, canonProt, useNN = True, skipExact = False,
-                  decompose = None):
+                  decompose = None, topk = None):
 	# Takes as input a ZF domain (canoical positions  only,
 	# helix positions -1, 2, 3, 6) and returns the predicted 
 	# 3-base binding specificity as a normalized 2d frequency 
@@ -355,7 +441,7 @@ def lookupCanonZF(freqDict, canonProt, useNN = True, skipExact = False,
 
 	# Make the list of targets bound and normalized frequencies.
 	targList = get3merList(freqDict, canonProt, canonical,
-		                   useNN, skipExact, decompose)
+		                   useNN, skipExact, decompose, topk)
 	
 	# This is target/frequncy list
 	if isinstance(targList, list):
@@ -378,7 +464,8 @@ def lookupCanonZF(freqDict, canonProt, useNN = True, skipExact = False,
 
 def lookupMarcusPWMs(inDir, outputDir, freqDict,
                      finger, strin, filt, pred, useNN = True,
-                     skipExact = False, decompose = None):
+                     skipExact = False, decompose = None,
+                     topk = None):
 	# Make predcitions for each of the proteins that 
 	# Marcus made experimental PWMs for
 
@@ -431,7 +518,8 @@ def lookupMarcusPWMs(inDir, outputDir, freqDict,
 		label = '_'.join([str(protNum), goal, prot, strin])
 	
 		targList = get3merList(freqDict, canonProt, canonical,
-		    	               useNN, skipExact, decompose)
+		    	               useNN, skipExact, decompose,
+		    	               topk)
 		
 		# This is target/frequncy list
 		if isinstance(targList, list):
@@ -469,40 +557,127 @@ def lookupMarcusPWMs(inDir, outputDir, freqDict,
 
 	fout.close()
 
+def getLabels(style, decomp, weight_mat):
+	# Returrns a label and a directory prefix for the 
+	# given style, decomposition, and weight matrix
+	if style == 'nnonly':
+
+		if decomp == 'triples' and weight_mat == 'PAM30':
+			label = 'NNOnly.trip.PAM30'
+			inDirPref = '../data/NNonly_Triples_PAM30/'
+		elif decomp == 'triples':
+			label = 'NNOnly.trip'
+			inDirPref = '../data/NNonly_Triples/'
+		elif decomp == 'doubles' and weight_mat == 'PAM30':
+			label = 'NNOnly.doub.PAM30'
+			inDirPref = '../data/NNonly_Doubles_PAM30/'
+		elif decomp == 'doubles':
+			label = 'NNOnly.doub'
+			inDirPref = '../data/NNonly_Doubles/'
+		elif decomp == 'singles' and weight_mat == 'PAM30':
+			label = 'NNOnly.sing.PAM30'
+			inDirPref = '../data/NNonly_Singles_PAM30/'
+		elif decomp == 'singles':
+			label = 'NNOnly.sing'
+			inDirPref = '../data/NNonly_Singles/'
+
+	elif re.match(r'top[0-9][0-9]', style) != None:
+		if weight_mat == 'PAM30':
+			label = 'NNonly.' + style
+			inDirPref = '../data/NNonly_' + style + '_PAM30/'
+		else:
+			label = 'NNonly.' + style + '.PAM30'
+			inDirPref = '../data/NNonly_' + style + '/'
+
+	elif style == 'lookonly':
+		label = 'look'
+		inDirPref = '../data/lookupTable/'
+				
+	return label, inDirPref
+
+def getDecompDict(style, decomp):
+	# Return the decomposition dictionary that corresponds 
+	# to the string decomp
+
+	triples = {1: [1,2,3], 2: [1,2,3], 3: [0,1,2]}
+	doubles = {1: [2,3], 2: [2,3], 3: [0,1]}
+	singles = {1: [3], 2: [2], 3: [0]}
+
+	if re.match(r'top[0-9][0-9]', style) != None:
+		return singles
+
+	elif decomp == "triples":
+		return triples
+	elif decomp == "doubles":
+		return doubles
+	elif decomp == "singles":
+		return singles
+	
+	else:
+		return None
+
+def setWeightMatrix(weight_mat):
+	# Set the global weight matrix parameter
+	global NEIGHBOR_WEIGHTS
+	if weight_mat == 'PAM30':
+		NEIGHBOR_WEIGHTS = getSubDict("../data/substitution_mats/PAM30.txt")
+	else:
+		NEIGHBOR_WEIGHTS = None
+
+
 def main():
 
 	"""
+	
+	# Debugging stuff
 	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut3bc_0_5/'
 	canonical = True
 	varpos = 6
 	canInd = getPosIndex(varpos, canonical)
 	freqDict = computeFreqDict(inDir, canInd)
+	setWeightMatrix('PAM30')
 	canonAnton = {1: [3], 2: [2,3], 3: [0,1]}
 	triples = {1: [1,2,3], 2: [0,1,2], 3: [0,1,2]}
+	singles = {1: [3], 2: [2], 3: [0]}
 	nmat = lookupCanonZF(freqDict, 'RDYN', useNN = True, skipExact = True, 
-	                     decompose = triples)
+	                     decompose = singles, topk = 25)
 
 	print 
 	print "Final Matrix:"
 	print nmat
+
 	"""
+	
+	# Choose the type of analysis and the training set
+	style = 'top40'
+	decomp = 'singles'
+	weight_mat = 'PAM30'
+	trainFing = "F2"
+	trainStrin = "low"
+	if re.match(r'top[0-9][0-9]', style) != None:
+		topk = eval( style[(len(style) - 2):] )
+	print topk
+	label, inDirPref = getLabels(style, decomp, weight_mat)
+	decompDict = getDecompDict(style, decomp)
 
-	# Choose style of base decomposition
-	canonAnton = {1: [3], 2: [2,3], 3: [0,1]}
-	triples = {1: [1,2,3], 2: [0,1,2], 3: [0,1,2]}
 
-	# Perform lookup for variety of fingers, stringencies and filters
-	fings = ['F2']
-	strins = ['low']
+	# PErform the lookup or nn strategy on various datasets
+	testFings = ['F2']
+	testStrins = ['low']
 	filts = ['cut10bc_0_5', 'cut3bc_0_5', 'cut10bc_0', 'cut3bc_025', 'cut10bc_025']
 	filtsLabs = ['c10_0_5', 'c3_0_5', 'c3_025', 'c10_025', 'c10_0']
-	for f in fings:
-		for s in strins:
+	for f in testFings:
+		for s in testStrins:
 			for i, filt in enumerate(filts):
+				
 				inDir = '../data/b1hData/newDatabase/6varpos/' \
-					+ f + '/' + s + '/' + 'protein_seq_' + filt + '/'
-				outDir = '../data/NNonly_Triples/'	+ f + '/' + s + \
+					+ trainFing + '/' + trainStrin + '/' + 'protein_seq_' + filt + '/'
+
+				outDir = inDirPref + trainFing + '/' + trainStrin + \
 					'/' + filt + '/'
+
+				# Get the weight matrix
+				setWeightMatrix(weight_mat)
 
 				# Get the dictionary of binding frequencies
 				canonical = True
@@ -510,19 +685,20 @@ def main():
 				canInd = getPosIndex(varpos, canonical)
 				freqDict = computeFreqDict(inDir, canInd)
 
-				# Lookup each pwm
-				#lookupMarcusPWMs(inDir, outDir, freqDict, f, s, filtsLabs[i],
-				#                 'look', useNN = False,
-				#                 skipExact = False, decompose = None)
-
-				# Look up each pwm and use neighbors if neccessary
-				#lookupMarcusPWMs(inDir, outDir, freqDict, f, s, filtsLabs[i],
-				#                 'look', useNN = TRUE, skipExact = False,
-				#                 decompose = triples)
-
-				lookupMarcusPWMs(inDir, outDir, freqDict, f, s, filtsLabs[i],
-				                 'NNOnly.trip', useNN = True, skipExact = True,
-				                 decompose = triples)
+				# Perform the actual prediction against the Marcus pwms
+				if style == 'lookonly':
+					lookupMarcusPWMs(inDir, outDir, freqDict, f, s, filtsLabs[i],
+				    	             label, useNN = False,
+				        	         skipExact = False, decompose = None)
+				elif style == 'nnonly':
+					lookupMarcusPWMs(inDir, outDir, freqDict, f, s, filtsLabs[i],
+				                 	label, useNN = True, skipExact = True,
+				                 	decompose = decompDict, topk = None)
+				elif re.match(r'top[0-9][0-9]', style) != None:
+					lookupMarcusPWMs(inDir, outDir, freqDict, f, s, filtsLabs[i],
+				                 	label, useNN = True, skipExact = True,
+				                 	decompose = decompDict, topk = topk)	
+				                 		
 
 if __name__ == '__main__':
 	main()
