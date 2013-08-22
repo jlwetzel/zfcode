@@ -701,7 +701,7 @@ def main():
 	# Run the "topk" neighbors analysis
 	for style in styles:
 		for weight_mat in weight_mats:
-			print "Running %s\t%s\t%s\t%s\t%s" %(style, weight_mat, order_mat, tfing)
+			print "Running %s\t%s\t%s\t%s\t%s" %(style, weight_mat, order_mat)
 			runMarcusDataAnalysis(style, decomp, weight_mat, order_mat, 
                           		  trainFing, trainStrin)
 
