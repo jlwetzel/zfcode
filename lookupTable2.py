@@ -639,36 +639,11 @@ def setWeightMatrices(weight_mat, order_mat):
 	else:
 		NEIGHBOR_ORDER = None
 
+def runMarcusDataAnalysis(style, decomp, weight_mat, order_mat, 
+                          trainFing, trainStrin):
+	# Runs the analysis of the for comparing the Marcus
+	# experimental pwms using the given parameters
 
-def main():
-
-	"""
-	# Debugging stuff
-	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut3bc_0_5/'
-	canonical = True
-	varpos = 6
-	canInd = getPosIndex(varpos, canonical)
-	freqDict = computeFreqDict(inDir, canInd)
-	setWeightMatrices(None, 'PAM30')
-	topk = 40
-	canonAnton = {1: [3], 2: [2,3], 3: [0,1]}
-	triples = {1: [1,2,3], 2: [0,1,2], 3: [0,1,2]}
-	singles = {1: [3], 2: [2], 3: [0]}
-	nmat = lookupCanonZF(freqDict, 'HSAN', useNN = True, skipExact = True, 
-	                     decompose = singles, topk = topk)
-
-	print topk
-	print "Final Matrix:"
-	print nmat
-	"""
-
-	# Choose the type of analysis and the training set
-	style = 'top40'
-	decomp = 'singles'
-	weight_mat = None
-	order_mat = 'PAM30'
-	trainFing = "F2"
-	trainStrin = "low"
 	if re.match(r'top[0-9][0-9]', style) != None:
 		topk = eval( style[(len(style) - 2):] )
 	print topk
@@ -713,6 +688,43 @@ def main():
 					lookupMarcusPWMs(inDir, outDir, freqDict, f, s, filtsLabs[i],
 				                 	label, useNN = True, skipExact = True,
 				                 	decompose = decompDict, topk = topk)	
+
+def main():
+
+	styles = ['top20', 'top25', 'top30', 'top35', 'top40']
+	weight_mats = [None, 'PAM30']
+	decomp = 'singles'
+	order_mat = 'PAM30'
+	trainFing = "F2"
+	trainStrin = "low"
+
+	# Run the "topk" neighbors analysis
+	for style in styles:
+		for weight_mat in weight_mats:
+			runMarcusDataAnalysis(style, decomp, weight_mat, order_mat, 
+                          		  trainFing, trainStrin)
+
+	"""
+	# Debugging stuff
+	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut3bc_0_5/'
+	canonical = True
+	varpos = 6
+	canInd = getPosIndex(varpos, canonical)
+	freqDict = computeFreqDict(inDir, canInd)
+	setWeightMatrices(None, 'PAM30')
+	topk = 40
+	canonAnton = {1: [3], 2: [2,3], 3: [0,1]}
+	triples = {1: [1,2,3], 2: [0,1,2], 3: [0,1,2]}
+	singles = {1: [3], 2: [2], 3: [0]}
+	nmat = lookupCanonZF(freqDict, 'HSAN', useNN = True, skipExact = True, 
+	                     decompose = singles, topk = topk)
+
+	print topk
+	print "Final Matrix:"
+	print nmat
+	"""
+
+	
 				                 	
 
 if __name__ == '__main__':
