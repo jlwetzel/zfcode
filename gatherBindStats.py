@@ -538,7 +538,7 @@ def main():
                 'protein_seq_cut3bc_0_5', 'protein_seq_cut3bc_025']
 
     for protDir in protDirs:
-        computeBindingDiversity('protein_seq_cut3bc_0_5')
+        computeBindingDiversity(protDir)
 
 if __name__ == '__main__':
 	main()
