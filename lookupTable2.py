@@ -649,7 +649,6 @@ def runMarcusDataAnalysis(style, decomp, weight_mat, order_mat,
 
 	if re.match(r'top[0-9][0-9]', style) != None:
 		topk = eval( style[(len(style) - 2):] )
-	print topk
 	label, inDirPref = getLabels(style, decomp, weight_mat)
 	decompDict = getDecompDict(style, decomp)
 
