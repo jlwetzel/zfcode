@@ -494,7 +494,7 @@ def computeBindingDiversity(proteinDir):
 
     sys.stdout = open('../stats/bindingDiv_' + \
                       '_'.join(proteinDir.split('_')[2:]) +\
-                      '.txt, 'w')
+                      '.txt', 'w')
 
     maxSize6 = 20**6
     maxSize4 = 20**4
