@@ -696,9 +696,10 @@ def main():
 
 	styles = ['top20', 'top25', 'top30', 'top35', 'top40']
 	weight_mats = [None, 'PAM30']
+	styles = ['lookonly']
 	decomp = 'singles'
 	order_mat = 'PAM30'
-	trainFing = "F3"
+	trainFing = "F2"
 	trainStrin = "low"
 
 	# Run the "topk" neighbors analysis
