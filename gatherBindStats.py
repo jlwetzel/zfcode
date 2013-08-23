@@ -353,6 +353,7 @@ def getNumHaveNeighbors(missing, bindset, type = 'oneoff'):
                 neighbors = []
                 furthest = decomp[base][:2]
                 closest = decomp[base][-1]
+
                 # Vary two least important positions simultaneously
                 for a1 in aminos:
                     for a2 in aminos:
@@ -492,7 +493,8 @@ def computeBindingDiversity(proteinDir):
     # Get the protein sets from the binding data.
 
     sys.stdout = open('../stats/bindingDiv_' + \
-                      '_'.join(proteinDir.split('_')[2:]), 'w')
+                      '_'.join(proteinDir.split('_')[2:]) +\
+                      '.txt, 'w')
 
     maxSize6 = 20**6
     maxSize4 = 20**4
@@ -538,7 +540,6 @@ def main():
                 'protein_seq_cut3bc_0_5', 'protein_seq_cut3bc_025']
 
     for protDir in protDirs:
-        print "Processing %s ..." %protDir
         computeBindingDiversity(protDir)
 
 if __name__ == '__main__':
