@@ -507,7 +507,7 @@ def computeBindingDiversity(proteinDir):
     allProts4 = set(allProts4)
 
     # Get the dictionary of binding sets indexed by finger and stringency
-    pathPref = '../data/b1hdata/newDatabase/6varpos'
+    pathPref = '../data/b1hData/newDatabase/6varpos'
     #proteinDir = 'protein_seq_cut3bc_0_5'
     fings = ['F1', 'F2', 'F3']
     strins = ['high', 'low']
@@ -538,6 +538,7 @@ def main():
                 'protein_seq_cut3bc_0_5', 'protein_seq_cut3bc_025']
 
     for protDir in protDirs:
+        print "Processing %s ..." %protDir
         computeBindingDiversity(protDir)
 
 if __name__ == '__main__':
