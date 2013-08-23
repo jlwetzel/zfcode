@@ -40,9 +40,55 @@ def makeNucMatFile(path, label, nucMat):
 	fout.write('XX\n\\\\\n')
 	fout.close()
 	
+def getConsensus(nucmat):
+	# Returns a list of consensus bases, one for 
+	# each position, of a matrix of nucleotide 
+	# frequencies for a binding site.  A base 
+	# is considered a consensus base if it has
+	# > 0.5 frequency.  Otherwise, if there is 
+	# a pair that has combined freq of >0.75, this
+	# is considered a consensus pair.
+	# If no consensus or consensus pair can be 
+	# found, the ouptut is 'X'
+	
+	nucs = ['A', 'C', 'G', 'T']
+	consList = []
+	for i in range(len(nucmat)):
+		col = nucmat[i]
+
+		# Is there a single consensus letter?
+		maxFreq = np.max(col)
+		if maxFreq > 0.5:
+			consList.append(nucs[np.argmax(col)])
+			continue
+
+		# Is there a consensus pair?
+		maxFreq1 = 0
+		maxFreq1pos = -1
+		maxFreq2 = 0
+		maxFreq2pos = -1
+		
+		# Get the top 2 frequencies and positions
+		for j in range(len(col)):
+			freq = col[j]
+			if freq > maxFreq1:
+				maxFreq2 = maxFreq1
+				maxFreq2pos = maxFreq1pos
+				maxFreq1 = freq
+				maxFreq1pos = j
+			elif freq > maxFreq2:
+				maxFreq2 = freq
+				maxFreq2pos = j
+		
+		if maxFreq1 + maxFreq2 > 0.75:
+			consList.append(nucs[maxFreq1pos] + nucs[maxFreq2pos])
+		else:
+			consList.append('X')
+
+	return consList
 
 
-def comparePWMs(predPWM, expPWM):
+def comparePCC(predPWM, expPWM):
 	# This function asumes that the two PWMs 
 	# are already aligned to one another and 
 	# are of the same length.

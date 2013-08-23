@@ -2,7 +2,7 @@ import os
 import re
 import numpy as np
 import math
-from pwm import makeLogo, pwmfile2matrix, comparePWMs, makeNucMatFile
+from pwm import makeLogo, pwmfile2matrix, comparePCC, getConsensus, makeNucMatFile
 from fixTables import normalizeFreq
 #from gatherBindStats import getProtDict
 
@@ -494,9 +494,10 @@ def lookupMarcusPWMs(inDir, outputDir, freqDict,
 		expDir = '../data/revExp/F3_GCG/pwms3/'
 	fout = open(predictionDir + 'compare.txt', 'w')
 	# Write header to results file
-	fout.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
+	fout.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
 	           %('num', 'targ','prot','canonprot','c1pcc','c2pcc',
-	             'c3pcc', 'c1pcc.ic', 'c2pcc.ic', 'c3pcc.ic',
+	             'c3pcc', 'c1pcc.ic', 'c2pcc.ic', 'c3pcc.ic', 'p.c1cons',
+	             'p.c2cons', 'p.c3cons', 'e.c1cons', 'e.c2cons', 'e.c3cons',
 	             'pred.filt', 'finger', 'strin'))
 	
 	
@@ -543,8 +544,6 @@ def lookupMarcusPWMs(inDir, outputDir, freqDict,
 		else:
 			nucMat = targList
 
-		#if protNum == "3706":
-		#	print nucMat
 		makeNucMatFile(pwmdir, label, nucMat)
 		logoIn = pwmdir + label + '.txt'
 		logoOut = logodir + label + '.pdf'
@@ -554,13 +553,17 @@ def lookupMarcusPWMs(inDir, outputDir, freqDict,
 		         xlab = '_'.join([goal,prot]))
 		
 		# Compare this pwm to the reverse experiment
-		colPcc, colPcc_ic = \
-			comparePWMs(nucMat, pwmfile2matrix(expDir + fname))
+		expPWM = pwmfile2matrix(expDir + fname)
+		colPcc, colPcc_ic = comparePCC(nucMat, expPWM)
+		predCons = getConsensus(nucMat)
+		expCons = getConsensus(expMat)
 
 		# Write the comparison results to file
 		fout.write("%s\t%s\t%s\t%s\t" %(protNum, goal, prot, canonProt))
 		fout.write("%.4f\t"*6 %(colPcc[0], colPcc[1], colPcc[2], \
 		           				colPcc_ic[0], colPcc_ic[1], colPcc_ic[2]))
+		fout.write("%s\t"*6 %(predCons[0], predCons[1], predCons[2],
+		           			  expCons[0], expCons[1], expCons[2]))
 		fout.write("%s\t%s\t%s\n" %(pred+'.'+filt, finger, strin))
 
 	fout.close()
