@@ -554,7 +554,7 @@ def lookupMarcusPWMs(inDir, outputDir, freqDict,
 		
 		# Compare this pwm to the reverse experiment
 		expMat = pwmfile2matrix(expDir + fname)
-		colPcc, colPcc_ic = comparePCC(nucMat, expPWM)
+		colPcc, colPcc_ic = comparePCC(nucMat, expMat)
 		predCons = getConsensus(nucMat)
 		expCons = getConsensus(expMat)
 
