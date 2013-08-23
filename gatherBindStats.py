@@ -4,6 +4,7 @@ import os
 import sys
 import math
 import re
+from itertools import product
 
 nucs = ['A', 'C', 'G', 'T']
 aminos = ['A', 'C', 'D', 'E', 'F', 'G', 'I', 'H', 'K', 'L', 
@@ -251,54 +252,134 @@ def printBindingSetStats(fings, strins, bindset, maxSize, allProts = None):
         return
 
     # For the canonical sets only.
-    # Of those sequences not contained in a given set, how many 
-    # have a nearest neighbor in the set if we vary positions
-    # (-1, 3, 6)?
     print
-    print "How helpful are nearest neighbors for coverage? (-1, 3, 6)"
+    print "How helpful are nearest neighbors for coverage?"
     print '#'*64
     for f in fings:
         for s in strins:
             missing = allProts - bindset[f,s]
-            numHaveNeighbors = getNumHaveNeighbors(missing, bindset[f,s])
             print "Missing from %s (%s)  : %d" %(f, s, len(missing))
-            print "Have neighbors %s (%s): %d" \
-                %(f, s, numHaveNeighbors)
-            print "Total coverage %s %s (including neighbors): %d" \
-                %(f, s, numHaveNeighbors + len(bindset[f,s]))
+
+            numHaveNeighbors1 = getNumHaveNeighbors(missing, bindset[f,s],
+                                                    type = 'oneoff')
+            print "Neighbor coverage %s %s (all one-off): %d" \
+                %(f, s, numHaveNeighbors1 + len(bindset[f,s]))
+            numHaveNeighbors2 = getNumHaveNeighbors(missing, bindset[f,s],
+                                                    type = 'decomp-oneoff')
+            print "Neighbor coverage %s %s (decomp one-off): %d" \
+                %(f, s, numHaveNeighbors2 + len(bindset[f,s]))
+            numHaveNeighbors3 = getNumHaveNeighbors(missing, bindset[f,s],
+                                                    type = 'decomp-twooff-furthest')
+            print "Neighbor coverage %s %s (decomp two-off furthest): %d" \
+                %(f, s, numHaveNeighbors3 + len(bindset[f,s]))
+            
 
     # How helpful for neighbors for intersected high and low stringencies?
     print
     print "UNIONING HIGH AND LOW STRINGENCIES"
     for k in sorted(bothStrinsUnion.keys()):
         missing = allProts - bothStrinsUnion[k]
-        numHaveNeighbors = getNumHaveNeighbors(missing, bothStrinsUnion[k])
-        print "Missing from %s: %d"   %(k, len(missing))
-        print "Have neighbors %s: %d" %(k, numHaveNeighbors)
-        print "Total coverage %s (including neighbors): %d" \
-            %(k, numHaveNeighbors + len(bothStrinsUnion[k]))
+        print "Missing from %s (%s)  : %d" %(f, s, len(missing))
+        numHaveNeighbors1 = getNumHaveNeighbors(missing, bothStrinsUnion[k],
+                                                type = 'oneoff')
+        print "Neighbor coverage %s %s (all one-off): %d" \
+            %(f, s, numHaveNeighbors1 + len(bindset[f,s]))
+        numHaveNeighbors2 = getNumHaveNeighbors(missing, bothStrinsUnion[k],
+                                                type = 'decomp-oneoff')
+        print "Neighbor coverage %s %s (decomp one-off): %d" \
+            %(f, s, numHaveNeighbors2 + len(bindset[f,s]))
+        numHaveNeighbors3 = getNumHaveNeighbors(missing, bothStrinsUnion[k],
+                                                type = 'decomp-twooff-furthest')
+        print "Neighbor coverage %s %s (decomp two-off furthest): %d" \
+            %(f, s, numHaveNeighbors3 + len(bindset[f,s]))
+        
+        
+        
 
     return bothStrinsUnion
 
 
-def getNumHaveNeighbors(missing, bindset):
+def getNumHaveNeighbors(missing, bindset, type = 'oneoff'):
     # Given a set of missing canoncial sequences
     # and a set of binding sequences, returns the 
     # number of missing sequences that have 
     # a nearest neighbor in the set of binding seqs
 
     numHaveNeighbors = 0
-    for seq in missing:
-        neighbors = []
-        for i in [0,1,2,3]:
-            for a in aminos:
-                if a != seq[i]:
-                    neighbors.append(seq[:i] + a\
-                                     + seq[i+1:])
-        for n in neighbors:
-            if n in bindset:
+    
+    # Number have >= 1 neighbor only one off
+    if type == 'oneoff':
+        for seq in missing:
+            neighbors = []
+            for i in [0,1,2,3]:
+                for a in aminos:
+                    if a != seq[i]:
+                        neighbors.append(seq[:i] + a\
+                                         + seq[i+1:])
+            for n in neighbors:
+                if n in bindset:
+                    numHaveNeighbors += 1
+                    break
+
+    elif type == 'decomp-oneoff':
+        decomp = {1: [0,1,2], 2: [1,0,3], 3: [3,2,1]}
+        
+        for seq in missing:
+            # Get neighbors for each base position
+            for base in decomp.keys():
+                neighbors = []
+                for i in decomp[base]:
+                    for a in aminos:
+                        if a != seq[i]:
+                            neighbors.append(seq[:i] + a\
+                                             + seq[i+1:])
+
+                # Check to see if any of this seqs neighbors are in 
+                # the binding set
+                if len(set(neighbors) & bindset) > 0:
+                    neighborForEachBase = True
+                else:
+                    neighborForEachBase = False
+                    break
+                
+            if neighborForEachBase:
                 numHaveNeighbors += 1
-                break
+
+    elif type == 'decomp-twooff-furthest':
+        decomp = {1: [0,1,2], 2: [1,0,3], 3: [3,2,1]}
+
+        for seq in missing:
+            for base in decomp.keys():
+                neighbors = []
+                furthest = decomp[base][:2]
+                closest = decomp[base][-1]
+                # Vary two least important positions simultaneously
+                for a1 in aminos:
+                    for a2 in aminos:
+                        newSeq = list(seq)
+                        newSeq[furthest[0]] = a1
+                        newSeq[furthest[1]] = a2
+                        if ''.join(newSeq) != seq:
+                            neighbors.append(''.join(newSeq))
+                
+                # Vary closest poition to fixed position by itself
+                for a in aminos:
+                    newSeq = list(seq)
+                    newSeq[closest] = a
+                    if ''.join(newSeq) != seq:
+                            neighbors.append(''.join(newSeq))
+                        
+                # Check to see if any of this seqs neighbors are in 
+                # the binding set
+                if len(set(neighbors) & bindset) > 0:
+                    neighborForEachBase = True
+                else:
+                    neighborForEachBase = False
+                    break
+
+            if neighborForEachBase:
+                numHaveNeighbors += 1
+
 
     return numHaveNeighbors
 
@@ -313,10 +394,19 @@ def compareToNatural(bindset, natset, org, fings,
     for f in fings:
         for s in strins:
             inter = bindset[f,s] & natset
-            haveNeighbors = getNumHaveNeighbors((natset - inter), bindset[f,s])
             print "%s %s: %.3f" %(f, s, len(inter)/float(len(natset)))
-            print "Reachable via neighbor: %.3f" %( (haveNeighbors + len(inter)) / \
-                                                   float(len(natset)))
+            haveNeighbors1 = getNumHaveNeighbors((natset - inter), bindset[f,s],    
+                                                 'oneoff')
+            haveNeighbors2 = getNumHaveNeighbors((natset - inter), bindset[f,s],    
+                                                 'decomp-oneoff')
+            haveNeighbors3 = getNumHaveNeighbors((natset - inter), bindset[f,s],    
+                                                 'decomp-twooff-furthest')
+            print "Neighbor Coverage (all one-off): %.3f" \
+                %( (haveNeighbors1 + len(inter)) / float(len(natset)))
+            print "Neighbor Coverage (decomp one-off): %.3f" \
+                %( (haveNeighbors2 + len(inter)) / float(len(natset)))
+            print "Neighbor Coverage (decomp two-off furthest): %.3f" \
+                %( (haveNeighbors3 + len(inter)) / float(len(natset)))
 
     print
     for i in range(len(fings)):
@@ -353,20 +443,40 @@ def compareToNatural(bindset, natset, org, fings,
         for j, k2 in enumerate(sorted(bothStrinsUnion.keys())):
             if j > i:
                 union = (bothStrinsUnion[k1] | bothStrinsUnion[k2]) & natset
-                haveNeighbors = getNumHaveNeighbors((natset - union), bindset[f,s])
                 print "All of %s and %s: %.3f" \
                     %(k1, k2, len(union)/float(len(natset)))
-                print "Reachable via neighbor: %.3f" %( (haveNeighbors + len(union))/ \
-                                                         float(len(natset)))
-
+                
+                haveNeighbors1 = getNumHaveNeighbors((natset - union), bindset[f,s],    
+                                                 'oneoff')
+                haveNeighbors2 = getNumHaveNeighbors((natset - union), bindset[f,s],    
+                                                     'decomp-oneoff')
+                haveNeighbors3 = getNumHaveNeighbors((natset - union), bindset[f,s],    
+                                                     'decomp-twooff-furthest')
+                print "Neighbor Coverage (all one-off): %.3f" \
+                    %( (haveNeighbors1 + len(union)) / float(len(natset)))
+                print "Neighbor Coverage (decomp one-off): %.3f" \
+                    %( (haveNeighbors2 + len(union)) / float(len(natset)))
+                print "Neighbor Coverage (decomp two-off furthest): %.3f" \
+                    %( (haveNeighbors3 + len(union)) / float(len(natset)))
+                
     if len(fings) == 3:
         unionAll = (bothStrinsUnion['F1'] | bothStrinsUnion['F2'] \
                     | bothStrinsUnion['F3']) & natset
-        haveNeighbors = getNumHaveNeighbors((natset - unionAll), bindset[f,s])
         print "All of F1, F2, and F3: %.3f" \
             %(len(unionAll)/float(len(natset)))
-        print "Reachable via neighbor: %.3f" %( (haveNeighbors + len(unionAll))/ \
-                                                   float(len(natset)))
+
+        haveNeighbors1 = getNumHaveNeighbors((natset - unionAll), bindset[f,s],    
+                                         'oneoff')
+        haveNeighbors2 = getNumHaveNeighbors((natset - unionAll), bindset[f,s],    
+                                             'decomp-oneoff')
+        haveNeighbors3 = getNumHaveNeighbors((natset - unionAll), bindset[f,s],    
+                                             'decomp-twooff-furthest')
+        print "Neighbor Coverage (all one-off): %.3f" \
+            %( (haveNeighbors1 + len(unionAll)) / float(len(natset)))
+        print "Neighbor Coverage (decomp one-off): %.3f" \
+            %( (haveNeighbors2 + len(unionAll)) / float(len(natset)))
+        print "Neighbor Coverage (decomp two-off furthest): %.3f" \
+            %( (haveNeighbors3 + len(unionAll)) / float(len(natset)))
 
 
 def compareBindingSets(bset1, bset2):
@@ -378,11 +488,57 @@ def compareBindingSets(bset1, bset2):
     print "Union: %d" %len(union)
     print "Jaccard: %.3f" %(len(inter)/float(len(union)))
 
+def computeBindingDiversity(proteinDir):
+    # Get the protein sets from the binding data.
+
+    sys.stdout = open('../stats/bindingDiv_' + \
+                      '_'.join(proteinDir.split('_')[2:]), 'w')
+
+    maxSize6 = 20**6
+    maxSize4 = 20**4
+    nucs = ['A', 'C', 'G', 'T']
+    aminos = ['A', 'C', 'D', 'E', 'F', 'G', 'I', 'H', 'K', 'L', 
+              'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y']
+
+    # Get the set of all possible canonical proteins
+    allProts4 = []
+    for i in product(aminos, aminos, aminos, aminos):
+        allProts4.append(''.join(i))
+    allProts4 = set(allProts4)
+
+    # Get the dictionary of binding sets indexed by finger and stringency
+    pathPref = '../data/b1hdata/newDatabase/6varpos'
+    #proteinDir = 'protein_seq_cut3bc_0_5'
+    fings = ['F1', 'F2', 'F3']
+    strins = ['high', 'low']
+    bindingSets6 = {}
+    bindingSets4 = {}
+    for f in fings:
+        for s in strins:
+            bindingSets6[f,s] = getProtSet('/'.join([pathPref,f,s,proteinDir,'all.txt']), 
+                                           range(6))
+            bindingSets4[f,s] = getProtSet('/'.join([pathPref,f,s,proteinDir,'all.txt']),
+                                           [0,2,3,5])
+
+    printBindingSetStats(fings, strins, bindingSets6, maxSize6)
+    bothStrinsUnion = printBindingSetStats(fings, strins, bindingSets4, 
+                                           maxSize4, allProts4)
+
+    dmelSet = getUniqueShilpaZFs('../data/shilpa/Drosophila_melanogaster_ZF.fulldom', 
+                                 [0, 2, 3, 6])
+    hsapSet = getUniqueShilpaZFs('../data/shilpa/Homo_sapiens_ZF.fulldom', 
+                                 [0, 2, 3, 6])
+    compareToNatural(bindingSets4, hsapSet, 'Human', fings, strins, bothStrinsUnion)
+    compareToNatural(bindingSets4, dmelSet, 'Fly', fings, strins, bothStrinsUnion)
+
 def main():
 
-	path = "../data/shilpa/Drosophila_melanogaster_ZF.fulldom"
-	flyZFs = getUniqueShilpaZFs(path, [0, 1, 2, 5])
-	print len(flyZFs)
+    protDirs = ['protein_seq_cut10bc_0', 'protein_seq_cut10bc_0_5', 
+                'protein_seq_cut10bc_025', 'protein_seq_cut3bc_0', 
+                'protein_seq_cut3bc_0_5', 'protein_seq_cut3bc_025']
+
+    for protDir in protDirs:
+        computeBindingDiversity('protein_seq_cut3bc_0_5')
 
 if __name__ == '__main__':
 	main()
