@@ -292,9 +292,43 @@ def printBindingSetStats(fings, strins, bindset, maxSize, allProts = None):
                                                 type = 'decomp-twooff-furthest')
         print "Neighbor coverage %s %s (decomp two-off furthest): %d" \
             %(k, numHaveNeighbors3 + len(bindset[f,s]))
-        
-        
-        
+
+    print "UNIONING STRINGENCIES AND FINGERS"
+    for i in range(len(fings)):
+        for j in range(i+1, len(fings)):
+            twoFings = (bothStrinsUnion[i] | bothStrinsUnion[j])
+            missing = allProts - twoFings
+            print "Missing from %s %s: %d" %(fings[i], fings[j], len(missing))
+            numHaveNeighbors = getNumHaveNeighbors(missing, twoFings,
+                                                    type = 'oneoff')
+            print "Neighbor coverage %s %s (all one-off): %d" \
+                %(fings[i], fings[j], numHaveNeighbors + len(twoFings))
+            numHaveNeighbors = getNumHaveNeighbors(missing, twoFings,
+                                                    type = 'decomp-oneoff')
+            print "Neighbor coverage %s %s (all one-off): %d" \
+                %(fings[i], fings[j], numHaveNeighbors + len(twoFings))
+            numHaveNeighbors = getNumHaveNeighbors(missing, twoFings,
+                                                    type = 'decomp-twooff-furthest')
+            print "Neighbor coverage %s %s (all one-off): %d" \
+                %(fings[i], fings[j], numHaveNeighbors + len(twoFings))
+    if len(fings) == 3:
+        union = bothStrinsUnion['F1'] | bothStrinsUnion['F2'] | bothStrinsUnion['F3']
+        missing = allProts - union
+        print "Missing from F1 F2 F3: %d" %(len(missing))
+        numHaveNeighbors = getNumHaveNeighbors(missing, union,
+                                                type = 'oneoff')
+        print "Neighbor coverage F1 F2 F3 (all one-off): %d" \
+            %(numHaveNeighbors + len(union))
+        numHaveNeighbors = getNumHaveNeighbors(missing, union,
+                                                type = 'decomp-oneoff')
+        print "Neighbor coverage F1 F2 F3 (all one-off): %d" \
+            %(numHaveNeighbors + len(union))
+        numHaveNeighbors = getNumHaveNeighbors(missing, union,
+                                                type = 'decomp-twooff-furthest')
+        print "Neighbor coverage F1 F2 F3 (all one-off): %d" \
+            %(numHaveNeighbors + len(union))
+
+
 
     return bothStrinsUnion
 
