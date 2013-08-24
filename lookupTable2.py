@@ -515,8 +515,8 @@ def lookupMarcusPWMs(inDir, outputDir, freqDict,
 		# Skip if this is the wrong stringency.
 		fname = fname.strip()
 		
-		if fname != "2702_AAC_EATSLRN_5mM.txt":
-			continue
+		#if fname != "2702_AAC_EATSLRN_5mM.txt":
+		#	continue
 
 
 		if strin == 'low' and re.match(r'(.)*_5mM.txt', fname) == None:
