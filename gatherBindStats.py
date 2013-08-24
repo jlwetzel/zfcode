@@ -279,19 +279,19 @@ def printBindingSetStats(fings, strins, bindset, maxSize, allProts = None):
     print "UNIONING HIGH AND LOW STRINGENCIES"
     for k in sorted(bothStrinsUnion.keys()):
         missing = allProts - bothStrinsUnion[k]
-        print "Missing from %s (%s)  : %d" %(f, s, len(missing))
+        print "Missing from %s : %d" %(k, len(missing))
         numHaveNeighbors1 = getNumHaveNeighbors(missing, bothStrinsUnion[k],
                                                 type = 'oneoff')
-        print "Neighbor coverage %s %s (all one-off): %d" \
-            %(f, s, numHaveNeighbors1 + len(bindset[f,s]))
+        print "Neighbor coverage %s (all one-off): %d" \
+            %(k, numHaveNeighbors1 + len(bindset[f,s]))
         numHaveNeighbors2 = getNumHaveNeighbors(missing, bothStrinsUnion[k],
                                                 type = 'decomp-oneoff')
-        print "Neighbor coverage %s %s (decomp one-off): %d" \
-            %(f, s, numHaveNeighbors2 + len(bindset[f,s]))
+        print "Neighbor coverage (decomp one-off): %d" \
+            %(k, numHaveNeighbors2 + len(bindset[f,s]))
         numHaveNeighbors3 = getNumHaveNeighbors(missing, bothStrinsUnion[k],
                                                 type = 'decomp-twooff-furthest')
         print "Neighbor coverage %s %s (decomp two-off furthest): %d" \
-            %(f, s, numHaveNeighbors3 + len(bindset[f,s]))
+            %(k, numHaveNeighbors3 + len(bindset[f,s]))
         
         
         
