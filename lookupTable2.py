@@ -492,6 +492,7 @@ def lookupMarcusPWMs(inDir, outputDir, freqDict,
 		expDir = '../data/revExp/F2_GAG/pwms3/'
 	elif finger == 'F3':
 		expDir = '../data/revExp/F3_GCG/pwms3/'
+	#print predictionDir
 	fout = open(predictionDir + 'compare.txt', 'w')
 	# Write header to results file
 	fout.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
@@ -513,6 +514,11 @@ def lookupMarcusPWMs(inDir, outputDir, freqDict,
 
 		# Skip if this is the wrong stringency.
 		fname = fname.strip()
+		
+		if fname != "2702_AAC_EATSLRN_5mM.txt":
+			continue
+
+
 		if strin == 'low' and re.match(r'(.)*_5mM.txt', fname) == None:
 			continue
 		if strin == 'high' and re.match(r'(.)*_20mM.txt', fname) == None:
@@ -543,6 +549,7 @@ def lookupMarcusPWMs(inDir, outputDir, freqDict,
 		# This is a propoer numpy array already
 		else:
 			nucMat = targList
+			#print nucMat
 
 		makeNucMatFile(pwmdir, label, nucMat)
 		logoIn = pwmdir + label + '.txt'
@@ -556,6 +563,7 @@ def lookupMarcusPWMs(inDir, outputDir, freqDict,
 		expMat = pwmfile2matrix(expDir + fname)
 		colPcc, colPcc_ic = comparePCC(nucMat, expMat)
 		predCons = getConsensus(nucMat)
+		#print predCons
 		expCons = getConsensus(expMat)
 
 		# Write the comparison results to file
@@ -564,6 +572,7 @@ def lookupMarcusPWMs(inDir, outputDir, freqDict,
 		           				colPcc_ic[0], colPcc_ic[1], colPcc_ic[2]))
 		fout.write("%s\t"*6 %(predCons[0], predCons[1], predCons[2],
 		           			  expCons[0], expCons[1], expCons[2]))
+		#print pred+'.'+filt
 		fout.write("%s\t%s\t%s\n" %(pred+'.'+filt, finger, strin))
 
 	fout.close()
@@ -594,11 +603,13 @@ def getLabels(style, decomp, weight_mat):
 
 	elif re.match(r'top[0-9][0-9]', style) != None:
 		if weight_mat == 'PAM30':
-			label = 'NNonly.' + style
+			label = 'NNonly.' + style + '.PAM30'
 			inDirPref = '../data/NNonly_' + style + '_PAM30/'
 		else:
-			label = 'NNonly.' + style + '.PAM30'
+			label = 'NNonly.' + style 
 			inDirPref = '../data/NNonly_' + style + '/'
+		#print weight_mat
+		#print label
 
 	elif style == 'lookonly':
 		label = 'look'
@@ -647,29 +658,26 @@ def runMarcusDataAnalysis(style, decomp, weight_mat, order_mat,
 	# Runs the analysis of the for comparing the Marcus
 	# experimental pwms using the given parameters
 
-	if re.match(r'top[0-9][0-9]', style) != None:
-		topk = eval( style[(len(style) - 2):] )
-	label, inDirPref = getLabels(style, decomp, weight_mat)
-	decompDict = getDecompDict(style, decomp)
-
-
 	# PErform the lookup or nn strategy on various datasets
 	testFings = ['F2']
 	testStrins = ['low']
 	filts = ['cut10bc_0_5', 'cut3bc_0_5', 'cut10bc_0', 'cut3bc_025', 'cut10bc_025']
-	filtsLabs = ['c10_0_5', 'c3_0_5', 'c3_025', 'c10_025', 'c10_0']
+	filtsLabs = ['c10_0_5', 'c3_0_5', 'c10_0', 'c3_025', 'c10_025']
 	for f in testFings:
 		for s in testStrins:
 			for i, filt in enumerate(filts):
 				
+				if re.match(r'top[0-9][0-9]', style) != None:
+					topk = eval( style[(len(style) - 2):] )
+				setWeightMatrices(weight_mat, order_mat)
+				label, inDirPref = getLabels(style, decomp, weight_mat)
+				decompDict = getDecompDict(style, decomp)
+
 				inDir = '../data/b1hData/newDatabase/6varpos/' \
 					+ trainFing + '/' + trainStrin + '/' + 'protein_seq_' + filt + '/'
 
 				outDir = inDirPref + trainFing + '/' + trainStrin + \
 					'/' + filt + '/'
-
-				# Get the weight matrix
-				setWeightMatrices(weight_mat, order_mat)
 
 				# Get the dictionary of binding frequencies
 				canonical = True
@@ -687,14 +695,18 @@ def runMarcusDataAnalysis(style, decomp, weight_mat, order_mat,
 				                 	label, useNN = True, skipExact = True,
 				                 	decompose = decompDict, topk = None)
 				elif re.match(r'top[0-9][0-9]', style) != None:
+					#print label
 					lookupMarcusPWMs(inDir, outDir, freqDict, f, s, filtsLabs[i],
 				                 	label, useNN = True, skipExact = True,
 				                 	decompose = decompDict, topk = topk)	
 
 def main():
 
+	
 	styles = ['top20', 'top25', 'top30', 'top35', 'top40']
+	#styles = ['top30']
 	weight_mats = [None, 'PAM30']
+	#weight_mats = [None]#['PAM30']
 	decomp = 'singles'
 	order_mat = 'PAM30'
 	trainFing = "F2"
@@ -706,9 +718,10 @@ def main():
 			print "Running:\t%s\t%s\t%s" %(style, weight_mat, order_mat)
 			runMarcusDataAnalysis(style, decomp, weight_mat, order_mat, 
                           		  trainFing, trainStrin)
+
 	"""
 	# Debugging stuff
-	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut3bc_0_5/'
+	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut3bc_025/'
 	canonical = True
 	varpos = 6
 	canInd = getPosIndex(varpos, canonical)
@@ -718,10 +731,10 @@ def main():
 	canonAnton = {1: [3], 2: [2,3], 3: [0,1]}
 	triples = {1: [1,2,3], 2: [0,1,2], 3: [0,1,2]}
 	singles = {1: [3], 2: [2], 3: [0]}
-	nmat = lookupCanonZF(freqDict, 'FSAN', useNN = True, skipExact = True, 
+	nmat = lookupCanonZF(freqDict, 'ETSN', useNN = True, skipExact = True, 
 	                     decompose = singles, topk = topk)
+	print getConsensus(nmat)
 
-	print topk
 	print "Final Matrix:"
 	print nmat
 	"""
