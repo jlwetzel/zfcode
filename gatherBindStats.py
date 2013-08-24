@@ -296,7 +296,7 @@ def printBindingSetStats(fings, strins, bindset, maxSize, allProts = None):
     print "UNIONING STRINGENCIES AND FINGERS"
     for i in range(len(fings)):
         for j in range(i+1, len(fings)):
-            twoFings = (bothStrinsUnion[i] | bothStrinsUnion[j])
+            twoFings = (bothStrinsUnion[fings[i]] | bothStrinsUnion[fings[j]])
             missing = allProts - twoFings
             print "Missing from %s %s: %d" %(fings[i], fings[j], len(missing))
             numHaveNeighbors = getNumHaveNeighbors(missing, twoFings,
