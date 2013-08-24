@@ -286,11 +286,11 @@ def printBindingSetStats(fings, strins, bindset, maxSize, allProts = None):
             %(k, numHaveNeighbors1 + len(bindset[f,s]))
         numHaveNeighbors2 = getNumHaveNeighbors(missing, bothStrinsUnion[k],
                                                 type = 'decomp-oneoff')
-        print "Neighbor coverage (decomp one-off): %d" \
+        print "Neighbor coverage %s (decomp one-off): %d" \
             %(k, numHaveNeighbors2 + len(bindset[f,s]))
         numHaveNeighbors3 = getNumHaveNeighbors(missing, bothStrinsUnion[k],
                                                 type = 'decomp-twooff-furthest')
-        print "Neighbor coverage %s %s (decomp two-off furthest): %d" \
+        print "Neighbor coverage %s (decomp two-off furthest): %d" \
             %(k, numHaveNeighbors3 + len(bindset[f,s]))
 
     print "UNIONING STRINGENCIES AND FINGERS"
