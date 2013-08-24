@@ -709,7 +709,7 @@ def main():
 	#weight_mats = [None]#['PAM30']
 	decomp = 'singles'
 	order_mat = 'PAM30'
-	trainFing = "F2"
+	trainFing = "F3"
 	trainStrin = "low"
 
 	# Run the "topk" neighbors analysis
