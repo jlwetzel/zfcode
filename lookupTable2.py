@@ -669,6 +669,8 @@ def runMarcusDataAnalysis(style, decomp, weight_mat, order_mat,
 				
 				if re.match(r'top[0-9][0-9]', style) != None:
 					topk = eval( style[(len(style) - 2):] )
+				else:
+					topk = None
 				setWeightMatrices(weight_mat, order_mat)
 				label, inDirPref = getLabels(style, decomp, weight_mat)
 				decompDict = getDecompDict(style, decomp)
@@ -703,22 +705,23 @@ def runMarcusDataAnalysis(style, decomp, weight_mat, order_mat,
 def main():
 
 	
-	styles = ['lookonly']
+	styles = ['nnonly']
 	#styles = ['top20', 'top25', 'top30', 'top35', 'top40']
 	#styles = ['top30']
-	weight_mats = [None]#[None, 'PAM30']
+	weight_mats = [None, 'PAM30']
 	#weight_mats = [None]#['PAM30']
-	decomp = 'singles'
+	decomps = ['singles', 'doubles', 'triples']
 	order_mat = 'PAM30'
-	trainFing = "F3"
+	trainFing = "F2"
 	trainStrin = "low"
 
 	# Run the "topk" neighbors analysis
 	for style in styles:
 		for weight_mat in weight_mats:
-			print "Running:\t%s\t%s\t%s" %(style, weight_mat, order_mat)
-			runMarcusDataAnalysis(style, decomp, weight_mat, order_mat, 
-                          		  trainFing, trainStrin)
+			for decomp in decomps:
+				print "Running:\t%s\t%s\t%s" %(style, weight_mat, order_mat)
+				runMarcusDataAnalysis(style, decomp, weight_mat, order_mat, 
+                          		  	  trainFing, trainStrin)
 
 	"""
 	# Debugging stuff
