@@ -292,7 +292,7 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk):
 			                                                   neighborDict[k])
 		else:
 			if NEIGHBOR_WEIGHTS != None:
-				nWeights = getNeighborWeights(protein, neighborDict[k])
+				nWeights = getNeighborWeights(prot, neighborDict[k])
 			else:
 				unifWeight = 1/float(len(neighborDict[k]))
 				nWeights = np.array([unifWeight]*len(neighborDict[k]),
