@@ -61,28 +61,18 @@ def getNeighborWeights(prot, neighbors, skipExact, matType = 'weight'):
 	elif matType == 'order':
 		weightMat = NEIGHBOR_ORDER
 
+	exactMatchInList = False
+
 	# Get the list of neighbor weights
 	nWeights = []
-	for n in neighbors:
+	for k, n in enumerate(neighbors):
 
-		"""
-		# If we are not skipping exact matches, then give 
-		# the exact match a weight at least twice as 
-		# large as any other neighbor
+		# Save a spot for the exact match if it's in this list
 		if not skipExact and n == prot:
-			nWeights.append(2)
-		"""
-
-		# If we are not skipping exact matches, give the
-		# exact match a weight that is the average over 
-		# weights for each unsubstituted amino acid
-		if not skipExact and n == prot:
-			nScore = 0.0
-			for a in prot:
-				nScore += weightMat[a, a]
-			nWeights.append(math.exp(nScore/float(len(prot))))
-
-
+			exactMatchInList = True
+			exactMatchInd = k
+			nWeights.append(0.0)
+		
 		# Otherwise give the score of the exponential 
 		# from the substitution matrix for the amino substitution
 		else:
@@ -91,10 +81,15 @@ def getNeighborWeights(prot, neighbors, skipExact, matType = 'weight'):
 					nScore = math.exp(weightMat[prot[i], a])
 			nWeights.append(nScore)
 
-	# Shift so that min weight is zero then normalize 
-	# all weights to between 0 and 1
+	# If used exact matching neighbor, then make its 
+	# weight as heavy as the heaviest non-exact neighbor
 	nWeights = np.array(nWeights, dtype=float)
+	if not skipExact and exactMatchInList:
+		nWeights[exactMatchInd] = np.max(nWeights)
+
+	# Normalize weights to a distribution
 	nWeights = nWeights/np.sum(nWeights)
+
 	return nWeights
 
 def decomposeNeighbors(protein, neighbors, decompose, skipExact):
@@ -340,6 +335,7 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk, skipExact):
 
 		# Get the normalized frequency vectors for each neighbor at  
 		# this base position
+		print
 		print len(neighborDict[k])
 		for i, n in enumerate(neighborDict[k]):
 			newVect = getNeighborBaseVect(freqDict, n, k)
