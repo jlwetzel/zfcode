@@ -321,7 +321,7 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk, skipExact):
 		# Sort the neighbors in the order in which we'd like 
 		# to use them.
 		if topk != None:
-			print k
+			#print k
 			neighborDict[k], nWeights = sortAndWeightNeighbors(prot, k,
 			                                                   neighborDict[k],
 			                                                   skipExact)
@@ -335,14 +335,14 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk, skipExact):
 
 		# Get the normalized frequency vectors for each neighbor at  
 		# this base position
-		print
-		print len(neighborDict[k])
+		#print
+		#print len(neighborDict[k])
 		for i, n in enumerate(neighborDict[k]):
 			newVect = getNeighborBaseVect(freqDict, n, k)
 			if newVect != None:
 				pass
-				print "Base: %d\tNeighbor: %s\tWeight: %.5f" %(k, n, nWeights[i])
-				print newVect
+				#print "Base: %d\tNeighbor: %s\tWeight: %.5f" %(k, n, nWeights[i])
+				#print newVect
 			baseVectors.append(newVect)
 		
 		# For each neighbor found, weight its vector by that
@@ -365,6 +365,7 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk, skipExact):
 					neighborsUsed += 1
 			# Renormalize since some neighbors may not have been used
 			pwm[k-1] = pwm[k-1]/np.sum(pwm[k-1]) 
+			#print "Used %d neighbors for base %d" %(neighborsUsed, k)
 		
 		# If we found no neighbors use a uniform vector
 		else:
@@ -516,174 +517,6 @@ def lookupCanonZF(freqDict, canonProt, useNN = True, skipExact = False,
 		nucmat = targList
 		return targList
 
-def lookupMarcusPWMs(inDir, outputDir, freqDict,
-                     finger, strin, filt, pred, useNN = True,
-                     skipExact = False, decompose = None,
-                     topk = None):
-	# Make predcitions for each of the proteins that 
-	# Marcus made experimental PWMs for
-
-	# Create the prediction directory structure
-	predictionDir = outputDir+'predictions/'
-	pwmdir = predictionDir + 'pwms/'
-	logodir = predictionDir + 'logos/'
-	makeDir(predictionDir)
-	makeDir(pwmdir)
-	makeDir(logodir)
-	
-	# Get the directory containing the 3 position
-	# experimental PWMs for this finger and set up
-	# the output file for writing results
-	if finger == 'F2':
-		expDir = '../data/revExp/F2_GAG/pwms3/'
-	elif finger == 'F3':
-		expDir = '../data/revExp/F3_GCG/pwms3/'
-	#print predictionDir
-	fout = open(predictionDir + 'compare.txt', 'w')
-	# Write header to results file
-	fout.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
-	           %('num', 'targ','prot','canonprot','c1pcc','c2pcc',
-	             'c3pcc', 'c1pcc.ic', 'c2pcc.ic', 'c3pcc.ic', 'p.c1cons',
-	             'p.c2cons', 'p.c3cons', 'e.c1cons', 'e.c2cons', 'e.c3cons',
-	             'pred.filt', 'finger', 'strin'))
-	
-	
-	# B1H forward experiments.  Need to update if start 
-	# using the 5 position ones
-	npos = 6
-	canonical = True
-	ind = getPosIndex(npos, canonical)
-	
-	# Try to do a lookup table prediction for each of the 
-	# proteins for which we have an experimental 3pos pwm
-	for fname in os.popen('ls ' + expDir):
-
-		# Skip if this is the wrong stringency.
-		fname = fname.strip()
-		
-		#if fname != "2702_AAC_EATSLRN_5mM.txt":
-		#	continue
-
-
-		if strin == 'low' and re.match(r'(.)*_5mM.txt', fname) == None:
-			continue
-		if strin == 'high' and re.match(r'(.)*_20mM.txt', fname) == None:
-			continue
-
-		# Get the info about this experiment
-		sp_fname = fname.split('_')
-		protNum = sp_fname[0]
-		goal = sp_fname[1]
-		prot = sp_fname[2].split('.')[0]
-		canonProt = prot[0] + prot[2] + prot[3] + prot[6]
-		label = '_'.join([str(protNum), goal, prot, strin])
-	
-		targList = get3merList(freqDict, canonProt, canonical,
-		    	               useNN, skipExact, decompose,
-		    	               topk)
-		
-		# This is target/frequncy list
-		if isinstance(targList, list):
-			# If the target list is empty don't output anything
-			if targList == []:
-				continue
-			
-			# Convert the 3mer target list to a frequency matrix,
-			# write to file, and create a logo
-			nucMat = targListToFreqMat(targList)
-		
-		# This is a propoer numpy array already
-		else:
-			nucMat = targList
-			#print nucMat
-
-		makeNucMatFile(pwmdir, label, nucMat)
-		logoIn = pwmdir + label + '.txt'
-		logoOut = logodir + label + '.pdf'
-		makeLogo(logoIn, logoOut, alpha = 'dna', 
-		         colScheme = 'classic',
-		         annot = "'5,M,3'",
-		         xlab = '_'.join([goal,prot]))
-		
-		# Compare this pwm to the reverse experiment
-		expMat = pwmfile2matrix(expDir + fname)
-		colPcc, colPcc_ic = comparePCC(nucMat, expMat)
-		predCons = getConsensus(nucMat)
-		#print predCons
-		expCons = getConsensus(expMat)
-
-		# Write the comparison results to file
-		fout.write("%s\t%s\t%s\t%s\t" %(protNum, goal, prot, canonProt))
-		fout.write("%.4f\t"*6 %(colPcc[0], colPcc[1], colPcc[2], \
-		           				colPcc_ic[0], colPcc_ic[1], colPcc_ic[2]))
-		fout.write("%s\t"*6 %(predCons[0], predCons[1], predCons[2],
-		           			  expCons[0], expCons[1], expCons[2]))
-		#print pred+'.'+filt
-		fout.write("%s\t%s\t%s\n" %(pred+'.'+filt, finger, strin))
-
-	fout.close()
-
-def getLabels(style, decomp, weight_mat):
-	# Returrns a label and a directory prefix for the 
-	# given style, decomposition, and weight matrix
-	if style == 'nnonly':
-
-		if decomp == 'triples' and weight_mat == 'PAM30':
-			label = 'NNOnly.trip.PAM30'
-			inDirPref = '../data/NNonly_Triples_PAM30/'
-		elif decomp == 'triples':
-			label = 'NNOnly.trip'
-			inDirPref = '../data/NNonly_Triples/'
-		elif decomp == 'doubles' and weight_mat == 'PAM30':
-			label = 'NNOnly.doub.PAM30'
-			inDirPref = '../data/NNonly_Doubles_PAM30/'
-		elif decomp == 'doubles':
-			label = 'NNOnly.doub'
-			inDirPref = '../data/NNonly_Doubles/'
-		elif decomp == 'singles' and weight_mat == 'PAM30':
-			label = 'NNOnly.sing.PAM30'
-			inDirPref = '../data/NNonly_Singles_PAM30/'
-		elif decomp == 'singles':
-			label = 'NNOnly.sing'
-			inDirPref = '../data/NNonly_Singles/'
-
-	elif re.match(r'top[0-9][0-9]', style) != None:
-		if weight_mat == 'PAM30':
-			label = 'NNonly.' + style + '.PAM30'
-			inDirPref = '../data/NNonly_' + style + '_PAM30/'
-		else:
-			label = 'NNonly.' + style 
-			inDirPref = '../data/NNonly_' + style + '/'
-		#print weight_mat
-		#print label
-
-	elif style == 'lookonly':
-		label = 'look'
-		inDirPref = '../data/lookupTable/'
-				
-	return label, inDirPref
-
-def getDecompDict(style, decomp):
-	# Return the decomposition dictionary that corresponds 
-	# to the string decomp
-
-	triples = {1: [1,2,3], 2: [1,2,3], 3: [0,1,2]}
-	doubles = {1: [2,3], 2: [2,3], 3: [0,1]}
-	singles = {1: [3], 2: [2], 3: [0]}
-
-	if re.match(r'top[0-9][0-9]', style) != None:
-		return singles
-
-	elif decomp == "triples":
-		return triples
-	elif decomp == "doubles":
-		return doubles
-	elif decomp == "singles":
-		return singles
-	
-	else:
-		return None
-
 def setWeightMatrices(weight_mat, order_mat):
 	# Set the global weight matrix parameters
 	global NEIGHBOR_WEIGHTS
@@ -699,77 +532,8 @@ def setWeightMatrices(weight_mat, order_mat):
 	else:
 		NEIGHBOR_ORDER = None
 
-def runMarcusDataAnalysis(style, decomp, weight_mat, order_mat, 
-                          trainFing, trainStrin):
-	# Runs the analysis of the for comparing the Marcus
-	# experimental pwms using the given parameters
-
-	# PErform the lookup or nn strategy on various datasets
-	testFings = ['F2']
-	testStrins = ['low']
-	filts = ['cut10bc_0_5', 'cut3bc_0_5', 'cut10bc_0', 'cut3bc_025', 'cut10bc_025']
-	filtsLabs = ['c10_0_5', 'c3_0_5', 'c10_0', 'c3_025', 'c10_025']
-	for f in testFings:
-		for s in testStrins:
-			for i, filt in enumerate(filts):
-				
-				if re.match(r'top[0-9][0-9]', style) != None:
-					topk = eval( style[(len(style) - 2):] )
-				else:
-					topk = None
-				setWeightMatrices(weight_mat, order_mat)
-				label, inDirPref = getLabels(style, decomp, weight_mat)
-				decompDict = getDecompDict(style, decomp)
-
-				inDir = '../data/b1hData/newDatabase/6varpos/' \
-					+ trainFing + '/' + trainStrin + '/' + 'protein_seq_' + filt + '/'
-
-				outDir = inDirPref + trainFing + '/' + trainStrin + \
-					'/' + filt + '/'
-
-				# Get the dictionary of binding frequencies
-				canonical = True
-				varpos = 6
-				canInd = getPosIndex(varpos, canonical)
-				freqDict = computeFreqDict(inDir, canInd)
-
-				# Perform the actual prediction against the Marcus pwms
-				if style == 'lookonly':
-					lookupMarcusPWMs(inDir, outDir, freqDict, f, s, filtsLabs[i],
-				    	             label, useNN = False,
-				        	         skipExact = False, decompose = None)
-				elif style == 'nnonly':
-					lookupMarcusPWMs(inDir, outDir, freqDict, f, s, filtsLabs[i],
-				                 	label, useNN = True, skipExact = True,
-				                 	decompose = decompDict, topk = None)
-				elif re.match(r'top[0-9][0-9]', style) != None:
-					#print label
-					lookupMarcusPWMs(inDir, outDir, freqDict, f, s, filtsLabs[i],
-				                 	label, useNN = True, skipExact = True,
-				                 	decompose = decompDict, topk = topk)	
-
 def main():
 
-	"""
-	styles = ['nnonly']
-	#styles = ['top20', 'top25', 'top30', 'top35', 'top40']
-	#styles = ['top30']
-	weight_mats = [None, 'PAM30']
-	#weight_mats = [None]#['PAM30']
-	decomps = ['singles', 'doubles', 'triples']
-	order_mat = 'PAM30'
-	trainFing = "F2"
-	trainStrin = "low"
-
-	# Run the "topk" neighbors analysis
-	for style in styles:
-		for weight_mat in weight_mats:
-			for decomp in decomps:
-				print "Running:\t%s\t%s\t%s" %(style, weight_mat, order_mat)
-				runMarcusDataAnalysis(style, decomp, weight_mat, order_mat, 
-                          		  	  trainFing, trainStrin)
-
-	"""
 	# Debugging stuff
 	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut10bc_0_5/'
 	canonical = True
@@ -782,7 +546,7 @@ def main():
 	triples = {1: [1,2,3], 2: [0,1,2], 3: [0,1,2]}
 	singles = {1: [3], 2: [2], 3: [0]}
 	
-	canProt = 'RDLR'
+	canProt = 'RDER'
 	print canProt
 	nmat = lookupCanonZF(freqDict, canProt, useNN = False, skipExact = False, 
 	                     	decompose = None, topk = None)
@@ -796,7 +560,7 @@ def main():
 		if k != 25:
 			continue
 
-		nmat = lookupCanonZF(freqDict, canProt, useNN = True, skipExact = False, 
+		nmat = lookupCanonZF(freqDict, canProt, useNN = True, skipExact = True, 
 	                     	decompose = singles, topk = k)
 		
 		print "Top %d: " %k
