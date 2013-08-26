@@ -49,7 +49,7 @@ def getPosIndex(npos, canonical):
 			ind = range(5)
 	return ind
 
-def getNeighborWeights(prot, neighbors, matType = 'weight'):
+def getNeighborWeights(prot, neighbors, skipExact, matType = 'weight'):
 	# Returns a numpy array of weights for each neighbor in the 
 	# order that the neighbors appear in the list.
 	# matType decides which matrix to use, either the 
@@ -64,10 +64,32 @@ def getNeighborWeights(prot, neighbors, matType = 'weight'):
 	# Get the list of neighbor weights
 	nWeights = []
 	for n in neighbors:
-		for i, a in enumerate(n):
-			if prot[i] != a:
-				nScore = math.exp(weightMat[prot[i], a])
-		nWeights.append(nScore)
+
+		"""
+		# If we are not skipping exact matches, then give 
+		# the exact match a weight at least twice as 
+		# large as any other neighbor
+		if not skipExact and n == prot:
+			nWeights.append(2)
+		"""
+
+		# If we are not skipping exact matches, give the
+		# exact match a weight that is the average over 
+		# weights for each unsubstituted amino acid
+		if not skipExact and n == prot:
+			nScore = 0.0
+			for a in prot:
+				nScore += weightMat[a, a]
+			nWeights.append(math.exp(nScore/float(len(prot))))
+
+
+		# Otherwise give the score of the exponential 
+		# from the substitution matrix for the amino substitution
+		else:
+			for i, a in enumerate(n):
+				if prot[i] != a:
+					nScore = math.exp(weightMat[prot[i], a])
+			nWeights.append(nScore)
 
 	# Shift so that min weight is zero then normalize 
 	# all weights to between 0 and 1
@@ -75,7 +97,7 @@ def getNeighborWeights(prot, neighbors, matType = 'weight'):
 	nWeights = nWeights/np.sum(nWeights)
 	return nWeights
 
-def decomposeNeighbors(protein, neighbors, decompose):
+def decomposeNeighbors(protein, neighbors, decompose, skipExact):
 	# Returns a dictionary of neighbor lists according 
 	# to the decompose dictionary
 	#
@@ -92,6 +114,12 @@ def decomposeNeighbors(protein, neighbors, decompose):
 
 		# For each neighbor
 		for n in neighbors:
+
+			# Include the exact match for each base position if not
+			# skipping exact matches
+			if not skipExact and n == protein:
+				neighborDict[bpos].append(n)
+				continue
 
 			# For each amino position to remain fixed for this bpos
 			keepNeighbor = True
@@ -151,7 +179,7 @@ def singleColTargListToFreqVector(bpos, targList):
 
 def getNeighborBaseVect(freqDict, neighbor, bpos):
 	# Returns the vector of base frequencies for 
-	# bpos for all exact matches to this neighboring protein
+	# bpos for all matches to this neighboring protein
 
 	# Get a target list for this neighbor
 	targList = []
@@ -200,7 +228,7 @@ def computeFreqDict(dirpath, ind):
 
 	return freqDict
 
-def sortAndWeightNeighbors(prot, bpos, neighbors):
+def sortAndWeightNeighbors(prot, bpos, neighbors, skipExact):
 	# Sorts the neighbors in the order in which we 
 	# would like to process them (most "important"
 	# neighbors first).
@@ -217,6 +245,11 @@ def sortAndWeightNeighbors(prot, bpos, neighbors):
 	# Separate neighbors according to varied positions
 	neighborBins = {}
 	for n in neighbors:
+		
+		# Ignore the exact match for now if using it
+		if not skipExact and n == prot:
+			continue
+
 		for i, a in enumerate(n):
 			if a != prot[i]:
 				varpos = i
@@ -225,6 +258,11 @@ def sortAndWeightNeighbors(prot, bpos, neighbors):
 			neighborBins[varpos].append(n)
 		else:
 			neighborBins[varpos] = [n]
+
+	# If using the exact neighbor, add it now to the 
+	# first bin
+	if not skipExact:
+		neighborBins[order[bpos][0]].append(prot)
 	
 	# Sort within each neighbor group according 
 	# to the matrix associated with NEIGHBOR_ORDER variable
@@ -232,7 +270,7 @@ def sortAndWeightNeighbors(prot, bpos, neighbors):
 	for k in order[bpos]:
 		if NEIGHBOR_ORDER != None:
 			order_weights = getNeighborWeights(prot, neighborBins[k], 
-			                                   matType = 'order')
+			                                   skipExact, matType = 'order')
 		else:
 			unifWeight = 1/float(len(neighborBins[k]))
 			order_weights = np.array([unifWeight]*len(neighborBins[k]),
@@ -249,16 +287,15 @@ def sortAndWeightNeighbors(prot, bpos, neighbors):
 	# Get the weights for the now sorted complete list of neighbors
 	if NEIGHBOR_WEIGHTS != None:
 		nWeights = getNeighborWeights(prot, neighborsSorted,
-		                              matType = 'weight')
+		                              skipExact, matType = 'weight')
 	else:
 		unifWeight = 1/float(len(neighborsSorted))
 		nWeights = np.array([unifWeight]*len(neighborsSorted),
 			                     dtype = float)
 
-	
 	return neighborsSorted, nWeights
 
-def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk):
+def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk, skipExact):
 	# Returns a numpy array pwm of for the prediciton
 	# given the top k neighbors only in terms of distance
 	# from the original protein.  The neighbor distances 
@@ -281,6 +318,7 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk):
 	pwm = np.zeros((3,4), dtype = float)
 	
 	# For each base
+	# print neighborDict.keys()
 	for k in neighborDict.keys():
 		baseVectors = []
 		neighborsUsed = 0
@@ -288,21 +326,28 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk):
 		# Sort the neighbors in the order in which we'd like 
 		# to use them.
 		if topk != None:
+			print k
 			neighborDict[k], nWeights = sortAndWeightNeighbors(prot, k,
-			                                                   neighborDict[k])
+			                                                   neighborDict[k],
+			                                                   skipExact)
 		else:
 			if NEIGHBOR_WEIGHTS != None:
-				nWeights = getNeighborWeights(prot, neighborDict[k])
+				nWeights = getNeighborWeights(prot, neighborDict[k], skipExact)
 			else:
 				unifWeight = 1/float(len(neighborDict[k]))
 				nWeights = np.array([unifWeight]*len(neighborDict[k]),
 			                       dtype = float)
-		
+
 		# Get the normalized frequency vectors for each neighbor at  
 		# this base position
-		for n in neighborDict[k]:
-			baseVectors.append(getNeighborBaseVect(freqDict, 
-			           		   n, k))
+		print len(neighborDict[k])
+		for i, n in enumerate(neighborDict[k]):
+			newVect = getNeighborBaseVect(freqDict, n, k)
+			if newVect != None:
+				pass
+				print "Base: %d\tNeighbor: %s\tWeight: %.5f" %(k, n, nWeights[i])
+				print newVect
+			baseVectors.append(newVect)
 		
 		# For each neighbor found, weight its vector by that
 		# neighbor's weight.
@@ -364,15 +409,14 @@ def get3merList(freqDict, protein, canonical = False,
 	targList = []  # The list of (3mer, freq) tuples to 
 				   # be returned.
 
-	# For each binding file in the dirpath, look for exact 
-	# matches first.
-	for targ in sorted(freqDict.keys()):
-		if skipExact:
-			break
-		if freqDict[targ].has_key(protein):
-			targList.append([targ, freqDict[targ][protein]]) 
-
-	if targList != [] or not useNN:
+	# If not using nearest neighbors, look for exact matches
+	# in the lookup table
+	if not useNN:
+		for targ in sorted(freqDict.keys()):
+			if skipExact:
+				break
+			if freqDict[targ].has_key(protein):
+				targList.append([targ, freqDict[targ][protein]]) 
 		normalizeTargList(targList)
 		return targList
 
@@ -388,13 +432,19 @@ def get3merList(freqDict, protein, canonical = False,
 			if a != protein[i]:
 				neighbors.append(protein[:i]+a+\
 				                 protein[i+1:])
+	# Include the exact match as a neighbor if not told otherwise
+	if not skipExact:
+		neighbors.append(protein)
 
 	# Get the per-base neighbor decomposition
-	neighborDict = decomposeNeighbors(protein, neighbors, decompose)
+	neighborDict = decomposeNeighbors(protein, neighbors, decompose, skipExact)
 	
 	# Return the pwm obtained by decomposing neighbors
 	# and using the top k of them
-	return getTopKNeighborsPWM(freqDict, protein, neighborDict, topk)
+
+	# Here
+
+	return getTopKNeighborsPWM(freqDict, protein, neighborDict, topk, skipExact)
 	
 def makeDir(path):
 	# Try to make a path and pass if it can't be created
@@ -736,7 +786,7 @@ def main():
 	triples = {1: [1,2,3], 2: [0,1,2], 3: [0,1,2]}
 	singles = {1: [3], 2: [2], 3: [0]}
 	
-	canProt = 'RDAR'
+	canProt = 'RDLR'
 	print canProt
 	nmat = lookupCanonZF(freqDict, canProt, useNN = False, skipExact = False, 
 	                     	decompose = None, topk = None)
@@ -747,7 +797,10 @@ def main():
 	print nmat
 	
 	for k in [20, 25, 30, 35, 40]:
-		nmat = lookupCanonZF(freqDict, canProt, useNN = True, skipExact = True, 
+		if k != 25:
+			continue
+
+		nmat = lookupCanonZF(freqDict, canProt, useNN = True, skipExact = False, 
 	                     	decompose = singles, topk = k)
 		
 		print "Top %d: " %k
