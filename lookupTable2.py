@@ -704,7 +704,7 @@ def runMarcusDataAnalysis(style, decomp, weight_mat, order_mat,
 
 def main():
 
-	
+	"""
 	styles = ['nnonly']
 	#styles = ['top20', 'top25', 'top30', 'top35', 'top40']
 	#styles = ['top30']
@@ -725,23 +725,35 @@ def main():
 
 	"""
 	# Debugging stuff
-	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut3bc_025/'
+	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut10bc_0_5/'
 	canonical = True
 	varpos = 6
 	canInd = getPosIndex(varpos, canonical)
 	freqDict = computeFreqDict(inDir, canInd)
-	setWeightMatrices(None, 'PAM30')
-	topk = 20
+	setWeightMatrices('PAM30', 'PAM30')
+	topk = 25
 	canonAnton = {1: [3], 2: [2,3], 3: [0,1]}
 	triples = {1: [1,2,3], 2: [0,1,2], 3: [0,1,2]}
 	singles = {1: [3], 2: [2], 3: [0]}
-	nmat = lookupCanonZF(freqDict, 'ETSN', useNN = True, skipExact = True, 
-	                     decompose = singles, topk = topk)
+	
+	canProt = 'RDAR'
+	print canProt
+	nmat = lookupCanonZF(freqDict, canProt, useNN = False, skipExact = False, 
+	                     	decompose = None, topk = None)
+		
+	print "Lookup:"
 	print getConsensus(nmat)
-
 	print "Final Matrix:"
 	print nmat
-	"""
+	
+	for k in [20, 25, 30, 35, 40]:
+		nmat = lookupCanonZF(freqDict, canProt, useNN = True, skipExact = True, 
+	                     	decompose = singles, topk = k)
+		
+		print "Top %d: " %k
+		print getConsensus(nmat)
+		print "Final Matrix:"
+		print nmat
 				                 	
 
 if __name__ == '__main__':
