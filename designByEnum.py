@@ -134,10 +134,8 @@ def main():
 		print k, len(topProtDict[k])
 
 	# Create logos/pfms for each of the prots in topProtDict
-	#predictTopProts(freqDict, topProtDict, outDir)
+	predictTopProts(freqDict, topProtDict, outDir)
 
-	#print freqDict.keys()
-	#topkProtDict = geTopkProtDict(inDir)
-
+	
 if __name__ == '__main__':
 	main()
