@@ -23,8 +23,8 @@ def getSubDict(fname):
 	return subDict
 
 ###  Possible substitution matrices for nearest neighbors lookups
-NEIGHBOR_WEIGHTS = None
-NEIGHBOR_ORDER = None
+NEIGHBOR_WEIGHTS = getSubDict('../data/substitution_mats/PAM30.txt')
+NEIGHBOR_ORDER = getSubDict('../data/substitution_mats/PAM30.txt')
 
 nucs = ['A', 'C', 'G', 'T']
 aminos = ['A', 'C', 'D', 'E', 'F', 'G', 'I', 'H', 'K', 'L', 
