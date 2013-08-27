@@ -72,26 +72,43 @@ def makeTexTable(texFile, logoType, logoTypeDir):
 
 def main():
 	
-	style = 'top20'
+	style = 'top40'
+	useExact = True
 	trainFing = 'F3'
 	trainStrin = 'low'
 	outDir = '../../figures/predictionLogos/'
 	inDirPrefix = '../../data/'
-	
-	if re.match(r'top[0-9][0-9]', style) != None:
+
+	if style == 'blsVnn':
+		k = str(25)
+		logoType = ['Exper.', 'Lookup', 'NN.Top' + k + '.PAM30', 'BLS02']
+		logoTypeDir = ['revExp/F2_GAG/logos3/', 'lookupTable/', 
+			       	   'NN_top' + k + '_PAM30/','bls02RevExp/']
+
+	elif re.match(r'top[0-9][0-9]', style) != None and useExact:
+		k = style[-2:]
+		logoType = ['Exper.', 'Lookup', 'NNOnly.Top' + k + '.PAM30', \
+			'NN.Top' + k + '.PAM30']
+		logoTypeDir = ['revExp/F2_GAG/logos3/', 'lookupTable/', 
+			       	   'NNonly_top' + k + '_PAM30/','NN_top' + k + '_PAM30/']
+
+	elif re.match(r'top[0-9][0-9]', style) != None:
 		k = style[-2:]
 		logoType = ['Exper.', 'Lookup', 'NNOnly.Top' + k, \
 			'NNOnly.Top' + k + '.PAM30']
 		logoTypeDir = ['revExp/F2_GAG/logos3/', 'lookupTable/', 
-			       	   'NNonly_top' + k + '/','NNonly_top' + k + '_PAM30/']
+			       	   'NNonly_top' + k + '/','NN_top' + k + '_PAM30/']
+
 	elif style == 'triples':
 		logoType = ['Exper.', 'Lookup', 'NNOnly.Trip', 'NNOnly.Trip.PAM30']
 		logoTypeDir = ['revExp/F2_GAG/logos3/', 'lookupTable/', 
 			       	   'NNonly_Triples/','NNonly_Triples_PAM30/']
+
 	elif style == 'doubles':
 		logoType = ['Exper.', 'Lookup', 'NNOnly.Doub', 'NNOnly.Doub.PAM30']
 		logoTypeDir = ['revExp/F2_GAG/logos3/', 'lookupTable/', 
 			       	   'NNonly_Doubles/','NNonly_Doubles_PAM30/']
+
 	elif style == 'singles':
 		logoType = ['Exper.', 'Lookup', 'NNOnly.Sing', 'NNOnly.Sing.PAM30']
 		logoTypeDir = ['revExp/F2_GAG/logos3/', 'lookupTable/', 
@@ -99,21 +116,29 @@ def main():
 
 	filters = ['cut3bc_0_5', 'cut10bc_0_5', 'cut10bc_0', 'cut10bc_025', 'cut3bc_025']
 	for f in filters:
-		texFile = open(outDir + '_'.join([trainFing, trainStrin, style, f]) \
-		               + '.tex', 'w')
+		if useExact:
+			texFile = open(outDir + '_'.join([trainFing, trainStrin, style, f, 'useExact']) \
+		         	       + '.tex', 'w')
+		else:
+			texFile = open(outDir + '_'.join([trainFing, trainStrin, style, f]) \
+		    	           + '.tex', 'w')
 		makeTexPreamble(texFile)
 		logoTypeDir2 = logoTypeDir[:]
 		for i, l in enumerate(logoTypeDir):
 			logoTypeDir2[i] = inDirPrefix + logoTypeDir2[i]
 			if i != 0:
-				logoTypeDir2[i] += '/'.join([trainFing, trainStrin, f,
-				                            'predictions', 'logos']) + '/'
+				if style == 'blsVnn' and i == 3:
+					logoTypeDir2[i] += '/'.join(['F2', 'low', \
+					                            'predictions', 'logos']) + '/'
+				else:
+					logoTypeDir2[i] += '/'.join([trainFing, trainStrin, f,
+				    	                        'predictions', 'logos']) + '/'
 		
+		#print logoTypeDir2
 		makeTexTable(texFile, logoType, logoTypeDir2)
 		makeTexEnding(texFile)
 
 		texFile.close()
-
 
 if __name__ == '__main__':
 	main()
