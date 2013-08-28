@@ -377,7 +377,8 @@ def main():
 
 	#styles = ['bls02']
 	#styles = ['nnonly']
-	styles = ['top20', 'top25', 'top30', 'top35', 'top40']
+	#styles = ['top20', 'top25', 'top30', 'top35', 'top40']
+	styles = ['top10', 'top15']
 	#styles = ['top30']
 	weight_mats = [None, 'PAM30']
 	useExact = True
@@ -385,14 +386,15 @@ def main():
 	#decomps = ['singles', 'doubles', 'triples']
 	decomps = ['single']
 	order_mat = 'PAM30'
-	trainFing = "F3"
+	trainFing = "F2"
 	trainStrin = "low"
 
 	# Run the "topk" neighbors analysis
 	for style in styles:
 		for weight_mat in weight_mats:
 			for decomp in decomps:
-				print "Running:\t%s\t%s\t%s\t%s" %(style, decomp, weight_mat, order_mat)
+				print "Running:\t%s\t%s\t%s\t%s" %(style, decomp, weight_mat, 
+				                                   order_mat)
 				runMarcusDataAnalysis(style, decomp, weight_mat, order_mat, 
                           		  	  trainFing, trainStrin, useExact)
 
