@@ -254,7 +254,7 @@ def main():
 	canInd = getPosIndex(varpos, canonical)
 	topk = 15
 	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut10bc_0_5/'
-	outDir = '../data/design/F2_low_forceNN15_cut10bc_0_5_topFrac_50/'
+	outDir = '../data/design/F2_low_forceNN20_cut10bc_0_5_topFrac_50/'
 	topFrac = .50
 	maxPerTarg = 100
 
