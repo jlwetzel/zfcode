@@ -230,8 +230,8 @@ def getTopTenProtsAllTargs(inDir, topProtDict, topk, opt = 'avgMinDiff'):
 			new_fname = '_'.join(new_fname_l) + '.txt'
 			logo_fname = fname.split('.')[0] + '.pdf'
 			new_logo_fname = new_fname.split('.')[0] + '.pdf'
-			print new_fname
-			print new_logo_fname
+			#print new_fname
+			#print new_logo_fname
 
 			os.system('cp %s %s' %(targPwmDir + fname, top10pwmDir + new_fname))
 			os.system('cp %s %s' %(targLogoDir + logo_fname, \
@@ -254,7 +254,7 @@ def main():
 	canInd = getPosIndex(varpos, canonical)
 	topk = 15
 	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut10bc_0_5/'
-	outDir = '../data/design/F2_low_nn25_cut10bc_0_5_topFrac_50/'
+	outDir = '../data/design/F2_low_forceNN15_cut10bc_0_5_topFrac_50/'
 	topFrac = .50
 	maxPerTarg = 100
 
