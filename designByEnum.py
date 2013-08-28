@@ -196,9 +196,12 @@ def getTopTenProtsAllTargs(inDir, topProtDict, opt = 'avgMinDiff'):
 
 
 		for i, fname in enumerate(top10):
-			new_fname = '_'.join([str(i).zfill(2), fname])
+			num = str(i).zfill(2)
+			sp_fname = fname.split('.')[0].split('_')
+			new_fname_l = [sp_fname[0]] + [num] + sp_fname[1:]
+			new_fname = '_'.join(new_fname_l) + '.txt'
 			logo_fname = fname.split('.')[0] + '.pdf'
-			new_logo_fname = '_'.join([str(i).zfill(2), logo_fname])
+			new_logo_fname = new_fname.split('.')[0] + '.pdf'
 			os.system('cp %s %s' %(targPwmDir + fname, top10pwmDir + new_fname))
 			os.system('cp %s %s' %(targLogoDir + logo_fname, \
 			          			   top10logoDir + new_logo_fname))
@@ -242,7 +245,7 @@ def main():
 	#predictTopProts(freqDict, topProtDict, outDir)
 
 	# Find the top 10 most specific pwms for each 3mer target
-	getTopTenProtsAllTargs(outDir, topProtDict, opt = 'minMinDiff') 
+	getTopTenProtsAllTargs(outDir, topProtDict, opt = 'avgMinDiff') 
 	
 
 if __name__ == '__main__':
