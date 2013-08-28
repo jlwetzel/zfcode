@@ -39,6 +39,7 @@ def getTopProts(inDir, topkPer3mer, ind):
 		
 		fin = open(inDir + fname, 'r')
 		numProtsFound = 0   # Number of unique prots found so far for this 3mer
+		totFreq = 0.0
 		for lNum, line in enumerate(fin):
 
 			if numProtsFound == topkPer3mer[targNum]:
@@ -55,20 +56,27 @@ def getTopProts(inDir, topkPer3mer, ind):
 			for i in ind:
 				prot += wholeProt[i]
 
-			# If this is a new protein then record and append to orderd list
+			# If this is a new protein then record and append to orderd 
+			# list along with other useful info, like frequency of the 
+			# 6 position protein, rank of the six-position protein,
+			# and percentile of the six-position protein
 			if protSeqs.has_key(prot):
 				pass
 			else:
-				orderedList.append([prot, freq, lNum])
+				orderedList.append([prot, freq, lNum, 1 - totFreq])
 				protSeqs[prot] = numProtsFound
 				numProtsFound += 1
+
+			totFreq += freq   # To keep track of the percentile for 
+			                  # each protein
 
 		fin.close()
 		topProtDict[targ] = orderedList
 
 	return topProtDict
 
-def predictTopProts(freqDict, topProtDict, outDir, topk = 25):
+def predictTopProts(freqDict, topProtDict, outDir, topk,
+                    withLogos = False):
 	# Makes DNA binding predictions for each of the proteins
 	# in topProtDict using the given frequency dictionary
 	# and places the pwms and logos in outDir in an organized way.
@@ -76,9 +84,11 @@ def predictTopProts(freqDict, topProtDict, outDir, topk = 25):
 	singles = {1: [3], 2: [2], 3: [0]}
 
 	for targ in sorted(topProtDict.keys()):
+
 		orderedProts = [i[0] for i in topProtDict[targ]]
 		orderedFreqs = [i[1] for i in topProtDict[targ]]
 		orderedLines = [i[2] for i in topProtDict[targ]]
+		percentiles = [i[3] for i in topProtDict[targ]]
 		
 		targDir = outDir + targ + '/'
 		print targDir
@@ -92,23 +102,28 @@ def predictTopProts(freqDict, topProtDict, outDir, topk = 25):
 		for i, prot in enumerate(orderedProts):
 			
 			# Make the nearest neighbors lookup prediction
-			nmat = lookupCanonZF(freqDict, prot, useNN = True,
-			                     skipExact = False, decompose = singles,
-			                     topk = topk)
+			nmat, neighborsPerBase = lookupCanonZF(freqDict, prot, useNN = True,
+			                     		skipExact = False, decompose = singles,
+			                     		topk = topk)
 			
 			# Create the frequency matrix file
-			label = '_'.join([targ, prot, str(orderedLines[i])])
+			npbStr = '_'.join([str(k).zfill(2) for k in neighborsPerBase])
+			rank = str(orderedLines[i]).zfill(4)
+			percentile = str(int(percentiles[i]*100)).zfill(3)
+			label = '_'.join([targ, prot, npbStr, rank, percentile])
 			makeNucMatFile(pwmdir, label, nmat)
 
-			# Create the logo file
-			logoIn = pwmdir + label + '.txt'
-			logoOut = logodir + label + '.pdf'
-			makeLogo(logoIn, logoOut, alpha = 'dna', 
-		         colScheme = 'classic',
-		         annot = "'5,M,3'",
-		         xlab = '_'.join([targ,prot]))
+			if withLogos:
+				# Create the logo file
+				logoIn = pwmdir + label + '.txt'
+				logoOut = logodir + label + '.pdf'
+				makeLogo(logoIn, logoOut, alpha = 'dna', 
+			         colScheme = 'classic',
+			         annot = "'5,M,3'",
+			         xlab = '_'.join([targ,prot]))
 
-def getTopTenProts(targ, nucMatDict, opt = 'avgMinDiff'):
+def getTopTenProts(targ, nucMatDict, minNeighbors, 
+                   opt = 'avgMinDiff'):
 	# nucMatDict is a dictionary of binding preference
 	# frequency matrices, indexed by the filenames for
 	# those frequency matrices.
@@ -117,6 +132,11 @@ def getTopTenProts(targ, nucMatDict, opt = 'avgMinDiff'):
 	# This function returns a list of the top 10 filenames 
 	# for optimizing the objective given by opt
 	# (in decreasing order)
+	#
+	# The opt functions assign the lowest possible score 
+	# to any frequency matrix derived from fewer than 
+	# minNeighbors neighbors in any base position.  Such
+	# matrices are not returned in the top 10.
 
 	nucs = ['A', 'C', 'G', 'T']
 	top10 = {}
@@ -126,11 +146,19 @@ def getTopTenProts(targ, nucMatDict, opt = 'avgMinDiff'):
 	# Maximize the average (or minimim) minimum difference 
 	# between the desired nucleotide's frequency and the 
 	# next most frequent nucleotide's frequency 
-	# across all the nucleotide positions. 
+	# across all the nucleotide positions.
 	if opt == 'avgMinDiff' or opt == 'minMinDiff':
 		fnameScores = []
 		for fname in fnames:
 			nmat = nucMatDict[fname]
+
+			# Get neighbors per base from the filename
+			npb = fname.split('_')[2:5]
+			npb = [int(i) for i in npb]
+			print npb
+			if min(npb) < minNeighbors:
+				fnameScores.append(-1)
+				continue
 			
 			minDiffs = []
 			for i in range(len(nmat)):
@@ -153,16 +181,17 @@ def getTopTenProts(targ, nucMatDict, opt = 'avgMinDiff'):
 				fnameScores.append(min(minDiffs))
 
 
-	#print fnameScores
 	# Find the index order for the reverse sorted fnames by scores
 	sortInd = [i[0] for i in sorted(enumerate(fnameScores),
 	                                key = lambda x:x[1], reverse = True)]
-	
-	#print sortInd
-	return [fnames[i] for i in sortInd[:10]]
+	fnameScoresSorted = [fnameScores[i] for i in sortInd]
+	#print fnameScoresSorted
+	fnamesSorted = [fnames[i] for i in sortInd]
+	return [fname for i, fname in enumerate(fnamesSorted[:10]) \
+		if fnameScoresSorted[i] > -1]
 
 
-def getTopTenProtsAllTargs(inDir, topProtDict, opt = 'avgMinDiff'):
+def getTopTenProtsAllTargs(inDir, topProtDict, topk, opt = 'avgMinDiff'):
 	# Creates a directory for each 3mer target which holds 
 	# the 10 most specific pwms/logos for that target using 
 	# the optimization given by the opt parameter
@@ -172,7 +201,6 @@ def getTopTenProtsAllTargs(inDir, topProtDict, opt = 'avgMinDiff'):
 	top10Dict = {}
 
 	for targ in sorted(topProtDict.keys()):
-		print targ
 		targPwmDir = inDir + targ + '/pwms/'
 		targLogoDir = inDir + targ + '/logos/'
 		handle = os.popen('ls ' + targPwmDir)
@@ -182,7 +210,7 @@ def getTopTenProtsAllTargs(inDir, topProtDict, opt = 'avgMinDiff'):
 			nucMatDict[fname] = pwmfile2matrix(targPwmDir + fname)
 		
 		# Get the list of top 10 pwm file names in decreasing order 
-		top10 = getTopTenProts(targ, nucMatDict, opt)
+		top10 = getTopTenProts(targ, nucMatDict, topk, opt)
 		#print top10
 
 		# Place these top 10 logos in a special directory
@@ -202,6 +230,9 @@ def getTopTenProtsAllTargs(inDir, topProtDict, opt = 'avgMinDiff'):
 			new_fname = '_'.join(new_fname_l) + '.txt'
 			logo_fname = fname.split('.')[0] + '.pdf'
 			new_logo_fname = new_fname.split('.')[0] + '.pdf'
+			print new_fname
+			print new_logo_fname
+
 			os.system('cp %s %s' %(targPwmDir + fname, top10pwmDir + new_fname))
 			os.system('cp %s %s' %(targLogoDir + logo_fname, \
 			          			   top10logoDir + new_logo_fname))
@@ -221,6 +252,7 @@ def main():
 	canonical = True
 	varpos = 6
 	canInd = getPosIndex(varpos, canonical)
+	topk = 15
 	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut10bc_0_5/'
 	outDir = '../data/design/F2_low_nn25_cut10bc_0_5_topFrac_50/'
 	topFrac = .50
@@ -242,10 +274,10 @@ def main():
 	#	print k, len(topProtDict[k])
 
 	# Create logos/pfms for each of the prots in topProtDict
-	#predictTopProts(freqDict, topProtDict, outDir)
+	predictTopProts(freqDict, topProtDict, outDir, topk, withLogos = True)
 
 	# Find the top 10 most specific pwms for each 3mer target
-	getTopTenProtsAllTargs(outDir, topProtDict, opt = 'avgMinDiff') 
+	getTopTenProtsAllTargs(outDir, topProtDict, topk, opt = 'avgMinDiff') 
 	
 
 if __name__ == '__main__':

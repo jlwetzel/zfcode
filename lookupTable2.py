@@ -314,6 +314,7 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk, skipExact):
 	
 	# For each base
 	# print neighborDict.keys()
+	neighborsPerBase = []
 	for k in neighborDict.keys():
 		baseVectors = []
 		neighborsUsed = 0
@@ -335,14 +336,14 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk, skipExact):
 
 		# Get the normalized frequency vectors for each neighbor at  
 		# this base position
-		print
+		#print
 		#print len(neighborDict[k])
 		for i, n in enumerate(neighborDict[k]):
 			newVect = getNeighborBaseVect(freqDict, n, k)
 			if newVect != None:
 				pass
-				print "Base: %d\tNeighbor: %s\tWeight: %.5f" %(k, n, nWeights[i])
-				print newVect
+				#print "Base: %d\tNeighbor: %s\tWeight: %.5f" %(k, n, nWeights[i])
+				#print newVect
 			baseVectors.append(newVect)
 		
 		# For each neighbor found, weight its vector by that
@@ -351,8 +352,10 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk, skipExact):
 			if baseVectors[i] != None:
 				baseVectors[i] = baseVectors[i] * nWeights[i]
 
-		# Remove Nones from the baseVector list
+		# Remove Nones from the baseVector list and 
+		# record how many neighbors were used
 		baseVectors = [i for i in baseVectors if i != None]
+		
 
 		# If we found at least one neighbor
 		if baseVectors != []:
@@ -365,13 +368,15 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk, skipExact):
 					neighborsUsed += 1
 			# Renormalize since some neighbors may not have been used
 			pwm[k-1] = pwm[k-1]/np.sum(pwm[k-1]) 
-			print "Used %d neighbors for base %d" %(neighborsUsed, k)
+			neighborsPerBase.append(neighborsUsed)
+			#print "Used %d neighbors for base %d" %(neighborsUsed, k)
 		
 		# If we found no neighbors use a uniform vector
 		else:
 			pwm[k-1] = np.array([0.25, 0.25, 0.25, 0.25], dtype = float)
 
-	return pwm
+	#print neighborsPerBase
+	return pwm, neighborsPerBase
 
 
 def get3merList(freqDict, protein, canonical = False,
@@ -495,8 +500,8 @@ def lookupCanonZF(freqDict, canonProt, useNN = True, skipExact = False,
 	ind = getPosIndex(npos, canonical)
 
 	# Make the list of targets bound and normalized frequencies.
-	targList = get3merList(freqDict, canonProt, canonical,
-		                   useNN, skipExact, decompose, topk)
+	targList, neighborsPerBase = get3merList(freqDict, canonProt, canonical,
+	                                         useNN, skipExact, decompose, topk)
 	
 	# This is target/frequncy list
 	if isinstance(targList, list):
@@ -510,12 +515,11 @@ def lookupCanonZF(freqDict, canonProt, useNN = True, skipExact = False,
 			return nucmat
 
 		# Convert the target list to a position freq mat and return
-		return targListToFreqMat(targList)
+		return targListToFreqMat(targList), neighborsPerBase
 
 	# This is already a proper numpy array
 	else:
-		nucmat = targList
-		return targList
+		return targList, neighborsPerBase
 
 def setWeightMatrices(weight_mat, order_mat):
 	# Set the global weight matrix parameters
