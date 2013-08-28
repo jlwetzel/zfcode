@@ -155,7 +155,7 @@ def getTopTenProts(targ, nucMatDict, minNeighbors,
 			# Get neighbors per base from the filename
 			npb = fname.split('_')[2:5]
 			npb = [int(i) for i in npb]
-			print npb
+			#print npb
 			if min(npb) < minNeighbors:
 				fnameScores.append(-1)
 				continue
@@ -252,9 +252,9 @@ def main():
 	canonical = True
 	varpos = 6
 	canInd = getPosIndex(varpos, canonical)
-	topk = 20
+	topk = 15
 	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut10bc_0_5/'
-	outDir = '../data/design/F2_low_forceNN20_cut10bc_0_5_topFrac_50/'
+	outDir = '../data/design/F2_low_forceNN15_cut10bc_0_5_topFrac_50/'
 	topFrac = .50
 	maxPerTarg = 100
 
@@ -274,10 +274,10 @@ def main():
 	#	print k, len(topProtDict[k])
 
 	# Create logos/pfms for each of the prots in topProtDict
-	predictTopProts(freqDict, topProtDict, outDir, topk, withLogos = True)
+	#predictTopProts(freqDict, topProtDict, outDir, topk, withLogos = True)
 
 	# Find the top 10 most specific pwms for each 3mer target
-	getTopTenProtsAllTargs(outDir, topProtDict, topk, opt = 'avgMinDiff') 
+	getTopTenProtsAllTargs(outDir, topProtDict, topk, opt = 'minMinDiff') 
 	
 
 if __name__ == '__main__':
