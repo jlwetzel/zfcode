@@ -386,7 +386,7 @@ def main():
 	#decomps = ['singles', 'doubles', 'triples']
 	decomps = ['single']
 	order_mat = 'PAM30'
-	trainFing = "F2"
+	trainFing = "F3"
 	trainStrin = "low"
 
 	# Run the "topk" neighbors analysis
