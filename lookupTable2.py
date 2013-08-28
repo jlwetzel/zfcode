@@ -335,14 +335,14 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk, skipExact):
 
 		# Get the normalized frequency vectors for each neighbor at  
 		# this base position
-		#print
+		print
 		#print len(neighborDict[k])
 		for i, n in enumerate(neighborDict[k]):
 			newVect = getNeighborBaseVect(freqDict, n, k)
 			if newVect != None:
 				pass
-				#print "Base: %d\tNeighbor: %s\tWeight: %.5f" %(k, n, nWeights[i])
-				#print newVect
+				print "Base: %d\tNeighbor: %s\tWeight: %.5f" %(k, n, nWeights[i])
+				print newVect
 			baseVectors.append(newVect)
 		
 		# For each neighbor found, weight its vector by that
@@ -365,7 +365,7 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk, skipExact):
 					neighborsUsed += 1
 			# Renormalize since some neighbors may not have been used
 			pwm[k-1] = pwm[k-1]/np.sum(pwm[k-1]) 
-			#print "Used %d neighbors for base %d" %(neighborsUsed, k)
+			print "Used %d neighbors for base %d" %(neighborsUsed, k)
 		
 		# If we found no neighbors use a uniform vector
 		else:
@@ -546,7 +546,7 @@ def main():
 	triples = {1: [1,2,3], 2: [0,1,2], 3: [0,1,2]}
 	singles = {1: [3], 2: [2], 3: [0]}
 	
-	canProt = 'RDER'
+	canProt = 'RDLR'
 	print canProt
 	nmat = lookupCanonZF(freqDict, canProt, useNN = False, skipExact = False, 
 	                     	decompose = None, topk = None)
