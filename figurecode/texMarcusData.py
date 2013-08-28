@@ -72,7 +72,7 @@ def makeTexTable(texFile, logoType, logoTypeDir):
 
 def main():
 	
-	style = 'top40'
+	style = 'top15'
 	useExact = True
 	trainFing = 'F3'
 	trainStrin = 'low'
