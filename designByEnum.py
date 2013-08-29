@@ -290,7 +290,7 @@ def main():
 	#	print k, len(topProtDict[k])
 
 	# Create logos/pfms for each of the prots in topProtDict
-	#predictTopProts(freqDict, topProtDict, outDir, topk, withLogos = True)
+	predictTopProts(freqDict, topProtDict, outDir, topk, withLogos = True)
 
 	# Find the top 10 most specific pwms for each 3mer target
 	getTopTenProtsAllTargs(outDir, topProtDict, topk, opt = 'minMinDiff') 
