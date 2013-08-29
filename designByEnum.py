@@ -25,8 +25,8 @@ def getTopProts(inDir, topkPer3mer, ind):
 	topProtDict = {}
 	targNum = 0
 	for fname in handle:
-		fname = fname.strip()
 
+		fname = fname.strip()
 		# Skip files that are not named properly
 		if re.match(r'[ACGT]{3}(.)*.txt', fname) == None:
 			continue
@@ -37,6 +37,9 @@ def getTopProts(inDir, topkPer3mer, ind):
 		protSeqs = {}  # Just a hash table for quickly checking if we have a
 					   # protein sequence already  
 		
+		handle = os.popen("less %s | wc -l" %(inDir + fname))
+		maxRank = eval(handle.readline().strip().split()[0])
+		#print maxRank
 		fin = open(inDir + fname, 'r')
 		numProtsFound = 0   # Number of unique prots found so far for this 3mer
 		totFreq = 0.0
@@ -63,9 +66,12 @@ def getTopProts(inDir, topkPer3mer, ind):
 			if protSeqs.has_key(prot):
 				pass
 			else:
-				orderedList.append([prot, freq, lNum, 1 - totFreq])
+				orderedList.append([prot, freq, lNum,
+				                    1 - lNum/float(maxRank),
+				                    1 - totFreq])
 				protSeqs[prot] = numProtsFound
 				numProtsFound += 1
+
 
 			totFreq += freq   # To keep track of the percentile for 
 			                  # each protein
@@ -89,6 +95,7 @@ def predictTopProts(freqDict, topProtDict, outDir, topk,
 		orderedFreqs = [i[1] for i in topProtDict[targ]]
 		orderedLines = [i[2] for i in topProtDict[targ]]
 		percentiles = [i[3] for i in topProtDict[targ]]
+		percentiles2 = [i[4] for i in topProtDict[targ]]
 		
 		targDir = outDir + targ + '/'
 		print targDir
@@ -97,7 +104,6 @@ def predictTopProts(freqDict, topProtDict, outDir, topk,
 		logodir = targDir + 'logos/'
 		makeDir(pwmdir)
 		makeDir(logodir)
-
 
 		for i, prot in enumerate(orderedProts):
 			
@@ -110,9 +116,13 @@ def predictTopProts(freqDict, topProtDict, outDir, topk,
 			npbStr = '_'.join([str(k).zfill(2) for k in neighborsPerBase])
 			rank = str(orderedLines[i]).zfill(4)
 			percentile = str(int(percentiles[i]*100)).zfill(3)
-			label = '_'.join([targ, prot, npbStr, rank, percentile])
+			percentile2 = str(int(percentiles2[i]*100)).zfill(3)
+			label = '_'.join([targ, prot, npbStr,
+			                  rank, percentile, percentile2])
+			
 			makeNucMatFile(pwmdir, label, nmat)
 
+			
 			if withLogos:
 				# Create the logo file
 				logoIn = pwmdir + label + '.txt'
@@ -121,6 +131,8 @@ def predictTopProts(freqDict, topProtDict, outDir, topk,
 			         colScheme = 'classic',
 			         annot = "'5,M,3'",
 			         xlab = '_'.join([targ,prot]))
+			
+
 
 def getTopTenProts(targ, nucMatDict, minNeighbors, 
                    opt = 'avgMinDiff'):
@@ -201,6 +213,7 @@ def getTopTenProtsAllTargs(inDir, topProtDict, topk, opt = 'avgMinDiff'):
 	top10Dict = {}
 
 	for targ in sorted(topProtDict.keys()):
+
 		targPwmDir = inDir + targ + '/pwms/'
 		targLogoDir = inDir + targ + '/logos/'
 		handle = os.popen('ls ' + targPwmDir)
@@ -209,6 +222,7 @@ def getTopTenProtsAllTargs(inDir, topProtDict, topk, opt = 'avgMinDiff'):
 			fname = fname.strip()
 			nucMatDict[fname] = pwmfile2matrix(targPwmDir + fname)
 		
+		#print nucMatDict.keys()
 		# Get the list of top 10 pwm file names in decreasing order 
 		top10 = getTopTenProts(targ, nucMatDict, topk, opt)
 		#print top10
@@ -226,7 +240,8 @@ def getTopTenProtsAllTargs(inDir, topProtDict, topk, opt = 'avgMinDiff'):
 		for i, fname in enumerate(top10):
 			num = str(i).zfill(2)
 			sp_fname = fname.split('.')[0].split('_')
-			new_fname_l = [sp_fname[0]] + [num] + sp_fname[1:]
+			new_fname_l = [sp_fname[0]] + [num] + [sp_fname[1]] \
+				+ sp_fname[5:]
 			new_fname = '_'.join(new_fname_l) + '.txt'
 			logo_fname = fname.split('.')[0] + '.pdf'
 			new_logo_fname = new_fname.split('.')[0] + '.pdf'
@@ -238,8 +253,9 @@ def getTopTenProtsAllTargs(inDir, topProtDict, topk, opt = 'avgMinDiff'):
 			          			   top10logoDir + new_logo_fname))
 
 		# Record the best 10 logos into a dictionary
-		top10Dict[targ] = ['_'.join(i.split('.')[0].split('_')[1:]) \
-			for i in top10]
+		top10Dict[targ] = ['_'.join([i.split('.')[0].split('_')[1], \
+			 i.split('.')[0].split('_')[6], i.split('.')[0].split('_')[7]]) \
+			  for i in top10]
 
 	# Write the dictionary to a nice spreadsheet
 	fout = open(top10Dir + 'allTargBest10.txt', 'w')
