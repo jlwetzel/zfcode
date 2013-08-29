@@ -420,6 +420,7 @@ def get3merList(freqDict, protein, canonical = False,
 			if freqDict[targ].has_key(protein):
 				targList.append([targ, freqDict[targ][protein]]) 
 		normalizeTargList(targList)
+		print "Here"
 		return targList
 
 	# The target list is empty and we are allowed to use 
@@ -500,13 +501,18 @@ def lookupCanonZF(freqDict, canonProt, useNN = True, skipExact = False,
 	ind = getPosIndex(npos, canonical)
 
 	# Make the list of targets bound and normalized frequencies.
-	targList, neighborsPerBase = get3merList(freqDict, canonProt, canonical,
+	if not useNN:
+		targList = get3merList(freqDict, canonProt, canonical,
+	                           useNN, skipExact, decompose, topk)
+	else:
+		targList, neighborsPerBase = get3merList(freqDict, canonProt, canonical,
 	                                         useNN, skipExact, decompose, topk)
 	
 	# This is target/frequncy list
 	if isinstance(targList, list):
 		# If the target list is empty, we can't return a specificity,
 		# so we just return a uniform distribution for each base
+		print "Here"
 		if targList == []:
 			nucmat = np.zeros((3,4), float)
 			for i in range(len(nucmat)):
@@ -515,7 +521,7 @@ def lookupCanonZF(freqDict, canonProt, useNN = True, skipExact = False,
 			return nucmat
 
 		# Convert the target list to a position freq mat and return
-		return targListToFreqMat(targList), neighborsPerBase
+		return targListToFreqMat(targList)
 
 	# This is already a proper numpy array
 	else:
@@ -528,11 +534,19 @@ def setWeightMatrices(weight_mat, order_mat):
 	
 	if weight_mat == 'PAM30':
 		NEIGHBOR_WEIGHTS = getSubDict("../data/substitution_mats/PAM30.txt")
+	elif weight_mat == 'PAM100':
+		NEIGHBOR_WEIGHTS = getSubDict("../data/substitution_mats/PAM100.txt")
+	elif weight_mat == 'PAM250':
+		NEIGHBOR_WEIGHTS = getSubDict("../data/substitution_mats/PAM250.txt")
 	else:
 		NEIGHBOR_WEIGHTS = None
 
 	if order_mat == 'PAM30':
 		NEIGHBOR_ORDER = getSubDict("../data/substitution_mats/PAM30.txt")
+	elif order_mat == 'PAM100':
+		NEIGHBOR_ORDER = getSubDict("../data/substitution_mats/PAM100.txt")
+	elif order_mat == 'PAM250':
+		NEIGHBOR_ORDER = getSubDict("../data/substitution_mats/PAM250.txt")
 	else:
 		NEIGHBOR_ORDER = None
 
@@ -544,7 +558,7 @@ def main():
 	varpos = 6
 	canInd = getPosIndex(varpos, canonical)
 	freqDict = computeFreqDict(inDir, canInd)
-	setWeightMatrices('PAM30', 'PAM30')
+	setWeightMatrices('PAM250', 'PAM250')
 	topk = 25
 	canonAnton = {1: [3], 2: [2,3], 3: [0,1]}
 	triples = {1: [1,2,3], 2: [0,1,2], 3: [0,1,2]}
@@ -553,19 +567,19 @@ def main():
 	canProt = 'RDLR'
 	print canProt
 	nmat = lookupCanonZF(freqDict, canProt, useNN = False, skipExact = False, 
-	                     	decompose = None, topk = None)
+	                     decompose = None, topk = None)
 		
 	print "Lookup:"
 	print getConsensus(nmat)
 	print "Final Matrix:"
 	print nmat
 	
-	for k in [20, 25, 30, 35, 40]:
-		if k != 25:
+	for k in [15, 20, 25, 30, 35, 40]:
+		if k != 15:
 			continue
 
-		nmat = lookupCanonZF(freqDict, canProt, useNN = True, skipExact = True, 
-	                     	decompose = singles, topk = k)
+		nmat, npb = lookupCanonZF(freqDict, canProt, useNN = True, skipExact = True, 
+	                     	      decompose = singles, topk = k)
 		
 		print "Top %d: " %k
 		print getConsensus(nmat)

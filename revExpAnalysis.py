@@ -139,6 +139,12 @@ def getLabels(style, decomp, weight_mat, useExact):
 		if weight_mat == 'PAM30':
 			label = 'NN.' + style + '.PAM30'
 			inDirPref = '../data/NN_' + style + '_PAM30/'
+		elif weight_mat == 'PAM100':
+			label = 'NN.' + style + '.PAM100'
+			inDirPref = '../data/NN_' + style + '_PAM100/'
+		elif weight_mat == 'PAM250':
+			label = 'NN.' + style + '.PAM250'
+			inDirPref = '../data/NN_' + style + '_PAM250/'
 		else:
 			label = 'NN.' + style 
 			inDirPref = '../data/NN_' + style + '/'
@@ -147,6 +153,12 @@ def getLabels(style, decomp, weight_mat, useExact):
 		if weight_mat == 'PAM30':
 			label = 'NNonly.' + style + '.PAM30'
 			inDirPref = '../data/NNonly_' + style + '_PAM30/'
+		elif weight_mat == 'PAM100':
+			label = 'NNonly.' + style + '.PAM100'
+			inDirPref = '../data/NNonly_' + style + '_PAM100/'
+		elif weight_mat == 'PAM250':
+			label = 'NNonly.' + style + '.PAM250'
+			inDirPref = '../data/NNonly_' + style + '_PAM250/'
 		else:
 			label = 'NNonly.' + style 
 			inDirPref = '../data/NNonly_' + style + '/'
@@ -377,15 +389,15 @@ def main():
 
 	#styles = ['bls02']
 	#styles = ['nnonly']
-	#styles = ['top20', 'top25', 'top30', 'top35', 'top40']
-	styles = ['top10', 'top15']
+	styles = ['top15', 'top20', 'top25', 'top30', 'top35']
+	
 	#styles = ['top30']
-	weight_mats = [None, 'PAM30']
-	useExact = True
+	weight_mats = ['PAM250']
+	useExact = False
 	#weight_mats = [None]#['PAM30']
 	#decomps = ['singles', 'doubles', 'triples']
 	decomps = ['single']
-	order_mat = 'PAM30'
+	order_mat = 'PAM250'
 	trainFing = "F3"
 	trainStrin = "low"
 
