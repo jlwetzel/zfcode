@@ -293,7 +293,7 @@ def main():
 	predictTopProts(freqDict, topProtDict, outDir, topk, withLogos = True)
 
 	# Find the top 10 most specific pwms for each 3mer target
-	getTopTenProtsAllTargs(outDir, topProtDict, topk, opt = 'minMinDiff') 
+	getTopTenProtsAllTargs(outDir, topProtDict, topk, opt = 'avgMinDiff') 
 	
 
 if __name__ == '__main__':
