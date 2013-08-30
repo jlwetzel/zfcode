@@ -4,6 +4,7 @@ import numpy as np
 import math
 from pwm import makeLogo, pwmfile2matrix, comparePCC, getConsensus, makeNucMatFile
 from fixTables import normalizeFreq
+from entropy import *
 #from gatherBindStats import getProtDict
 
 def getSubDict(fname):
@@ -420,7 +421,6 @@ def get3merList(freqDict, protein, canonical = False,
 			if freqDict[targ].has_key(protein):
 				targList.append([targ, freqDict[targ][protein]]) 
 		normalizeTargList(targList)
-		print "Here"
 		return targList
 
 	# The target list is empty and we are allowed to use 
@@ -512,16 +512,15 @@ def lookupCanonZF(freqDict, canonProt, useNN = True, skipExact = False,
 	if isinstance(targList, list):
 		# If the target list is empty, we can't return a specificity,
 		# so we just return a uniform distribution for each base
-		print "Here"
 		if targList == []:
 			nucmat = np.zeros((3,4), float)
 			for i in range(len(nucmat)):
 				for j in range(len(nucmat[i,:])):
 					nucmat[i,j] = 0.25
-			return nucmat
+			return nucmat, [0,0,0]
 
 		# Convert the target list to a position freq mat and return
-		return targListToFreqMat(targList)
+		return targListToFreqMat(targList), [0,0,0]
 
 	# This is already a proper numpy array
 	else:
@@ -550,6 +549,32 @@ def setWeightMatrices(weight_mat, order_mat):
 	else:
 		NEIGHBOR_ORDER = None
 
+def getPosEntropies(freqDict, norm = False):
+	# Working on this
+
+	entropyDict = {}
+	napos = len(freqDict[freqDict.keys()[0]].keys()[0])
+	aseqFreqDict = {}
+	for nseq in freqDict.keys():
+		for aseq in freqDict[nseq].keys():
+			if aseqFreqDict.has_key(aseq):
+				aseqFreqDict[aseq] += freqDict[nseq][aseq]
+			else:
+				aseqFreqDict[aseq] = freqDict[nseq][aseq]
+	for i in range(napos):
+		ifreqDict = {}
+		for aseq in aseqFreqDict.keys():
+			if ifreqDict.has_key(aseq[i]):
+				ifreqDict[aseq[i]] += aseqFreqDict[aseq]
+			else:
+				ifreqDict[aseq[i]] = aseqFreqDict[aseq]
+		freqs = np.array([f for (k, f) in aseqFreqDict.items()], dtype = float)
+		freqs = freqs/np.sum(freqs)
+		entropyDict['a' + repr(i)] = entropy(freqs)
+
+	print entropyDict
+	
+
 def main():
 
 	# Debugging stuff
@@ -563,6 +588,12 @@ def main():
 	canonAnton = {1: [3], 2: [2,3], 3: [0,1]}
 	triples = {1: [1,2,3], 2: [0,1,2], 3: [0,1,2]}
 	singles = {1: [3], 2: [2], 3: [0]}
+	
+	# Working on this
+	entropyDict = getPosEntropies(freqDict)
+
+
+	"""
 	
 	canProt = 'RDLR'
 	print canProt
@@ -585,7 +616,7 @@ def main():
 		print getConsensus(nmat)
 		print "Final Matrix:"
 		print nmat
-				                 	
+	"""		                 	
 
 if __name__ == '__main__':
 	main()
