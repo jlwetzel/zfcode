@@ -272,10 +272,10 @@ def sortAndWeightNeighbors(prot, bpos, neighbors, skipExact):
 			order_weights = np.array([unifWeight]*len(neighborBins[k]),
 			                         dtype = float)
 		# Get the indices for the reverse sorted order
-		orderInd = [i[0] for i in sorted(enumerate(order_weights),
-		                                 key = lambda x:x[1],
-		                                 reverse = True)]
-
+		orderInd = [(w,i) for (i,w) in enumerate(order_weights)]
+		orderInd.sort(reverse = True)
+		orderInd = [i for (w,i) in orderInd]
+		
 		# Add this bin's neighbors to the list in the sorted order
 		for i in orderInd:
 			neighborsSorted.append(neighborBins[k][i])
@@ -318,7 +318,6 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk, skipExact):
 	neighborsPerBase = []
 	for k in neighborDict.keys():
 		baseVectors = []
-		neighborsUsed = 0
 		
 		# Sort the neighbors in the order in which we'd like 
 		# to use them.
@@ -335,42 +334,43 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk, skipExact):
 				nWeights = np.array([unifWeight]*len(neighborDict[k]),
 			                       dtype = float)
 
+		#print k
+		#print neighborDict[k]
 		# Get the normalized frequency vectors for each neighbor at  
 		# this base position
 		#print
 		#print len(neighborDict[k])
 		for i, n in enumerate(neighborDict[k]):
 			newVect = getNeighborBaseVect(freqDict, n, k)
-			if newVect != None:
-				pass
-				#print "Base: %d\tNeighbor: %s\tWeight: %.5f" %(k, n, nWeights[i])
-				#print newVect
 			baseVectors.append(newVect)
 		
-		# For each neighbor found, weight its vector by that
-		# neighbor's weight.
-		for i in range(len(nWeights)):
-			if baseVectors[i] != None:
-				baseVectors[i] = baseVectors[i] * nWeights[i]
-
-		# Remove Nones from the baseVector list and 
-		# record how many neighbors were used
-		baseVectors = [i for i in baseVectors if i != None]
-		
+		# Remove Nones from both the neighbor list, baseVectorList, and the 
+		# corresponding entries in nWeights, then renormalize nWeights
+		nWeights = list(nWeights)
+		nWeights = np.array([nWeights[i] for i, n \
+		                    in enumerate(baseVectors) if n != None][:topk], 
+		                    dtype = float)
+		nWeights = nWeights/np.sum(nWeights)
+		neighborDict[k] = [neighborDict[k][i] for i, n \
+		                    in enumerate(baseVectors) if n != None][:topk]
+		baseVectors = [i for i in baseVectors if i != None][:topk]
+		neighborsPerBase.append(len(baseVectors))
 
 		# If we found at least one neighbor
 		if baseVectors != []:
 			# Add the weighted vectors together
+			print
 			for i in range(len(baseVectors)):
-				if neighborsUsed == topk:
-					break
-				else:
-					pwm[k-1] = pwm[k-1] + baseVectors[i]
-					neighborsUsed += 1
+				pwm[k-1] = pwm[k-1] + baseVectors[i]*nWeights[i]		
+				print "Base: %d\tNeighbor: %s\tWeight: %.5f" \
+					%(k, neighborDict[k][i], nWeights[i])
+				print baseVectors[i]
+
 			# Renormalize since some neighbors may not have been used
 			pwm[k-1] = pwm[k-1]/np.sum(pwm[k-1]) 
-			neighborsPerBase.append(neighborsUsed)
-			#print "Used %d neighbors for base %d" %(neighborsUsed, k)
+			print "Used %d neighbors for base %d" \
+				%(neighborsPerBase[len(neighborsPerBase)-1], k)
+
 		
 		# If we found no neighbors use a uniform vector
 		else:
@@ -444,8 +444,6 @@ def get3merList(freqDict, protein, canonical = False,
 	
 	# Return the pwm obtained by decomposing neighbors
 	# and using the top k of them
-
-	# Here
 
 	return getTopKNeighborsPWM(freqDict, protein, neighborDict, topk, skipExact)
 	
@@ -583,21 +581,18 @@ def main():
 	varpos = 6
 	canInd = getPosIndex(varpos, canonical)
 	freqDict = computeFreqDict(inDir, canInd)
-	setWeightMatrices('PAM250', 'PAM250')
-	topk = 25
+	setWeightMatrices('PAM30', 'PAM30')
+	topk = 15
 	canonAnton = {1: [3], 2: [2,3], 3: [0,1]}
 	triples = {1: [1,2,3], 2: [0,1,2], 3: [0,1,2]}
 	singles = {1: [3], 2: [2], 3: [0]}
 	
 	# Working on this
-	entropyDict = getPosEntropies(freqDict)
-
-
-	"""
+	#entropyDict = getPosEntropies(freqDict)
 	
 	canProt = 'RDLR'
 	print canProt
-	nmat = lookupCanonZF(freqDict, canProt, useNN = False, skipExact = False, 
+	nmat, npb = lookupCanonZF(freqDict, canProt, useNN = False, skipExact = False, 
 	                     decompose = None, topk = None)
 		
 	print "Lookup:"
@@ -609,14 +604,13 @@ def main():
 		if k != 15:
 			continue
 
-		nmat, npb = lookupCanonZF(freqDict, canProt, useNN = True, skipExact = True, 
+		nmat, npb = lookupCanonZF(freqDict, canProt, useNN = True, skipExact = False, 
 	                     	      decompose = singles, topk = k)
 		
 		print "Top %d: " %k
 		print getConsensus(nmat)
 		print "Final Matrix:"
-		print nmat
-	"""		                 	
+		print nmat	                 	
 
 if __name__ == '__main__':
 	main()
