@@ -220,7 +220,7 @@ def getTopTenProtsAllTargs(inDir, topProtDict, topk, opt = 'avgMinDiff'):
 	# the 10 most specific pwms/logos for that target using 
 	# the optimization given by the opt parameter
 
-	top10Dir = inDir + 'top10' + opt + '/'
+	top10Dir = inDir + 'top20' + opt + '/'
 	makeDir(top10Dir)
 	top10Dict = {}
 
@@ -282,7 +282,7 @@ def main():
 	canInd = getPosIndex(varpos, canonical)
 	topk = 0
 	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut10bc_0_5/'
-	outDir = '../data/design/F2_low_lookup_cut10bc_0_5_all/'
+	outDir = '../data/design/F2_low_lookup_cut10bc_0_5_supp10/'
 	suppDir = '../data/design/support/F2/low/protein_seq_cut10bc_0_5/'
 	topFrac = 1
 	maxPerTarg = 20000
@@ -295,10 +295,11 @@ def main():
 		for k in sorted(freqDict.keys())]
 	# Place a cap on how many we can look at
 	topkPer3mer = [min(maxPerTarg, i) for i in topkPer3mer]
+	print topkPer3mer
 
 	# Get the top x percent of proteins with regard to
 	# unique canoncial sequence
-	topProtDict = getTopProts(inDir, topkPer3mer, suppDir, 1, canInd)
+	topProtDict = getTopProts(inDir, topkPer3mer, suppDir, 11, canInd)
 	summa = 0
 	for k in sorted(topProtDict.keys()):
 		print k, len(topProtDict[k])
@@ -306,11 +307,11 @@ def main():
 	print summa
 
 	# Create logos/pfms for each of the prots in topProtDict
-	predictTopProts(freqDict, topProtDict, outDir, topk, withLogos = True)
+	#predictTopProts(freqDict, topProtDict, outDir, topk, withLogos = False)
 
 	# Find the top 10 most specific pwms for each 3mer target
-	for opt in ['minMinDiff', 'avgMinDiff']:
-		getTopTenProtsAllTargs(outDir, topProtDict, topk, opt) 
+	#for opt in ['minMinDiff', 'avgMinDiff']:
+	#	getTopTenProtsAllTargs(outDir, topProtDict, topk, opt) 
 	
 	
 
