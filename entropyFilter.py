@@ -70,12 +70,12 @@ def filterEntropySupport(oldFile, newFile, entCutoff,
 
 def main():
 	
-	varpos = '5varpos' #6varpos'
-	fings = ['F2', 'F3']#['F1', 'F2', 'F3']
+	varpos = '6varpos'
+	fings = ['F1', 'F2', 'F3']
 	strins = ['low', 'high']
 	entCutoff = 0
 	supportCutoff = 5
-	oldProts = 'protein_seq_cut3bc'
+	oldProts = 'protein_seq_cut10bc'
 
 	for f in fings:
 		for s in strins:

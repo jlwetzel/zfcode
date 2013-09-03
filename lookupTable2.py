@@ -291,7 +291,8 @@ def sortAndWeightNeighbors(prot, bpos, neighbors, skipExact):
 
 	return neighborsSorted, nWeights
 
-def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk, skipExact):
+def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk,
+                        skipExact, verbose = None):
 	# Returns a numpy array pwm of for the prediciton
 	# given the top k neighbors only in terms of distance
 	# from the original protein.  The neighbor distances 
@@ -359,12 +360,28 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk, skipExact):
 		# If we found at least one neighbor
 		if baseVectors != []:
 			# Add the weighted vectors together
-			print
+			if verbose != None:
+				print
 			for i in range(len(baseVectors)):
 				pwm[k-1] = pwm[k-1] + baseVectors[i]*nWeights[i]		
-				print "Base: %d\tNeighbor: %s\tWeight: %.5f" \
+				
+				if verbose != None:
+					print "Base: %d\tNeighbor: %s\tWeight: %.5f" \
 					%(k, neighborDict[k][i], nWeights[i])
-				print baseVectors[i]
+					print baseVectors[i]
+					dirname = verbose
+					searchStr = '"%s.%s%s.%s"'%(neighborDict[k][i][0],
+					                            neighborDict[k][i][1],
+					                            neighborDict[k][i][2],
+					                            neighborDict[k][i][3])
+					handle = os.popen("grep %s %s*.txt" %(searchStr, dirname))
+					for line in handle:
+						sp_line = line.strip().split(':')
+						file = sp_line[0].split('/')[-1]
+						line_info = '  '.join(sp_line[1].split('\t')[:4])
+						if file == 'all.txt':
+							continue
+						print "%s: %s" %(file, line_info)
 
 			# Renormalize since some neighbors may not have been used
 			pwm[k-1] = pwm[k-1]/np.sum(pwm[k-1]) 
@@ -382,7 +399,8 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk, skipExact):
 
 def get3merList(freqDict, protein, canonical = False,
 				useNN = False, skipExact = False, 
-				decompose = None, topk = None):
+				decompose = None, topk = None, 
+				verbose = None):
 	# Returns a list of tuples pairs (3mer, freq),
 	# where the 3 mers are DNA 3mer that bound the 
 	# protein and freq is the relative frequency 
@@ -445,7 +463,8 @@ def get3merList(freqDict, protein, canonical = False,
 	# Return the pwm obtained by decomposing neighbors
 	# and using the top k of them
 
-	return getTopKNeighborsPWM(freqDict, protein, neighborDict, topk, skipExact)
+	return getTopKNeighborsPWM(freqDict, protein, neighborDict,
+	                           topk, skipExact, verbose)
 	
 def makeDir(path):
 	# Try to make a path and pass if it can't be created
@@ -455,7 +474,8 @@ def makeDir(path):
 		pass
 
 def lookupCanonZFArray(freqDict, canonZFs, useNN = True, 
-                       skipExact = False, decompose = None, topk = None):
+                       skipExact = False, decompose = None, topk = None,
+                       verbose = None):
 	# Performs modular lookup for an array of canonical 
 	# helix-position ZF domains.  Domains should be given
 	# in reverse order of their appearance on the protein.
@@ -465,14 +485,14 @@ def lookupCanonZFArray(freqDict, canonZFs, useNN = True,
 	
 	for i in range(numZFs):
 		nmat = lookupCanonZF(freqDict, canonZFs[i], 
-		                     useNN, skipExact, decompose, topk)
+		                     useNN, skipExact, decompose, topk, verbose)
 		for j in range(len(nmat)):
 			pwm[i*len(nmat) + j,:] = nmat[j,:]
 	
 	return pwm
 
 def lookupCanonZF(freqDict, canonProt, useNN = True, skipExact = False,
-                  decompose = None, topk = None):
+                  decompose = None, topk = None, verbose = None):
 	# Takes as input a ZF domain (canoical positions  only,
 	# helix positions -1, 2, 3, 6) and returns the predicted 
 	# 3-base binding specificity as a normalized 2d frequency 
@@ -504,7 +524,8 @@ def lookupCanonZF(freqDict, canonProt, useNN = True, skipExact = False,
 	                           useNN, skipExact, decompose, topk)
 	else:
 		targList, neighborsPerBase = get3merList(freqDict, canonProt, canonical,
-	                                         useNN, skipExact, decompose, topk)
+	                                         useNN, skipExact, decompose, topk, 
+	                                         verbose)
 	
 	# This is target/frequncy list
 	if isinstance(targList, list):
@@ -593,7 +614,7 @@ def main():
 	canProt = 'RDLR'
 	print canProt
 	nmat, npb = lookupCanonZF(freqDict, canProt, useNN = False, skipExact = False, 
-	                     decompose = None, topk = None)
+	                     decompose = None, topk = None, verbose = inDir)
 		
 	print "Lookup:"
 	print getConsensus(nmat)
@@ -605,7 +626,7 @@ def main():
 			continue
 
 		nmat, npb = lookupCanonZF(freqDict, canProt, useNN = True, skipExact = False, 
-	                     	      decompose = singles, topk = k)
+	                     	      decompose = singles, topk = k, verbose = inDir)
 		
 		print "Top %d: " %k
 		print getConsensus(nmat)
