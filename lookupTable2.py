@@ -385,8 +385,8 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk,
 
 			# Renormalize since some neighbors may not have been used
 			pwm[k-1] = pwm[k-1]/np.sum(pwm[k-1]) 
-			print "Used %d neighbors for base %d" \
-				%(neighborsPerBase[len(neighborsPerBase)-1], k)
+			#print "Used %d neighbors for base %d" \
+			#	%(neighborsPerBase[len(neighborsPerBase)-1], k)
 
 		
 		# If we found no neighbors use a uniform vector

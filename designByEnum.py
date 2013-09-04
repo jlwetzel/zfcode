@@ -31,15 +31,16 @@ def getTopProts(inDir, topkPer3mer, suppDir, minSupport, ind):
 		if re.match(r'[ACGT]{3}(.)*.txt', fname) == None:
 			continue
 
+		# Find out how many proteins total are in the file
+		handle2 = os.popen("less %s | wc -l" %(inDir + fname))
+		maxRank = eval(handle2.readline().strip().split()[0])
+
 		targ = fname.split('.')[0]  # The 3-mer target for this file
 		orderedList = []  # List of proteins to be return for this 3mer
 						  # in decreasing order of max frequency
 		protSeqs = {}  # Just a hash table for quickly checking if we have a
 					   # protein sequence already  
 		
-		handle = os.popen("less %s | wc -l" %(inDir + fname))
-		maxRank = eval(handle.readline().strip().split()[0])
-		#print maxRank
 		fin = open(inDir + fname, 'r')
 		numProtsFound = 0   # Number of unique prots found so far for this 3mer
 		totFreq = 0.0
@@ -53,6 +54,7 @@ def getTopProts(inDir, topkPer3mer, suppDir, minSupport, ind):
 
 		for lNum, line in enumerate(fin):
 
+			# Check to see how much support we have if using support
 			useProt = suppList[lNum] >= minSupport
 
 			if numProtsFound == topkPer3mer[targNum]:
@@ -120,7 +122,7 @@ def predictTopProts(freqDict, topProtDict, outDir, topk,
 		for i, prot in enumerate(orderedProts):
 			
 			# Make the nearest neighbors lookup prediction
-			nmat, neighborsPerBase = lookupCanonZF(freqDict, prot, useNN = False,
+			nmat, neighborsPerBase = lookupCanonZF(freqDict, prot, useNN = True,
 			                     		skipExact = False, decompose = singles,
 			                     		topk = topk)
 			
@@ -206,12 +208,13 @@ def getTopTenProts(targ, nucMatDict, minNeighbors,
 
 
 	# Find the index order for the reverse sorted fnames by scores
-	sortInd = [i[0] for i in sorted(enumerate(fnameScores),
-	                                key = lambda x:x[1], reverse = True)]
+	sortInd = [(s, i) for (i, s) in enumerate(fnameScores)]
+	sortInd.sort(reverse = True)
+	sortInd = [i for (s, i) in sortInd]
 	fnameScoresSorted = [fnameScores[i] for i in sortInd]
-	#print fnameScoresSorted
 	fnamesSorted = [fnames[i] for i in sortInd]
-	return [fname for i, fname in enumerate(fnamesSorted[:10]) \
+
+	return [fname for i, fname in enumerate(fnamesSorted) \
 		if fnameScoresSorted[i] > -1]
 
 
@@ -220,7 +223,7 @@ def getTopTenProtsAllTargs(inDir, topProtDict, topk, opt = 'avgMinDiff'):
 	# the 10 most specific pwms/logos for that target using 
 	# the optimization given by the opt parameter
 
-	top10Dir = inDir + 'top20' + opt + '/'
+	top10Dir = inDir + 'allCorrectTarg' + opt + '/'
 	makeDir(top10Dir)
 	top10Dict = {}
 
@@ -270,19 +273,24 @@ def getTopTenProtsAllTargs(inDir, topProtDict, topk, opt = 'avgMinDiff'):
 			 i.split('.')[0].split('_')[8]]) for i in top10]
 
 	# Write the dictionary to a nice spreadsheet
-	fout = open(top10Dir + 'allTargBest10.txt', 'w')
-	fout.write('\t'.join(["targ"] + [str(i + 1) for i in range(10)]) + '\n')
+	fout = open(top10Dir + 'allCorrectTargRanked.txt', 'w')
+	maxRange = max([len(top10Dict[k]) for k in top10Dict.keys()])
+	fout.write('\t'.join(["targ"] + [str(i) for i in range(maxRange)]) + '\n')
 	for targ in top10Dict.keys():
 		fout.write('\t'.join([targ] + top10Dict[targ]) + '\n')
+
+	# Put all the logos in one big folder
+	makeDir(top10Dir + 'allLogos/')
+	os.system("cp %s*/logos/* %sallLogos/" %(top10Dir, top10Dir))
 
 def main():
 	
 	canonical = True
 	varpos = 6
 	canInd = getPosIndex(varpos, canonical)
-	topk = 0
+	topk = 15
 	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut10bc_0_5/'
-	outDir = '../data/design/F2_low_lookup_cut10bc_0_5_supp10/'
+	outDir = '../data/design/F2_low_forceNN15_cut10bc_0_5_all/'
 	suppDir = '../data/design/support/F2/low/protein_seq_cut10bc_0_5/'
 	topFrac = 1
 	maxPerTarg = 20000
@@ -299,7 +307,7 @@ def main():
 
 	# Get the top x percent of proteins with regard to
 	# unique canoncial sequence
-	topProtDict = getTopProts(inDir, topkPer3mer, suppDir, 11, canInd)
+	topProtDict = getTopProts(inDir, topkPer3mer, suppDir, 1, canInd)
 	summa = 0
 	for k in sorted(topProtDict.keys()):
 		print k, len(topProtDict[k])
@@ -307,11 +315,11 @@ def main():
 	print summa
 
 	# Create logos/pfms for each of the prots in topProtDict
-	#predictTopProts(freqDict, topProtDict, outDir, topk, withLogos = False)
+	predictTopProts(freqDict, topProtDict, outDir, topk, withLogos = True)
 
 	# Find the top 10 most specific pwms for each 3mer target
-	#for opt in ['minMinDiff', 'avgMinDiff']:
-	#	getTopTenProtsAllTargs(outDir, topProtDict, topk, opt) 
+	for opt in ['minMinDiff', 'avgMinDiff']:
+		getTopTenProtsAllTargs(outDir, topProtDict, topk, opt) 
 	
 	
 
