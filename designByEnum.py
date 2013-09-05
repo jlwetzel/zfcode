@@ -122,9 +122,10 @@ def predictTopProts(freqDict, topProtDict, outDir, topk,
 		for i, prot in enumerate(orderedProts):
 			
 			# Make the nearest neighbors lookup prediction
-			nmat, neighborsPerBase = lookupCanonZF(freqDict, prot, useNN = True,
+			nmat, neighborsPerBase = lookupCanonZF(freqDict, prot, useNN = False,
 			                     		skipExact = False, decompose = singles,
 			                     		topk = topk)
+			#print neighborsPerBase
 			
 			# Create the frequency matrix file
 			npbStr = '_'.join([str(k).zfill(2) for k in neighborsPerBase])
@@ -241,6 +242,7 @@ def getTopTenProtsAllTargs(inDir, topProtDict, topk, opt = 'avgMinDiff'):
 		# Get the list of top 10 pwm file names in decreasing order 
 		top10 = getTopTenProts(targ, nucMatDict, topk, opt)
 		#print top10
+		
 
 		# Place these top 10 logos in a special directory
 		top10TargDir = top10Dir + targ + '/'
@@ -288,9 +290,9 @@ def main():
 	canonical = True
 	varpos = 6
 	canInd = getPosIndex(varpos, canonical)
-	topk = 15
+	topk = 0
 	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut10bc_0_5/'
-	outDir = '../data/design/F2_low_forceNN15_cut10bc_0_5_all/'
+	outDir = '../data/design/F2_low_lookup_cut10bc_0_5_all/'
 	suppDir = '../data/design/support/F2/low/protein_seq_cut10bc_0_5/'
 	topFrac = 1
 	maxPerTarg = 20000
@@ -307,7 +309,7 @@ def main():
 
 	# Get the top x percent of proteins with regard to
 	# unique canoncial sequence
-	topProtDict = getTopProts(inDir, topkPer3mer, suppDir, 1, canInd)
+	topProtDict = getTopProts(inDir, topkPer3mer, suppDir, 0, canInd)
 	summa = 0
 	for k in sorted(topProtDict.keys()):
 		print k, len(topProtDict[k])
