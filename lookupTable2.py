@@ -385,8 +385,9 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk,
 
 			# Renormalize since some neighbors may not have been used
 			pwm[k-1] = pwm[k-1]/np.sum(pwm[k-1]) 
-			#print "Used %d neighbors for base %d" \
-			#	%(neighborsPerBase[len(neighborsPerBase)-1], k)
+			if verbose != None:
+				print "Used %d neighbors for base %d" \
+					%(neighborsPerBase[len(neighborsPerBase)-1], k)
 
 		
 		# If we found no neighbors use a uniform vector
@@ -597,41 +598,65 @@ def getPosEntropies(freqDict, norm = False):
 def main():
 
 	# Debugging stuff
+	outDir = '../data/scratch/'
 	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut10bc_0_5/'
 	canonical = True
 	varpos = 6
 	canInd = getPosIndex(varpos, canonical)
 	freqDict = computeFreqDict(inDir, canInd)
 	setWeightMatrices('PAM30', 'PAM30')
-	topk = 15
+	topk = 25
 	canonAnton = {1: [3], 2: [2,3], 3: [0,1]}
 	triples = {1: [1,2,3], 2: [0,1,2], 3: [0,1,2]}
 	singles = {1: [3], 2: [2], 3: [0]}
+
 	
 	# Working on this
 	#entropyDict = getPosEntropies(freqDict)
 	
-	canProt = 'RDLR'
-	print canProt
-	nmat, npb = lookupCanonZF(freqDict, canProt, useNN = False, skipExact = False, 
-	                     decompose = None, topk = None, verbose = inDir)
-		
-	print "Lookup:"
-	print getConsensus(nmat)
-	print "Final Matrix:"
-	print nmat
-	
-	for k in [15, 20, 25, 30, 35, 40]:
-		if k != 15:
-			continue
+	canProts = ['FSNR']
 
-		nmat, npb = lookupCanonZF(freqDict, canProt, useNN = True, skipExact = False, 
-	                     	      decompose = singles, topk = k, verbose = inDir)
+	for canProt in canProts:
+		print canProt
+		nmat, npb = lookupCanonZF(freqDict, canProt, useNN = False, skipExact = False, 
+		                     decompose = None, topk = None, verbose = inDir)
 		
-		print "Top %d: " %k
+		label = canProt + '_lookup'
+		makeNucMatFile(outDir, label, nmat)
+		logoIn = outDir + label + '.txt'
+		logoOut = outDir + label + '.pdf'
+		makeLogo(logoIn, logoOut, alpha = 'dna', 
+			         colScheme = 'classic',
+			         annot = "'5,M,3'",
+			         xlab = canProt)
+		
+		print "Lookup:"
 		print getConsensus(nmat)
 		print "Final Matrix:"
-		print nmat	                 	
+		print nmat
+		
+		for k in [15, 20, 25, 30, 35, 40]:
+
+
+			if k != 25:
+				continue
+
+			nmat, npb = lookupCanonZF(freqDict, canProt, useNN = True, skipExact = False, 
+		                     	      decompose = singles, topk = k, verbose = None)
+			
+			label = canProt + '_top' + str(k)
+			makeNucMatFile(outDir, label, nmat)
+			logoIn = outDir + label + '.txt'
+			logoOut = outDir + label + '.pdf'
+			makeLogo(logoIn, logoOut, alpha = 'dna', 
+				         colScheme = 'classic',
+				         annot = "'5,M,3'",
+				         xlab = canProt)
+
+			print "Top %d: " %k
+			print getConsensus(nmat)
+			print "Final Matrix:"
+			print nmat	                 	
 
 if __name__ == '__main__':
 	main()

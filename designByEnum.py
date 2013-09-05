@@ -54,11 +54,11 @@ def getTopProts(inDir, topkPer3mer, suppDir, minSupport, ind):
 
 		for lNum, line in enumerate(fin):
 
-			# Check to see how much support we have if using support
+			# Check to see how much support we have (if using support)
+	 		
 			useProt = suppList[lNum] >= minSupport
 
 			if numProtsFound == topkPer3mer[targNum]:
-				targNum += 1
 				break
 
 			# Get protein with all varied positions and frequency
@@ -91,6 +91,7 @@ def getTopProts(inDir, topkPer3mer, suppDir, minSupport, ind):
 
 		fin.close()
 		topProtDict[targ] = orderedList
+		targNum += 1
 
 	return topProtDict
 
@@ -122,7 +123,7 @@ def predictTopProts(freqDict, topProtDict, outDir, topk,
 		for i, prot in enumerate(orderedProts):
 			
 			# Make the nearest neighbors lookup prediction
-			nmat, neighborsPerBase = lookupCanonZF(freqDict, prot, useNN = False,
+			nmat, neighborsPerBase = lookupCanonZF(freqDict, prot, useNN = True,
 			                     		skipExact = False, decompose = singles,
 			                     		topk = topk)
 			#print neighborsPerBase
@@ -177,8 +178,9 @@ def getTopTenProts(targ, nucMatDict, minNeighbors,
 	if opt == 'avgMinDiff' or opt == 'minMinDiff':
 		fnameScores = []
 		for fname in fnames:
-			nmat = nucMatDict[fname]
 
+			nmat = nucMatDict[fname]
+			
 			# Get neighbors per base from the filename
 			npb = fname.split('_')[2:5]
 			npb = [int(i) for i in npb]
@@ -292,24 +294,28 @@ def main():
 	canInd = getPosIndex(varpos, canonical)
 	topk = 0
 	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut10bc_0_5/'
-	outDir = '../data/design/F2_low_lookup_cut10bc_0_5_all/'
+	outDir = '../data/design/F2_low_lookup_cut10bc_0_5_supp3/'
 	suppDir = '../data/design/support/F2/low/protein_seq_cut10bc_0_5/'
 	topFrac = 1
 	maxPerTarg = 20000
 
 	# Get the frequency dictionary for doing predictions
 	freqDict = computeFreqDict(inDir, canInd)
+	#print sorted(freqDict["GTG"].keys())
 
 	# Figure out how many proteins for top x% for each 3-mer
 	topkPer3mer = [int(topFrac*(len(freqDict[k]))) \
 		for k in sorted(freqDict.keys())]
+
 	# Place a cap on how many we can look at
 	topkPer3mer = [min(maxPerTarg, i) for i in topkPer3mer]
-	print topkPer3mer
+	#print topkPer3mer
 
 	# Get the top x percent of proteins with regard to
 	# unique canoncial sequence
 	topProtDict = getTopProts(inDir, topkPer3mer, suppDir, 0, canInd)
+	#print sorted(freqDict["GTG"].keys()) == sorted([i[0] for i in topProtDict["GTG"]])
+	#print sorted([i[0] for i in topProtDict["GTG"]])
 	summa = 0
 	for k in sorted(topProtDict.keys()):
 		print k, len(topProtDict[k])
@@ -317,7 +323,7 @@ def main():
 	print summa
 
 	# Create logos/pfms for each of the prots in topProtDict
-	predictTopProts(freqDict, topProtDict, outDir, topk, withLogos = True)
+	#predictTopProts(freqDict, topProtDict, outDir, topk, withLogos = True)
 
 	# Find the top 10 most specific pwms for each 3mer target
 	for opt in ['minMinDiff', 'avgMinDiff']:
