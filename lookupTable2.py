@@ -632,6 +632,7 @@ def main():
 	prots = [i[1] for i in pairs]
 	canProts = [i[0]+i[2]+i[3]+i[6] for i in prots]
 
+	canProts = ['RDLR']
 	#print targs
 	#print prots
 	#print canProts
@@ -656,14 +657,14 @@ def main():
 		print "Final Matrix:"
 		print nmat
 		
-		for k in [15, 20, 25, 30, 35, 40]:
+		for k in [10, 15, 20, 25, 30, 35, 40]:
 
 
-			if k != 25:
+			if k != 10:
 				continue
 
 			nmat, npb = lookupCanonZF(freqDict, canProt, useNN = True, skipExact = False, 
-		                     	      decompose = singles, topk = k, verbose = None)
+		                     	      decompose = singles, topk = k, verbose = inDir)
 			
 			label = '_'.join([targs[i], prots[i], 'top' + str(k)])
 			makeNucMatFile(outDir, label, nmat)
