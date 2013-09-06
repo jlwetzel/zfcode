@@ -349,12 +349,8 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, decomp, topk,
 				nWeights = np.array([unifWeight]*len(neighborDict[k]),
 			                       dtype = float)
 
-		#print k
-		#print neighborDict[k]
 		# Get the normalized frequency vectors for each neighbor at  
 		# this base position
-		#print
-		#print len(neighborDict[k])
 		for i, n in enumerate(neighborDict[k]):
 			newVect = getNeighborBaseVect(freqDict, n, k)
 			baseVectors.append(newVect)
@@ -365,6 +361,12 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, decomp, topk,
 		nWeights = np.array([nWeights[i] for i, n \
 		                    in enumerate(baseVectors) if n != None][:topk], 
 		                    dtype = float)
+		
+		# Give a uniform vector if all weights are 0
+		if np.sum(nWeights) == 0:
+			pwm[k-1] = np.array([0.25, 0.25, 0.25, 0.25], dtype = float)
+			continue
+
 		nWeights = nWeights/np.sum(nWeights)
 		neighborDict[k] = [neighborDict[k][i] for i, n \
 		                    in enumerate(baseVectors) if n != None][:topk]
@@ -408,6 +410,7 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, decomp, topk,
 		else:
 			pwm[k-1] = np.array([0.25, 0.25, 0.25, 0.25], dtype = float)
 
+	#print pwm
 	#print neighborsPerBase
 	return pwm, neighborsPerBase
 
@@ -625,13 +628,13 @@ def main():
 	canInd = getPosIndex(varpos, canonical)
 	freqDict = computeFreqDict(inDir, canInd)
 	#setWeightMatrices('PAM250', 'PAM250')
-	setWeightMatrices('PAM30', 'PAM30')
+	setWeightMatrices('PAM250_bin', 'PAM250_bin')
 	topk = 25
 	
 	triples = {1: [1,2,3], 2: [0,2,3], 3: [0,1,2]}
 	doubles = {1: [2,3], 2: [2,3], 3: [0,1]}
 	singles = {1: [3], 2: [2], 3: [0]}
-	decomp = singles
+	decomp = triples
 	
 	# Working on this
 	#entropyDict = getPosEntropies(freqDict)
@@ -647,7 +650,7 @@ def main():
 	
 	hughesTargs = ['XXX'] * len(hughes)
 	hughes = zip(hughesTargs, hughes)
-	scratch = [('XXX', 'RXDLXXR')]
+	scratch = [('AGG', 'LNDHLQN')]
 
 
 	pairs = scratch
@@ -682,7 +685,7 @@ def main():
 				continue
 
 			nmat, npb = lookupCanonZF(freqDict, canProt, useNN = True, skipExact = False, 
-		                     	      decompose = decomp, topk = k, verbose = inDir)
+		                     	      decompose = decomp, topk = k, verbose = None)
 			
 			label = '_'.join([targs[i], prots[i], 'top' + str(k)])
 			makeNucMatFile(outDir, label, nmat)

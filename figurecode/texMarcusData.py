@@ -72,47 +72,33 @@ def makeTexTable(texFile, logoType, logoTypeDir):
 
 def main():
 	
-	style = 'top15'
+	style = 'triplestop20'
 	useExact = True
-	trainFing = 'F3'
+	mat = 'PAM30'
+	trainFing = 'F2'
 	trainStrin = 'low'
 	outDir = '../../figures/predictionLogos/'
 	inDirPrefix = '../../data/'
 
 	if style == 'blsVnn':
 		k = str(25)
-		logoType = ['Exper.', 'Lookup', 'NN.Top' + k + '.PAM30', 'BLS02']
+		logoType = ['Exper.', 'Lookup', 'NN.Top' + k + '.' + mat, 'BLS02']
 		logoTypeDir = ['revExp/F2_GAG/logos3/', 'lookupTable/', 
-			       	   'NN_top' + k + '_PAM30/','bls02RevExp/']
+			       	   'NN_top' + k + '_' + mat + '/','bls02RevExp/']
 
-	elif re.match(r'top[0-9][0-9]', style) != None and useExact:
+	elif re.match(r'(.)*top[0-9][0-9]', style) != None and useExact:
 		k = style[-2:]
-		logoType = ['Exper.', 'Lookup', 'NNOnly.Top' + k + '.PAM30', \
-			'NN.Top' + k + '.PAM30']
+		logoType = ['Exper.', 'Lookup', 'NNOnly.Top' + k + '.' + mat, \
+			'NN.Top' + k + '.' + mat]
 		logoTypeDir = ['revExp/F2_GAG/logos3/', 'lookupTable/', 
-			       	   'NNonly_top' + k + '_PAM30/','NN_top' + k + '_PAM30/']
+			       	   'NNonly_top' + k + '_' + mat + '/','NN_top' + k + '_' + mat + '/']
 
-	elif re.match(r'top[0-9][0-9]', style) != None:
+	elif re.match(r'(.)*top[0-9][0-9]', style) != None:
 		k = style[-2:]
 		logoType = ['Exper.', 'Lookup', 'NNOnly.Top' + k, \
-			'NNOnly.Top' + k + '.PAM30']
+			'NNOnly.Top' + k + '.' + mat]
 		logoTypeDir = ['revExp/F2_GAG/logos3/', 'lookupTable/', 
-			       	   'NNonly_top' + k + '/','NN_top' + k + '_PAM30/']
-
-	elif style == 'triples':
-		logoType = ['Exper.', 'Lookup', 'NNOnly.Trip', 'NNOnly.Trip.PAM30']
-		logoTypeDir = ['revExp/F2_GAG/logos3/', 'lookupTable/', 
-			       	   'NNonly_Triples/','NNonly_Triples_PAM30/']
-
-	elif style == 'doubles':
-		logoType = ['Exper.', 'Lookup', 'NNOnly.Doub', 'NNOnly.Doub.PAM30']
-		logoTypeDir = ['revExp/F2_GAG/logos3/', 'lookupTable/', 
-			       	   'NNonly_Doubles/','NNonly_Doubles_PAM30/']
-
-	elif style == 'singles':
-		logoType = ['Exper.', 'Lookup', 'NNOnly.Sing', 'NNOnly.Sing.PAM30']
-		logoTypeDir = ['revExp/F2_GAG/logos3/', 'lookupTable/', 
-			       	   'NNonly_Singles/','NNonly_Singles_PAM30']
+			       	   'NNonly_top' + k + '/','NN_top' + k + '_' + mat + '/']
 
 	filters = ['cut3bc_0_5', 'cut10bc_0_5', 'cut10bc_0', 'cut10bc_025', 'cut3bc_025']
 	for f in filters:

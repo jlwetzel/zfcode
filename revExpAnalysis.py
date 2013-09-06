@@ -255,7 +255,7 @@ def runMarcusDataAnalysis(style, decomp, weight_mat, order_mat,
 				makeDir(outDirPref + trainFing)
 				makeDir(outDirPref + trainFing + '/' + trainStrin)
 				makeDir(outDirPref + trainFing + '/' + trainStrin + '/'\
-					 + 'protein_seq_' + filt + '/')
+					 + filt + '/')
 
 				decompDict = getDecompDict(decomp)
 
@@ -362,7 +362,7 @@ def main():
 	weight_mats = [None, 'PAM30', 'PAM250', 'PAM250_bin']
 	order_mats = ['PAM30', 'PAM30', 'PAM250', 'PAM250_bin']
 	useExact = True
-	trainFing = "F2"
+	trainFing = "F3"
 	trainStrin = "low"
 
 	# Run the "topk" neighbors analysis
