@@ -567,21 +567,27 @@ def setWeightMatrices(weight_mat, order_mat):
 	
 	matLoc = '../data/substitution_mats/'
 
-	print weight_mat.split('.')[0].split('_')[-1]
-	if weight_mat.split('.')[0].split('_')[-1] == 'bin':
-		expoW = False
+	# Get the matrix (if we are using one) for weighting or ordering
+	if weight_mat != None:
+		if weight_mat.split('.')[0].split('_')[-1] == 'bin':
+			expo = False
+		else:
+			expo = True
+		NEIGHBOR_WEIGHTS = getSubDict(matLoc + weight_mat + '.txt', 
+	                              expo = expo)
 	else:
-		expoW = True
+		NEIGHBOR_WEIGHTS = None
 
-	if order_mat.split('.')[0].split('_')[-1] == 'bin':
-		expoO = False
+	if order_mat != None:
+		if order_mat.split('.')[0].split('_')[-1] == 'bin':
+			expo = False
+		else:
+			expo = True
+		NEIGHBOR_ORDER = getSubDict(matLoc + order_mat + '.txt',
+	                            expo = expo)	
 	else:
-		expoO = True
+		NEIGHBOR_ORDER = None
 
-	NEIGHBOR_WEIGHTS = getSubDict(matLoc + weight_mat + '.txt', 
-	                              expo = expoW)
-	NEIGHBOR_ORDER = getSubDict(matLoc + order_mat + '.txt',
-	                            expo = expoO)	
 
 def getPosEntropies(freqDict, norm = False):
 	# Working on this
