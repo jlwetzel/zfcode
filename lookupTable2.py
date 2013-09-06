@@ -7,7 +7,7 @@ from fixTables import normalizeFreq
 from entropy import *
 #from gatherBindStats import getProtDict
 
-def getSubDict(fname):
+def getSubDict(fname, expo = False):
 	# Return a substitution dictionary indicated
 	# by the given file path.
 
@@ -19,7 +19,10 @@ def getSubDict(fname):
 		ylab = line.strip().split()[0]
 		scores = [eval(i) for i in line.strip().split()[1:]]
 		for i, s in enumerate(scores):
-			subDict[ylab, xlabs[i]] = s
+			if expo:
+				subDict[ylab, xlabs[i]] = math.exp(s)
+			else:
+				subDict[ylab, xlabs[i]] = s
 
 	return subDict
 
@@ -79,7 +82,7 @@ def getNeighborWeights(prot, neighbors, skipExact, matType = 'weight'):
 		else:
 			for i, a in enumerate(n):
 				if prot[i] != a:
-					nScore = math.exp(weightMat[prot[i], a])
+					nScore = weightMat[prot[i], a]
 			nWeights.append(nScore)
 
 	# If used exact matching neighbor, then make its 
@@ -224,7 +227,7 @@ def computeFreqDict(dirpath, ind):
 
 	return freqDict
 
-def sortAndWeightNeighbors(prot, bpos, neighbors, skipExact):
+def sortAndWeightNeighbors(prot, bpos, neighbors, decomp, skipExact):
 	# Sorts the neighbors in the order in which we 
 	# would like to process them (most "important"
 	# neighbors first).
@@ -234,10 +237,20 @@ def sortAndWeightNeighbors(prot, bpos, neighbors, skipExact):
 	
 	# The order in which aminos should be allowed to vary 
 	# for each of the bases.
-	order = {1: [0, 1, 2],  # -1,2,3
-			 2: [1, 0, 3],  #  2,-1,6
-			 3: [3, 2, 1]}  #  6,3,2
+	if len(decomp[1]) == 1:     # singles decomposition
+		order = {1: [0, 1, 2],  # -1,2,3
+			 	 2: [1, 0, 3],  #  2,-1,6
+			 	 3: [3, 2, 1]}  #  6,3,2
+	elif len(decomp[1]) == 2:   # doubles decomposition
+		order = {1: [0, 1],     # -1,2
+			 	 2: [1, 0],     #  2,-1
+			 	 3: [3, 2]}     #  6,3
+	elif len(decomp[1]) == 3:   # triples decomposition
+		order = {1: [0],        # -1
+			 	 2: [1],        #  2
+			 	 3: [3]}        #  6
 
+	
 	# Separate neighbors according to varied positions
 	neighborBins = {}
 	for n in neighbors:
@@ -291,7 +304,7 @@ def sortAndWeightNeighbors(prot, bpos, neighbors, skipExact):
 
 	return neighborsSorted, nWeights
 
-def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk,
+def getTopKNeighborsPWM(freqDict, prot, neighborDict, decomp, topk,
                         skipExact, verbose = None):
 	# Returns a numpy array pwm of for the prediciton
 	# given the top k neighbors only in terms of distance
@@ -326,6 +339,7 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, topk,
 			#print k
 			neighborDict[k], nWeights = sortAndWeightNeighbors(prot, k,
 			                                                   neighborDict[k],
+			                                                   decomp,
 			                                                   skipExact)
 		else:
 			if NEIGHBOR_WEIGHTS != None:
@@ -464,7 +478,7 @@ def get3merList(freqDict, protein, canonical = False,
 	# Return the pwm obtained by decomposing neighbors
 	# and using the top k of them
 
-	return getTopKNeighborsPWM(freqDict, protein, neighborDict,
+	return getTopKNeighborsPWM(freqDict, protein, neighborDict, decompose,
 	                           topk, skipExact, verbose)
 	
 def makeDir(path):
@@ -551,23 +565,23 @@ def setWeightMatrices(weight_mat, order_mat):
 	global NEIGHBOR_WEIGHTS
 	global NEIGHBOR_ORDER
 	
-	if weight_mat == 'PAM30':
-		NEIGHBOR_WEIGHTS = getSubDict("../data/substitution_mats/PAM30.txt")
-	elif weight_mat == 'PAM100':
-		NEIGHBOR_WEIGHTS = getSubDict("../data/substitution_mats/PAM100.txt")
-	elif weight_mat == 'PAM250':
-		NEIGHBOR_WEIGHTS = getSubDict("../data/substitution_mats/PAM250.txt")
-	else:
-		NEIGHBOR_WEIGHTS = None
+	matLoc = '../data/substitution_mats/'
 
-	if order_mat == 'PAM30':
-		NEIGHBOR_ORDER = getSubDict("../data/substitution_mats/PAM30.txt")
-	elif order_mat == 'PAM100':
-		NEIGHBOR_ORDER = getSubDict("../data/substitution_mats/PAM100.txt")
-	elif order_mat == 'PAM250':
-		NEIGHBOR_ORDER = getSubDict("../data/substitution_mats/PAM250.txt")
+	print weight_mat.split('.')[0].split('_')[-1]
+	if weight_mat.split('.')[0].split('_')[-1] == 'bin':
+		expoW = False
 	else:
-		NEIGHBOR_ORDER = None
+		expoW = True
+
+	if order_mat.split('.')[0].split('_')[-1] == 'bin':
+		expoO = False
+	else:
+		expoO = True
+
+	NEIGHBOR_WEIGHTS = getSubDict(matLoc + weight_mat + '.txt', 
+	                              expo = expoW)
+	NEIGHBOR_ORDER = getSubDict(matLoc + order_mat + '.txt',
+	                            expo = expoO)	
 
 def getPosEntropies(freqDict, norm = False):
 	# Working on this
@@ -598,22 +612,23 @@ def getPosEntropies(freqDict, norm = False):
 def main():
 
 	# Debugging stuff
-	outDir = '../data/scratch/hughes/'
+	outDir = '../data/scratch/'
 	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut10bc_0_5/'
 	canonical = True
 	varpos = 6
 	canInd = getPosIndex(varpos, canonical)
 	freqDict = computeFreqDict(inDir, canInd)
+	#setWeightMatrices('PAM250', 'PAM250')
 	setWeightMatrices('PAM30', 'PAM30')
 	topk = 25
-	canonAnton = {1: [3], 2: [2,3], 3: [0,1]}
-	triples = {1: [1,2,3], 2: [0,1,2], 3: [0,1,2]}
+	
+	triples = {1: [1,2,3], 2: [0,2,3], 3: [0,1,2]}
+	doubles = {1: [2,3], 2: [2,3], 3: [0,1]}
 	singles = {1: [3], 2: [2], 3: [0]}
-
+	decomp = singles
 	
 	# Working on this
 	#entropyDict = getPosEntropies(freqDict)
-	
 	f3s = [('ATT','FQSGLIQ'), ('CAC', 'HQANLIH'),('CGG', 'RNAHLTD'),
 		   ('GAC', 'DQSNLTR'), ('GCG', 'TKYDLTR'), ('TGT', 'MKQHLTY'),
 		   ('AAA', 'SAGSLYN'), ('CAA', 'QKINLIN'), ('ATC', 'DKSYLYT'),
@@ -626,17 +641,14 @@ def main():
 	
 	hughesTargs = ['XXX'] * len(hughes)
 	hughes = zip(hughesTargs, hughes)
+	scratch = [('XXX', 'RXDLXXR')]
 
-	pairs = hughes
+
+	pairs = scratch
 	targs = [i[0] for i in pairs]
 	prots = [i[1] for i in pairs]
 	canProts = [i[0]+i[2]+i[3]+i[6] for i in prots]
 
-	canProts = ['RDLR']
-	#print targs
-	#print prots
-	#print canProts
-	#canProts = ['FSNR']
 
 	for i, canProt in enumerate(canProts):
 		print targs[i], canProt
@@ -664,7 +676,7 @@ def main():
 				continue
 
 			nmat, npb = lookupCanonZF(freqDict, canProt, useNN = True, skipExact = False, 
-		                     	      decompose = singles, topk = k, verbose = inDir)
+		                     	      decompose = decomp, topk = k, verbose = inDir)
 			
 			label = '_'.join([targs[i], prots[i], 'top' + str(k)])
 			makeNucMatFile(outDir, label, nmat)

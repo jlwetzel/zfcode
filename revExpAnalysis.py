@@ -111,78 +111,41 @@ def lookupMarcusPWMs(inDir, outputDir, freqDict,
 
 	fout.close()
 
-def getLabels(style, decomp, weight_mat, useExact):
+def getLabels(style, weight_mat, useExact):
 	# Returrns a label and a directory prefix for the 
 	# given style, decomposition, and weight matrix
-	if style == 'nnonly' and useExact:
 
-		if decomp == 'triples' and weight_mat == 'PAM30':
-			label = 'NNOnly.trip.PAM30'
-			inDirPref = '../data/NNonly_Triples_PAM30/'
-		elif decomp == 'triples':
-			label = 'NNOnly.trip'
-			inDirPref = '../data/NNonly_Triples/'
-		elif decomp == 'doubles' and weight_mat == 'PAM30':
-			label = 'NNOnly.doub.PAM30'
-			inDirPref = '../data/NNonly_Doubles_PAM30/'
-		elif decomp == 'doubles':
-			label = 'NNOnly.doub'
-			inDirPref = '../data/NNonly_Doubles/'
-		elif decomp == 'singles' and weight_mat == 'PAM30':
-			label = 'NNOnly.sing.PAM30'
-			inDirPref = '../data/NNonly_Singles_PAM30/'
-		elif decomp == 'singles':
-			label = 'NNOnly.sing'
-			inDirPref = '../data/NNonly_Singles/'
-
-	elif re.match(r'top[0-9][0-9]', style) != None and useExact:
-		if weight_mat == 'PAM30':
-			label = 'NN.' + style + '.PAM30'
-			inDirPref = '../data/NN_' + style + '_PAM30/'
-		elif weight_mat == 'PAM100':
-			label = 'NN.' + style + '.PAM100'
-			inDirPref = '../data/NN_' + style + '_PAM100/'
-		elif weight_mat == 'PAM250':
-			label = 'NN.' + style + '.PAM250'
-			inDirPref = '../data/NN_' + style + '_PAM250/'
+	if re.match(r'(.)*top[0-9][0-9]', style) != None and useExact:
+		if weight_mat != None:
+			label = 'NN.' + style + '.' + weight_mat
+			outDirPref = '../data/NN_' + style + '_' + weight_mat + '/'
 		else:
-			label = 'NN.' + style 
-			inDirPref = '../data/NN_' + style + '/'
+			label = 'NN.' + style
+			outDirPref = '../data/NN_' + style + '/'
 
-	elif re.match(r'top[0-9][0-9]', style) != None:
-		if weight_mat == 'PAM30':
-			label = 'NNonly.' + style + '.PAM30'
-			inDirPref = '../data/NNonly_' + style + '_PAM30/'
-		elif weight_mat == 'PAM100':
-			label = 'NNonly.' + style + '.PAM100'
-			inDirPref = '../data/NNonly_' + style + '_PAM100/'
-		elif weight_mat == 'PAM250':
-			label = 'NNonly.' + style + '.PAM250'
-			inDirPref = '../data/NNonly_' + style + '_PAM250/'
+	elif re.match(r'(.)*top[0-9][0-9]', style) != None:
+		if weight_mat != None:
+			label = 'NNonly.' + style + '.' + weight_mat
+			outDirPref = '../data/NNonly_' + style + '_' + weight_mat + '/'
 		else:
-			label = 'NNonly.' + style 
-			inDirPref = '../data/NNonly_' + style + '/'
-		#print weight_mat
-		#print label
+			label = 'NNonly.' + style
+			outDirPref = '../data/NNonly_' + style + '/'
 
 	elif style == 'lookonly':
 		label = 'look'
-		inDirPref = '../data/lookupTable/'
+		outDirPref = '../data/lookupTable/'
 				
-	return label, inDirPref
+	return label, outDirPref
 
-def getDecompDict(style, decomp):
+def getDecompDict(decomp):
 	# Return the decomposition dictionary that corresponds 
 	# to the string decomp
 
-	triples = {1: [1,2,3], 2: [1,2,3], 3: [0,1,2]}
+	triples = {1: [1,2,3], 2: [0,2,3], 3: [0,1,2]}
 	doubles = {1: [2,3], 2: [2,3], 3: [0,1]}
 	singles = {1: [3], 2: [2], 3: [0]}
 
-	if re.match(r'top[0-9][0-9]', style) != None:
-		return singles
-
-	elif decomp == "triples":
+	if decomp == "triples":
 		return triples
 	elif decomp == "doubles":
 		return doubles
@@ -281,18 +244,25 @@ def runMarcusDataAnalysis(style, decomp, weight_mat, order_mat,
 		for s in testStrins:
 			for i, filt in enumerate(filts):
 				
-				if re.match(r'top[0-9][0-9]', style) != None:
+				if re.match(r'(.)*top[0-9][0-9]', style) != None:
 					topk = eval( style[(len(style) - 2):] )
+					print topk
 				else:
 					topk = None
 				setWeightMatrices(weight_mat, order_mat)
-				label, inDirPref = getLabels(style, decomp, weight_mat, useExact)
-				decompDict = getDecompDict(style, decomp)
+				label, outDirPref = getLabels(style, weight_mat, useExact)
+				makeDir(outDirPref)
+				makeDir(outDirPref + trainFing)
+				makeDir(outDirPref + trainFing + '/' + trainStrin)
+				makeDir(outDirPref + trainFing + '/' + trainStrin + '/'\
+					 + 'protein_seq_' + filt + '/')
+
+				decompDict = getDecompDict(decomp)
 
 				inDir = '../data/b1hData/newDatabase/6varpos/' \
 					+ trainFing + '/' + trainStrin + '/' + 'protein_seq_' + filt + '/'
 
-				outDir = inDirPref + trainFing + '/' + trainStrin + \
+				outDir = outDirPref + trainFing + '/' + trainStrin + \
 					'/' + filt + '/'
 
 				# Get the dictionary of binding frequencies
@@ -310,12 +280,12 @@ def runMarcusDataAnalysis(style, decomp, weight_mat, order_mat,
 					lookupMarcusPWMs(inDir, outDir, freqDict, f, s, filtsLabs[i],
 				                 	label, useNN = True, skipExact = True,
 				                 	decompose = decompDict, topk = None)
-				elif re.match(r'top[0-9][0-9]', style) != None and useExact:
+				elif re.match(r'(.)*top[0-9][0-9]', style) != None and useExact:
 					#print label
 					lookupMarcusPWMs(inDir, outDir, freqDict, f, s, filtsLabs[i],
 				                 	label, useNN = True, skipExact = False,
 				                 	decompose = decompDict, topk = topk)	
-				elif re.match(r'top[0-9][0-9]', style) != None:
+				elif re.match(r'(.)*top[0-9][0-9]', style) != None:
 					#print label
 					lookupMarcusPWMs(inDir, outDir, freqDict, f, s, filtsLabs[i],
 				                 	label, useNN = True, skipExact = True,
@@ -387,28 +357,21 @@ def predict_matrix_bls(protein): #predict matrix by BLS02 -- written by Anton Pe
 
 def main():
 
-	#styles = ['bls02']
-	#styles = ['nnonly']
-	styles = ['top15', 'top20', 'top25', 'top30', 'top35']
-	
-	#styles = ['top30']
-	weight_mats = ['PAM250']
-	useExact = False
-	#weight_mats = [None]#['PAM30']
-	#decomps = ['singles', 'doubles', 'triples']
-	decomps = ['single']
-	order_mat = 'PAM250'
-	trainFing = "F3"
+	styles = ['triplestop20', 'doublestop40']
+	decomps = ['triples', 'doubles']
+	weight_mats = [None, 'PAM30', 'PAM250', 'PAM250_bin']
+	order_mats = ['PAM30', 'PAM30', 'PAM250', 'PAM250_bin']
+	useExact = True
+	trainFing = "F2"
 	trainStrin = "low"
 
 	# Run the "topk" neighbors analysis
-	for style in styles:
-		for weight_mat in weight_mats:
-			for decomp in decomps:
-				print "Running:\t%s\t%s\t%s\t%s" %(style, decomp, weight_mat, 
-				                                   order_mat)
-				runMarcusDataAnalysis(style, decomp, weight_mat, order_mat, 
-                          		  	  trainFing, trainStrin, useExact)
+	for i, style in enumerate(styles):
+		for j, weight_mat in enumerate(weight_mats):
+			print "Running:\t%s\t%s\t%s\t%s" %(style, decomps[i], weight_mat, 
+			                                   order_mats[j])
+			runMarcusDataAnalysis(style, decomps[i], weight_mat, order_mats[j], 
+                      		  	  trainFing, trainStrin, useExact)
 
 if __name__ == '__main__':
 	main()
