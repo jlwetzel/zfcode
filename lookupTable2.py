@@ -598,7 +598,7 @@ def getPosEntropies(freqDict, norm = False):
 def main():
 
 	# Debugging stuff
-	outDir = '../data/scratch/'
+	outDir = '../data/scratch/hughes/'
 	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut10bc_0_5/'
 	canonical = True
 	varpos = 6
@@ -614,21 +614,42 @@ def main():
 	# Working on this
 	#entropyDict = getPosEntropies(freqDict)
 	
-	canProts = ['FSNR']
+	f3s = [('ATT','FQSGLIQ'), ('CAC', 'HQANLIH'),('CGG', 'RNAHLTD'),
+		   ('GAC', 'DQSNLTR'), ('GCG', 'TKYDLTR'), ('TGT', 'MKQHLTY'),
+		   ('AAA', 'SAGSLYN'), ('CAA', 'QKINLIN'), ('ATC', 'DKSYLYT'),
+		   ('CCC', 'LKKTLTD'), ('CTC', 'DQSALLG'), ('GCC', 'LKKTLIN')]
+	
+	f2s = [('ACC', 'CPKALRA'), ('CCC', 'DPRCLVR'), ('CGA', 'SYNGLRG'),
+		   ('GTT', 'FAMQLTR'), ('TCC', 'DPRSLVY'), ('TAA', 'SYMGLRG')]
+	hughes = ['DCRDLAR', 'TSGELVR', 'TSGHLVR', 'QSSHLTR', 'RSDDLQR', 'QSGHLQR',
+			  'TSGNLVR', 'QKSSLIA', 'TTGNLTV', 'SPADLTR', 'QKSSLIA', 'TSGELVR']
+	
+	hughesTargs = ['XXX'] * len(hughes)
+	hughes = zip(hughesTargs, hughes)
 
-	for canProt in canProts:
-		print canProt
+	pairs = hughes
+	targs = [i[0] for i in pairs]
+	prots = [i[1] for i in pairs]
+	canProts = [i[0]+i[2]+i[3]+i[6] for i in prots]
+
+	#print targs
+	#print prots
+	#print canProts
+	#canProts = ['FSNR']
+
+	for i, canProt in enumerate(canProts):
+		print targs[i], canProt
 		nmat, npb = lookupCanonZF(freqDict, canProt, useNN = False, skipExact = False, 
-		                     decompose = None, topk = None, verbose = inDir)
+		                     decompose = None, topk = None, verbose = None)
 		
-		label = canProt + '_lookup'
+		label = '_'.join([targs[i], prots[i], 'lookup'])
 		makeNucMatFile(outDir, label, nmat)
 		logoIn = outDir + label + '.txt'
 		logoOut = outDir + label + '.pdf'
 		makeLogo(logoIn, logoOut, alpha = 'dna', 
 			         colScheme = 'classic',
 			         annot = "'5,M,3'",
-			         xlab = canProt)
+			         xlab = '_'.join([targs[i], prots[i]]))
 		
 		print "Lookup:"
 		print getConsensus(nmat)
@@ -644,14 +665,14 @@ def main():
 			nmat, npb = lookupCanonZF(freqDict, canProt, useNN = True, skipExact = False, 
 		                     	      decompose = singles, topk = k, verbose = None)
 			
-			label = canProt + '_top' + str(k)
+			label = '_'.join([targs[i], prots[i], 'top' + str(k)])
 			makeNucMatFile(outDir, label, nmat)
 			logoIn = outDir + label + '.txt'
 			logoOut = outDir + label + '.pdf'
 			makeLogo(logoIn, logoOut, alpha = 'dna', 
 				         colScheme = 'classic',
 				         annot = "'5,M,3'",
-				         xlab = canProt)
+				         xlab = '_'.join([targs[i], prots[i]]))
 
 			print "Top %d: " %k
 			print getConsensus(nmat)
