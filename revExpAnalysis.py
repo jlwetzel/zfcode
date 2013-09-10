@@ -357,10 +357,10 @@ def predict_matrix_bls(protein): #predict matrix by BLS02 -- written by Anton Pe
 
 def main():
 
-	styles = ['triplestop20', 'doublestop40']
-	decomps = ['triples', 'doubles']
-	weight_mats = [None, 'PAM30', 'PAM250', 'PAM250_bin']
-	order_mats = ['PAM30', 'PAM30', 'PAM250', 'PAM250_bin']
+	styles = ['top15', 'top20', 'top25', 'top30']
+	decomps = ['singles'] * 5
+	weight_mats = ['PAM250_bin']
+	order_mats = ['PAM250_bin']
 	useExact = True
 	trainFing = "F3"
 	trainStrin = "low"
