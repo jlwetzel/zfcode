@@ -1,5 +1,5 @@
 library(infotheo)
-library(lattice)
+library(ggplot2)
 
 mutInfoAnalysis <- function(data) {
   # Perform analysis of mutual information for different contact 
@@ -7,14 +7,39 @@ mutInfoAnalysis <- function(data) {
   
   helixPosNames <- c('a0', 'a1', 'a2', 'a3', 'a5', 'a6')
   basePosNames <- c('n1', 'n2', 'n3')
-  helixMutInfo <- getMutInfo(data, helixPosNames, helixPosNames)
+  
+  helixMutInfo <- getNormMutInfo(data, helixPosNames, helixPosNames)
   helixMutInfo <- makeTriangular(helixMutInfo, diag = TRUE)
-  baseMutInfo <- getMutInfo(data, basePosNames, basePosNames)
+  helixFrame <- mat2Frame(helixMutInfo)
+  writeFrame("../../figures/mutInfo/helixMutInfo.txt",
+             helixFrame)
+  makeHeatPlot("../../figures/mutInfo/helixMutInfo.pdf",
+               helixFrame)
+
+  baseMutInfo <- getNormMutInfo(data, basePosNames, basePosNames)
   baseMutInfo <- makeTriangular(baseMutInfo, diag = TRUE)
-  baseHelixMutInfo <- getMutInfo(data, helixPosNames, basePosNames)
-  x <- list(helixMutInfo, baseMutInfo, baseHelixMutInfo)
-  names(x) <- c('helix', 'bases', 'contacts')
-  x
+  baseFrame <- mat2Frame(baseMutInfo)
+  writeFrame("../../figures/mutInfo/baseMutInfo.txt",
+             baseFrame)
+  makeHeatPlot("../../figures/mutInfo/baseMutInfo.pdf",
+               baseFrame)
+
+
+  contactMutInfo <- getNormMutInfo(data, helixPosNames, basePosNames)
+  contactFrame <- mat2Frame(contactMutInfo)
+  writeFrame("../../figures/mutInfo/contactMutInfo.txt",
+             contactFrame)
+  makeHeatPlot("../../figures/mutInfo/contactMutInfo.pdf",
+               contactFrame)
+
+  #x <- list(helixMutInfo, baseMutInfo, baseHelixMutInfo)
+  #names(x) <- c('helix', 'bases', 'contacts')
+  #x
+}
+
+writeFrame <- function(dframe, fname){
+  write.table(fname, dframe, sep = '\t', row.names = FALSE,
+              quote = FALSE)
 }
 
 getNormMutInfo <- function(data, axis1, axis2) {
@@ -27,20 +52,22 @@ getNormMutInfo <- function(data, axis1, axis2) {
   rownames(infoMat) <- axis1
   colnames(infoMat) <- axis2
   
+  print(axis1)
+  print(axis2)
   # Compute Shannon entropy for each separate variable
-  ent1 <- vector(mode = 'numeric', size = length(axis1))
-  ent2 <- vector(mode = 'numeric', size = length(axis1))
+  ent1 <- vector(mode = 'numeric', length = length(axis1))
+  ent2 <- vector(mode = 'numeric', length = length(axis2))
   for (i in 1:length(axis1))
-    ent[i] <- natstobits(entropy(data[axis1[i]]))
+    ent1[i] <- natstobits(entropy(data[axis1[i]]))
   for (i in 1:length(axis2))
-    ent[i] <- natstobits(entropy(data[axis2[i]]))
+    ent2[i] <- natstobits(entropy(data[axis2[i]]))
   
   # Compute the normalized mutual information
   for (i in 1:length(axis1)) {
     for (j in 1:length(axis2)) {
       condEnt <- natstobits(condentropy(data[axis1[i]], 
                                         data[axis2[j]]))
-      infoMat[i, j] <- (ent1 - condEnt)/(min(ent1[i], ent2[j]))
+      infoMat[i, j] <- (ent1[i] - condEnt)/(min(ent1[i], ent2[j]))
     }
   }
   infoMat  
@@ -49,7 +76,7 @@ getNormMutInfo <- function(data, axis1, axis2) {
 makeTriangular <- function(mat, diag = FALSE) {
   # Sets the upper-right elements of mat to 0
   # If diag = TRUE, also set the diagonal elements to 0
-  if (diag){
+  if (diag) {
     for (i in 1:min(nrow(mat), ncol(mat)))
       mat[i,i] <- 0
   }
@@ -61,15 +88,37 @@ makeTriangular <- function(mat, diag = FALSE) {
   mat
 }
 
-makeLevelPlot <- function(fname, mat) {
-  # Makes a levelplot for the matrix values
-  #bluered = colorRampPalette(c("blue", "red"),
-  #                           space = "Lab") 
-  pdf(fname, height = 4.55, width = 2.84)
-  #print(levelplot(t(mat), col.regions = bluered,
-  #                xlab = "", ylab = ""))
-  print(levelplot(t(mat), xlab = "", ylab = ""))
-  dev.off()
+mat2Frame <- function(mat){
+  # Utility function for mapping a log odds marix to 
+  # a data.frame according to its name
+  
+  vecLen <- nrow(mat)*ncol(mat)
+  var1 <- vector(mode = 'character')
+  var2 <- vector(mode = 'character')
+  score <- vector(mode = 'numeric')
+  
+  for (i in 1:nrow(mat)){
+    for (j in 1:ncol(mat)) {
+      var1 <- c(var1, rownames(mat)[i])
+      var2 <- c(var2, colnames(mat)[j])
+      score <- c(score, mat[i,j])
+    }
+  }
+  dframe <- data.frame(var1 = var1, var2 = var2,
+                       score = score)
+}
+
+makeHeatPlot <- function(fname, dframe) {
+  # Makes a faceted heatplot
+  xl <- paste("")
+  yl <- paste("")
+  g <- ggplot(dframe, aes(var1, var2)) + 
+    geom_tile(aes(fill = score)) +
+    scale_fill_gradient(low = 'white', high = 'steelblue',
+                        limits = c(0,1)) +
+    xlab(xl) +
+    ylab(yl)
+  ggsave(fname, plot = g)
 }
 
 

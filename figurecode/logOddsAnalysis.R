@@ -31,6 +31,7 @@ logOddsAnalysis <- function(data) {
   write.table(oddsMatsFrame, '../../figures/logOdds/F2_low_cut10bc_0_5.txt',
               quote = FALSE, row.names = FALSE, sep = '\t')
   makeOddsHeatPlots(oddsMatsFrame)
+  oddsMats
 }
 
 getOddsMat <- function(data, apos1, apos2, bpos, b) {
@@ -127,13 +128,15 @@ makeOddsHeatPlots <- function(dframe) {
 
 makeHeatPlot <- function(fname, dframe) {
   # Makes a faceted heatplot
+  xl <- paste("Amino Pos ", substr(dframe$apos1[1], 2, 2))
+  yl <- paste("Amino Pos ", substr(dframe$apos2[1], 2, 2))
   g <- ggplot(dframe, aes(amino1, amino2)) + 
     geom_tile(aes(fill = score)) +
     scale_fill_gradient2(low='firebrick', mid='white', high='steelblue',
-                         midpoint = 0, na.value = "black") +
+                         midpoint = 0, limits = c(-10,10)) +
     facet_wrap(~base) +
-    xlab("Amino 1") +
-    ylab("Amino 2") + 
+    xlab(xl) +
+    ylab(yl) + 
     theme(axis.text.y = element_text(angle = 90, hjust = 0))
   ggsave(fname, plot = g, width = 7.0, height = 7.0)
 }
