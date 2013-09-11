@@ -27,9 +27,10 @@ logOddsAnalysis <- function(data) {
     }
   }
   oddsMatsFrame <- makeOddsMatFrame(oddsMats)
+  oddsMatsFrame <- oddsMatsFrame[order(-oddsMatsFrame$score),]
+  write.table(oddsMatsFrame, '../../figures/logOdds/F2_low_cut10bc_0_5.txt',
+              quote = FALSE, row.names = FALSE, sep = '\t')
   makeOddsHeatPlots(oddsMatsFrame)
-  write.table('../../figures/logOdds/F2_low_cut10bc_0_5.txt',
-              quote = FALSE, sep = '\t')
 }
 
 getOddsMat <- function(data, apos1, apos2, bpos, b) {
