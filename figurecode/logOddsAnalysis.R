@@ -1,3 +1,5 @@
+library(ggplot2)
+
 helixPosNames <- c('a0', 'a1', 'a2', 'a3', 'a5', 'a6')
 basePosNames <- c('n1', 'n2', 'n3')
 nucs = c('A', 'C', 'G', 'T')
@@ -8,7 +10,7 @@ logOddsAnalysis <- function(data) {
   
   # Returns a list of 20X20 matrices, one for each
   # (apos1, apos2, bpos, b) combination
-  chiVals <- list()
+  #chiVals <- list()
   oddsMats <- list()
   for (i in 1:(length(helixPosNames) - 1)) {
     for (j in (i+1):length(helixPosNames)) {
@@ -16,15 +18,18 @@ logOddsAnalysis <- function(data) {
         for (b in nucs){
           apos1 <- helixPosNames[i]
           apos2 <- helixPosNames[j]
-          name <- paste(apos1, apos2, bpos, b, sep = '.')
+          name <- paste(apos1, apos2, bpos, b, sep = '_')
           oddsMats[[name]] <- getOddsMat(data, apos1, apos2, bpos, b)
         }
-        name <- paste(apos1, apos2, bpos, sep = '.')
-        chiVals[[name]] <- getChiVals(data, apos1, apos2, bpos)
+        #name <- paste(apos1, apos2, bpos, sep = '.')
+        #chiVals[[name]] <- getChiVals(data, apos1, apos2, bpos)
       }
     }
   }
-  oddsMats
+  oddsMatsFrame <- makeOddsMatFrame(oddsMats)
+  makeOddsHeatPlots(oddsMatsFrame)
+  write.table('../../figures/logOdds/F2_low_cut10bc_0_5.txt',
+              quote = FALSE, sep = '\t')
 }
 
 getOddsMat <- function(data, apos1, apos2, bpos, b) {
@@ -40,7 +45,7 @@ getOddsMat <- function(data, apos1, apos2, bpos, b) {
   doubleTab2 <- table(data[,apos2], data[,bpos]) + 1
   tsum <- sum(tripleTab)
 
-  # Get a log odds score or a chi-square value
+  # Get a log odds score
   for (i in 1:length(aminos)) {
     for (j in 1:length(aminos)) {
       a1 <- aminos[i]
@@ -57,6 +62,79 @@ getOddsMat <- function(data, apos1, apos2, bpos, b) {
   rownames(oddsMat) <- aminos
   colnames(oddsMat) <- aminos
   oddsMat
+}
+
+makeOddsMatFrame <- function(oddsMats){
+  # Convert the list of odds matrices to a dataframe
+  names <- names(oddsMats)
+  f <- data.frame()
+  for (n in names)
+    f <- rbind(f, mat2Frame(oddsMats[[n]], n))
+  f
+}
+
+mat2Frame <- function(mat, name){
+  # Utility function for mapping a log odds marix to 
+  # a data.frame according to its name
+  
+  vecLen <- nrow(mat)*ncol(mat)
+  amino1 <- vector(mode = 'character')
+  amino2 <- vector(mode = 'character')
+  score <- vector(mode = 'numeric')
+  labVals <- strsplit(name, '_')
+  apos1 <- rep(labVals[[1]][1], vecLen)
+  apos2 <- rep(labVals[[1]][2], vecLen)
+  bpos <- rep(labVals[[1]][3], vecLen)
+  base <- rep(labVals[[1]][4], vecLen)
+  label <- rep(name, vecLen)
+  
+  for (i in 1:nrow(mat)){
+    for (j in 1:ncol(mat)) {
+      amino1 <- c(amino1, rownames(mat)[i])
+      amino2 <- c(amino2, colnames(mat)[j])
+      score <- c(score, mat[i,j])
+    }
+  }
+  dframe <- data.frame(amino1 = amino1, amino2 = amino2, 
+             base = base, score = score, apos1 = apos1, 
+             apos2 = apos2, bpos = bpos, label = label) 
+}
+
+makeOddsHeatPlots <- function(dframe) {
+  # Create one faceted heat-plot for each pair 
+  # of amino acid positions.
+  
+  for (i in 1:(length(helixPosNames) - 1)) {
+    for (j in (i+1):length(helixPosNames)) {
+      for (n in basePosNames) {
+        print(i)
+        print(helixPosNames[1])
+        print(helixPosNames[2])
+        h1 <- helixPosNames[i]
+        h2 <- helixPosNames[j]
+        print(h1)
+        fname <- paste('../../figures/logOdds/',h1, '_', h2,
+                       '_', n, '.pdf', sep='')
+        print(fname)
+        subframe <- subset(dframe, apos1 == h1 & apos2 == h2
+                           & bpos == n)
+        makeHeatPlot(fname, subframe)
+      }
+    }
+  }
+}
+
+makeHeatPlot <- function(fname, dframe) {
+  # Makes a faceted heatplot
+  g <- ggplot(dframe, aes(amino1, amino2)) + 
+    geom_tile(aes(fill = score)) +
+    scale_fill_gradient2(low='firebrick', mid='white', high='steelblue',
+                         midpoint = 0, na.value = "black") +
+    facet_wrap(~base) +
+    xlab("Amino 1") +
+    ylab("Amino 2") + 
+    theme(axis.text.y = element_text(angle = 90, hjust = 0))
+  ggsave(fname, plot = g, width = 7.0, height = 7.0)
 }
 
 getChiVals <- function(data, apos1, apos2, bpos) {
@@ -94,17 +172,6 @@ getChiVals <- function(data, apos1, apos2, bpos) {
   rownames(chiMat) <- aminos
   colnames(chiMat) <- aminos
   chiMat
-}
-
-makeLevelPlot <- function(fname, mat) {
-  # Makes a levelplot for the matrix values
-  #bluered = colorRampPalette(c("blue", "red"),
-  #                           space = "Lab") 
-  pdf(fname, height = 4.55, width = 2.84)
-  #print(levelplot(t(mat), col.regions = bluered,
-  #                xlab = "", ylab = ""))
-  print(levelplot(t(mat), xlab = "", ylab = ""))
-  dev.off()
 }
 
 #data <- read.csv("../../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut10bc_0_5/all.csv")
