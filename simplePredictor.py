@@ -4,7 +4,7 @@
 
 import numpy as np
 import os
-from pwm import makeLogo, pwmfile2matrix, comparePWMs, makeNucMatFile
+from pwm import makeLogo, pwmfile2matrix, comparePCC, makeNucMatFile, getConsensus
 from revExpParseUtils import getTargDict
 import re
 
@@ -253,9 +253,11 @@ def predictMarcusPWMs(predictor, outputDir, finger, strin,
 		expDir = '../data/revExp/F3_GCG/pwms3/'
 	fout = open(predictionDir + 'compare.txt', 'w')
 	# Write header to results file
-	fout.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
-	           %('num', 'targ','prot','canonprot','score','colcor', \
-	           'colcorIC', 'totcol', 'pred.filt', 'finger', 'strin'))
+	fout.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
+	           %('num', 'targ','prot','canonprot','c1pcc','c2pcc',
+	             'c3pcc', 'c1pcc.ic', 'c2pcc.ic', 'c3pcc.ic', 'p.c1cons',
+	             'p.c2cons', 'p.c3cons', 'e.c1cons', 'e.c2cons', 'e.c3cons',
+	             'pred.filt', 'finger', 'strin'))
 
 	# Try to do a simple prediction for each of the 
 	# proteins for which we have an experimental 3pos pwm
@@ -271,10 +273,10 @@ def predictMarcusPWMs(predictor, outputDir, finger, strin,
 		# Get the info about this experiment
 		sp_fname = fname.split('_')
 		protNum = sp_fname[0]
-		targ = sp_fname[1]
+		goal = sp_fname[1]
 		prot = sp_fname[2].split('.')[0]
 		canonProt = prot[0] + prot[2] + prot[3] + prot[6]
-		label = '_'.join([str(protNum), targ, prot, strin])
+		label = '_'.join([str(protNum), goal, prot, strin])
 		
 		# Make the prediciton and write out to the correct files.
 		nmat = predictor.predictCanon(canonProt)
@@ -284,43 +286,44 @@ def predictMarcusPWMs(predictor, outputDir, finger, strin,
 		makeLogo(logoIn, logoOut,
 		         alpha = 'dna', colScheme = 'classic',
 		         annot = "'5,M,3'",
-		         xlab = '_'.join([targ,prot]))
+		         xlab = '_'.join([goal,prot]))
 
 		# Compare this pwm to the reverse experiment
-		score, colcor, colcorIC, totCol = comparePWMs(nmat, 
-		                pwmfile2matrix(expDir + fname))
-		
+		expMat = pwmfile2matrix(expDir + fname)
+		colPcc, colPcc_ic = comparePCC(nmat, expMat)
+		predCons = getConsensus(nmat)
+		expCons = getConsensus(expMat)
+
 		# Write the comparison results to file
-		fout.write("%s\t%s\t%s\t%s\t%.3f\t%d\t%d\t%d\t%s\t%s\t%s\n" \
-		           %(protNum, targ, prot, canonProt, score, colcor, \
-		           colcorIC, totCol, pred+'.'+filt, finger, strin))			
+		fout.write("%s\t%s\t%s\t%s\t" %(protNum, goal, prot, canonProt))
+		fout.write("%.4f\t"*6 %(colPcc[0], colPcc[1], colPcc[2], \
+		           				colPcc_ic[0], colPcc_ic[1], colPcc_ic[2]))
+		fout.write("%s\t"*6 %(predCons[0], predCons[1], predCons[2],
+		           			  expCons[0], expCons[1], expCons[2]))
+		fout.write("%s\t%s\t%s\n" %(pred+'.'+filt, finger, strin))
+
 	fout.close()
 
 def main():
 	numAminos = 6
 
-	fings = ['F2']
+	testFing = 'F2'
+	testStrin = 'low'
+	fings = ['F3', 'F2']
 	strins = ['low']
-	filts = ['cut10bc_0_5', 'cut3bc_0_5'] #[ 'cut10bc_0', 'cut3bc_025', 'cut10bc_025']
-	filtsLabs = ['c10_0_5', 'c3_0_5'] #['c3_025', 'c10_025', 'c10_0']
+	filts = ['cut10bc_0_5', 'cut3bc_0_5', 'cut10bc_0', 'cut3bc_025', 'cut10bc_025']
+	filtsLabs = ['c10_0_5', 'c3_0_5', 'c10_0', 'c3_025', 'c10_025']
 	for f in fings:
 		for s in strins:
 			for i, filt in enumerate(filts):
 				inDir = '../data/b1hData/newDatabase/6varpos/' \
 					+ f + '/' + s + '/' + 'protein_seq_' + filt + '/'
-				outDir = '../data/SimplePredictor/'	+ f + '/' + s + \
+				outDir = '../data/simplePredictor/'	+ f + '/' + s + \
 					'/' + filt + '/'
 				predictor = SimplePredictor(inDir + 'all.txt', 
 	                            			3, numAminos)
-				predictMarcusPWMs(predictor, outDir, f, s, filtsLabs[i])
-
-	
-	# Output position specific matrices/logos
-	# Only need this line once.
-	#outputPosSpecPWMs(predictor, outputDir)
-	
-	
-
+				predictMarcusPWMs(predictor, outDir, testFing, testStrin,
+				                  filtsLabs[i])
 	
 
 if __name__ == '__main__':
