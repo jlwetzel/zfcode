@@ -7,7 +7,7 @@ from fixTables import normalizeFreq
 from entropy import *
 #from gatherBindStats import getProtDict
 
-def getSubDict(fname, expo = False):
+def getSubDict(fname, expo = True):
 	# Return a substitution dictionary indicated
 	# by the given file path.
 
@@ -502,8 +502,8 @@ def lookupCanonZFArray(freqDict, canonZFs, useNN = True,
 	pwm = np.zeros(shape = (numZFs*3, 4))
 	
 	for i in range(numZFs):
-		nmat = lookupCanonZF(freqDict, canonZFs[i], 
-		                     useNN, skipExact, decompose, topk, verbose)
+		nmat, neighborsPerBase = lookupCanonZF(freqDict, canonZFs[i], 
+		                     	 useNN, skipExact, decompose, topk, verbose)
 		for j in range(len(nmat)):
 			pwm[i*len(nmat) + j,:] = nmat[j,:]
 	
