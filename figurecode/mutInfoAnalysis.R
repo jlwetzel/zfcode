@@ -7,7 +7,9 @@ mutInfoAnalysis <- function(data) {
   
   helixPosNames <- c('a0', 'a1', 'a2', 'a3', 'a5', 'a6')
   basePosNames <- c('n1', 'n2', 'n3')
+  nucs = c('A', 'C', 'G', 'T')
   
+  # Get mutual information for helix against helix
   helixMutInfo <- getNormMutInfo(data, helixPosNames, helixPosNames)
   helixMutInfo <- makeTriangular(helixMutInfo, diag = TRUE)
   helixFrame <- mat2Frame(helixMutInfo)
@@ -16,6 +18,26 @@ mutInfoAnalysis <- function(data) {
   makeHeatPlot("../../figures/mutInfo/helixMutInfo.pdf",
                helixFrame)
 
+  # Get mutual information for helix against helix in the 
+  # context of specific bases in specific positions
+  for (bpos in basePosNames) {
+    for (b in nucs) {
+      label <- paste('helixMutInfo', bpos, b, sep = '_')
+      tfile <- paste(paste('../../figures/mutInfo',label, sep = '/'), 
+                     'txt', sep = '.')
+      pfile <- paste(paste('../../figures/mutInfo',label, sep = '/'), 
+                     'pdf', sep = '.')
+      dsub <- data[data[[bpos]] == b,]
+      print(nrow(dsub))
+      helixMutInfo <- getNormMutInfo(dsub, helixPosNames, helixPosNames)
+      helixMutInfo <- makeTriangular(helixMutInfo, diag = TRUE)
+      helixFrame <- mat2Frame(helixMutInfo)
+      writeFrame(tfile, helixFrame)
+      makeHeatPlot(pfile, helixFrame)
+    }
+  }
+
+  # Get mutual information for base positions against base positions
   baseMutInfo <- getNormMutInfo(data, basePosNames, basePosNames)
   baseMutInfo <- makeTriangular(baseMutInfo, diag = TRUE)
   baseFrame <- mat2Frame(baseMutInfo)
@@ -25,6 +47,7 @@ mutInfoAnalysis <- function(data) {
                baseFrame)
 
 
+  # Get mutual information for base-amino position contacts
   contactMutInfo <- getNormMutInfo(data, helixPosNames, basePosNames)
   contactFrame <- mat2Frame(contactMutInfo)
   writeFrame("../../figures/mutInfo/contactMutInfo.txt",
@@ -32,9 +55,22 @@ mutInfoAnalysis <- function(data) {
   makeHeatPlot("../../figures/mutInfo/contactMutInfo.pdf",
                contactFrame)
 
-  #x <- list(helixMutInfo, baseMutInfo, baseHelixMutInfo)
-  #names(x) <- c('helix', 'bases', 'contacts')
-  #x
+  # Get mutual information for base-amino contacts in the context
+  # of specific bases in specific positions
+  for (bpos in basePosNames){
+    for (b in nucs) {
+      label <- paste('contactMutInfo', bpos, b, sep = '_')
+      tfile <- paste(paste('../../figures/mutInfo',label, sep = '/'), 
+                     'txt', sep = '.')
+      pfile <- paste(paste('../../figures/mutInfo',label, sep = '/'), 
+                     'pdf', sep = '.')
+      dsub <- data[data[[bpos]] == b,]
+      contactMutInfo <- getNormMutInfo(dsub, helixPosNames, basePosNames)
+      contactFrame <- mat2Frame(contactMutInfo)
+      writeFrame(tfile, contactFrame)
+      makeHeatPlot(pfile, contactFrame)
+    }
+  }
 }
 
 writeFrame <- function(dframe, fname){
@@ -115,7 +151,7 @@ makeHeatPlot <- function(fname, dframe) {
   g <- ggplot(dframe, aes(var1, var2)) + 
     geom_tile(aes(fill = score)) +
     scale_fill_gradient(low = 'white', high = 'steelblue',
-                        limits = c(0,1)) +
+                        limits = c(0,0.6)) +
     xlab(xl) +
     ylab(yl)
   ggsave(fname, plot = g)
