@@ -1,7 +1,25 @@
 library(infotheo)
 library(ggplot2)
 
-mutInfoAnalysis <- function(data) {
+fing <- 'F2'
+strin <- 'low'
+filtPrefix <- '../../data/b1hData/newDatabase/6varpos'
+outDirPrefix <- '../../figures/mutInfo'
+filtPrefix <- paste(filtPrefix, fing, strin, sep = '/')
+outDirPrefix <- paste(outDirPrefix, fing, strin, sep = '/')
+filters <- c('cut10bc_0_5', 'cut10bc_025', 'cut3bc_0_5', 'cut3bc_025')
+filtDirs <- paste(filtPrefix, paste("protein_seq", filters, sep = '_'),sep = '/')
+outDirs <- paste(outDirPrefix, filters, sep = '/')
+
+runAllAnalysis <- function(filtDirs, outDirs, filters) {
+  for (i in 1:length(filters)) {
+    print(paste(filtDirs[i], 'all.csv', sep = '/'))
+    data <- read.csv(file = paste(filtDirs[i], 'all.csv', sep = '/'))
+    mutInfoAnalysis(data, outDirs[i])
+  }
+}
+
+mutInfoAnalysis <- function(data, outDir) {
   # Perform analysis of mutual information for different contact 
   # positions along the helix and the dna strand
   
@@ -13,9 +31,9 @@ mutInfoAnalysis <- function(data) {
   helixMutInfo <- getNormMutInfo(data, helixPosNames, helixPosNames)
   helixMutInfo <- makeTriangular(helixMutInfo, diag = TRUE)
   helixFrame <- mat2Frame(helixMutInfo)
-  writeFrame("../../figures/mutInfo/helixMutInfo.txt",
+  writeFrame(paste(outDir, "data", "helixMutInfo.txt", sep = '/'),
              helixFrame)
-  makeHeatPlot("../../figures/mutInfo/helixMutInfo.pdf",
+  makeHeatPlot(paste(outDir, "helixMutInfo.pdf", sep = '/'),
                helixFrame)
 
   # Get mutual information for helix against helix in the 
@@ -23,9 +41,9 @@ mutInfoAnalysis <- function(data) {
   for (bpos in basePosNames) {
     for (b in nucs) {
       label <- paste('helixMutInfo', bpos, b, sep = '_')
-      tfile <- paste(paste('../../figures/mutInfo',label, sep = '/'), 
-                     'txt', sep = '.')
-      pfile <- paste(paste('../../figures/mutInfo',label, sep = '/'), 
+      tfile <- paste(paste(paste(outDir, "data", sep = '/'),
+                     label, sep = '/'), 'txt', sep = '.')
+      pfile <- paste(paste(outDir,label, sep = '/'), 
                      'pdf', sep = '.')
       dsub <- data[data[[bpos]] == b,]
       print(nrow(dsub))
@@ -41,18 +59,17 @@ mutInfoAnalysis <- function(data) {
   baseMutInfo <- getNormMutInfo(data, basePosNames, basePosNames)
   baseMutInfo <- makeTriangular(baseMutInfo, diag = TRUE)
   baseFrame <- mat2Frame(baseMutInfo)
-  writeFrame("../../figures/mutInfo/baseMutInfo.txt",
+  writeFrame(paste(outDir, "data", "baseMutInfo.txt", sep = '/'),
              baseFrame)
-  makeHeatPlot("../../figures/mutInfo/baseMutInfo.pdf",
+  makeHeatPlot(paste(outDir, "baseMutInfo.pdf", sep = '/'),
                baseFrame)
-
 
   # Get mutual information for base-amino position contacts
   contactMutInfo <- getNormMutInfo(data, helixPosNames, basePosNames)
   contactFrame <- mat2Frame(contactMutInfo)
-  writeFrame("../../figures/mutInfo/contactMutInfo.txt",
+  writeFrame(paste(outDir, "data", "contactMutInfo.txt", sep = '/'),
              contactFrame)
-  makeHeatPlot("../../figures/mutInfo/contactMutInfo.pdf",
+  makeHeatPlot(paste(outDir, "contactMutInfo.pdf", sep = '/'),
                contactFrame)
 
   # Get mutual information for base-amino contacts in the context
@@ -60,10 +77,11 @@ mutInfoAnalysis <- function(data) {
   for (bpos in basePosNames){
     for (b in nucs) {
       label <- paste('contactMutInfo', bpos, b, sep = '_')
-      tfile <- paste(paste('../../figures/mutInfo',label, sep = '/'), 
-                     'txt', sep = '.')
-      pfile <- paste(paste('../../figures/mutInfo',label, sep = '/'), 
+      tfile <- paste(paste(paste(outDir, "data", sep = '/'),
+                     label, sep = '/'), 'txt', sep = '.')
+      pfile <- paste(paste(outDir,label, sep = '/'), 
                      'pdf', sep = '.')
+      
       dsub <- data[data[[bpos]] == b,]
       contactMutInfo <- getNormMutInfo(dsub, helixPosNames, basePosNames)
       contactFrame <- mat2Frame(contactMutInfo)
@@ -150,11 +168,11 @@ makeHeatPlot <- function(fname, dframe) {
   yl <- paste("")
   g <- ggplot(dframe, aes(var1, var2)) + 
     geom_tile(aes(fill = score)) +
-    scale_fill_gradient(low = 'white', high = 'steelblue',
-                        limits = c(0,0.6)) +
+    scale_fill_gradient(low = 'white', high = 'darkblue',
+                        limits = c(0,1)) +
     xlab(xl) +
     ylab(yl)
   ggsave(fname, plot = g)
 }
 
-
+runAllAnalysis(filtDirs, outDirs, filters)
