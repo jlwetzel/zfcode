@@ -71,7 +71,7 @@ def binaryToContactList(binLine, cpairMap):
 	"""
 
 	sp_line = binLine.strip().split(',')
-	freq = sp_line[0]
+	freq = eval(sp_line[0])
 	sp_line = sp_line[1:]
 	
 	contactList = []
@@ -79,9 +79,10 @@ def binaryToContactList(binLine, cpairMap):
 		if sp_line[i] == "1":
 			contactList.append(cpairMap[k])
 
-	return contactList
+	return freq, tuple(contactList)
 
-def makeMatrix(inPath, outPath, contacts = "ca"):
+def makeMatrix(inPath, outPath, contacts = "ca",
+               combine = "none"):
 	"""
 	Converts a the protein input file located at inPath to the
 	format recognized for a corresponding R dataframe and places 
@@ -92,6 +93,11 @@ def makeMatrix(inPath, outPath, contacts = "ca"):
 	  "c" is only the canonical contacts
 	  "ca" is canonical contacts + Anton's contact
 	  "allPairs" is all pairwise contacts available
+	- Combine refers to how observations with the same feature 
+	  vector should be combined.  Default is None, where
+	  each observation is left unchanged.  
+	  Also can use: "add" in which case the frequency for all 
+	  lines from with identical feature vectors are added together.
 	"""
 
 	cpairMap = getContactPairMap(contacts)
@@ -105,12 +111,31 @@ def makeMatrix(inPath, outPath, contacts = "ca"):
 	headStr += '\n'
 	fout.write(headStr)
 
+	obsDict = {}
 	for i, line in enumerate(fin):
 
-		# Assemble observation in terms of binary variables
-		obs = lineToBinary(line, cpairMap)
-		#print i, binaryToContactList(obs, cpairMap)
-		fout.write(obs)
+		if combine == None:
+			# Assemble observation in terms of binary variables
+			obs = lineToBinary(line, cpairMap)
+			#print i, binaryToContactList(obs, cpairMap)
+			fout.write(obs)
+
+		# Combine frequencies of identical feature vectors together
+		# into a dictionary of 
+		elif combine == "add":
+			obs = lineToBinary(line, cpairMap)
+			featureStr = ','.join(obs.strip().split(',')[1:])
+			freq = eval(obs.strip().split(',')[0])
+			if obsDict.has_key(featureStr):
+				obsDict[featureStr] += freq
+			else:
+				obsDict[featureStr] = freq
+
+
+	if combine == "add":
+		for k in obsDict.keys():
+			obs = str(obsDict[k]) + ',' + k + '\n'
+			fout.write(obs)
 
 	fout.close()
 	fin.close()
@@ -118,8 +143,8 @@ def makeMatrix(inPath, outPath, contacts = "ca"):
 def main():
 	inPref = "../data/b1hData/newDatabase/6varpos/F2/" + \
 	           "low/protein_seq_cut10bc_025/"
-	makeMatrix(inPref + 'all.txt', inPref + 'all_matrix_ca.csv', 
-	           contacts = 'ca')
+	makeMatrix(inPref + 'all.txt', inPref + 'all_matrix_ca_add.csv', 
+	           contacts = 'ca', combine = "add")
 
 if __name__ == '__main__':
 	main()
