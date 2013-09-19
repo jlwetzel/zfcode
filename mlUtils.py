@@ -195,12 +195,22 @@ def makeMatrix(inPath, outPath, contacts = "ca",
 	fin.close()
 
 def main():
-	inPref = "../data/b1hData/newDatabase/6varpos/F2/" + \
-	           "low/protein_seq_cut10bc_025/"
-	#makeMatrix(inPref + 'all.txt', inPref + 'all_matrix_ca_add.csv', 
-	#           contacts = 'ca', combine = "add")
-	makeFactorList(inPref + 'all.txt', inPref + 'all_factor_ca_add.csv', 
-	           	   contacts = 'ca', combine = "add")
+	fings = ['F2', 'F3']
+	strins = ['low', 'high']
+	filts = ['cut10bc_025', 'cut10bc_0_5', 'cut3bc_025', 'cut3bc_0_5']
+	inPrefs = []
+	for f in fings:
+		for s in strins:
+			for filt in filts:
+				inPrefs.append('/'.join(["../data/b1hData/newDatabase/6varpos", \
+			    	           f, s, "protein_seq_" + filt]) + '/')
+	
+	for inPref in inPrefs:
+		#makeMatrix(inPref + 'all.txt', inPref + 'all_matrix_ca_add.csv', 
+		#           contacts = 'ca', combine = "add")	
+		print inPref
+		makeFactorList(inPref + 'all.txt', inPref + 'all_factor_c_add.csv', 
+		           	   contacts = 'c', combine = "add")
 
 if __name__ == '__main__':
 	main()
