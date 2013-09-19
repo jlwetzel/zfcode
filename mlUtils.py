@@ -41,7 +41,7 @@ def getContactPairMap(contacts):
 				varName = 'b%da%d%s%s' %(bpos, apos, b, a)
 				cpairMap[(bpos, apos, b, a)] = varName
 
-	return cpairMap
+	return cpairMap, sorted(pairs)
 
 def lineToBinary(line, cpairMap):
 	"""
@@ -81,6 +81,60 @@ def binaryToContactList(binLine, cpairMap):
 
 	return freq, tuple(contactList)
 
+def binStringToFactorList(binString):
+	# Converts the binary string to a list of string factors
+	# according to the order of the bindary string
+
+	sList = binString.split(',')
+	factorList = []
+	for i, val in enumerate(sList):
+		if eval(val) == 1:
+			amino = aminos[i%20]
+			nuc = nucs[(i%80)/20]
+			factorList.append(nuc+amino)
+
+	return factorList
+
+
+def makeFactorList(inPath, outPath, contacts = "ca",
+                   combine = "none"):
+	
+	cpairMap, contactPos = getContactPairMap(contacts)
+	fin = open(inPath, 'r')
+	fout = open(outPath, 'w')
+	
+	# Make the header
+	headStr = 'freq'
+	for (bpos, apos) in contactPos:
+		headStr += ',b' + str(bpos) + 'a' + str(apos)
+	headStr += '\n'
+	fout.write(headStr)
+
+	#print sorted(cpairMap)
+	# Combine frequencies of identical feature vectors
+	obsDict = {}
+	for i, line in enumerate(fin):
+		
+		obs = lineToBinary(line, cpairMap)
+		featureStr = ','.join(obs.strip().split(',')[1:])
+		freq = eval(obs.strip().split(',')[0])
+		if obsDict.has_key(featureStr):
+			obsDict[featureStr] += freq
+		else:
+			obsDict[featureStr] = freq
+
+
+	for k in obsDict.keys():
+		obs = str(obsDict[k])
+		factorList = binStringToFactorList(k)
+		for factor in factorList:
+			obs += ',' + factor
+		obs += '\n'
+		fout.write(obs)
+
+	fout.close()
+	fin.close()
+
 def makeMatrix(inPath, outPath, contacts = "ca",
                combine = "none"):
 	"""
@@ -100,7 +154,7 @@ def makeMatrix(inPath, outPath, contacts = "ca",
 	  lines from with identical feature vectors are added together.
 	"""
 
-	cpairMap = getContactPairMap(contacts)
+	cpairMap, contactPos = getContactPairMap(contacts)
 	fin = open(inPath, 'r')
 	fout = open(outPath, 'w')
 	
@@ -143,8 +197,10 @@ def makeMatrix(inPath, outPath, contacts = "ca",
 def main():
 	inPref = "../data/b1hData/newDatabase/6varpos/F2/" + \
 	           "low/protein_seq_cut10bc_025/"
-	makeMatrix(inPref + 'all.txt', inPref + 'all_matrix_ca_add.csv', 
-	           contacts = 'ca', combine = "add")
+	#makeMatrix(inPref + 'all.txt', inPref + 'all_matrix_ca_add.csv', 
+	#           contacts = 'ca', combine = "add")
+	makeFactorList(inPref + 'all.txt', inPref + 'all_factor_ca_add.csv', 
+	           	   contacts = 'ca', combine = "add")
 
 if __name__ == '__main__':
 	main()
