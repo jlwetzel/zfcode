@@ -51,8 +51,6 @@ class LLPredictor():
 
 		nucMat = np.zeros(shape = (3,4), dtype = float)
 		
-		print self.llmats.keys()
-		
 		# Get a score for each triple
 		scores = {}
 		for n1 in nucs:
