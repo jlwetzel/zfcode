@@ -79,7 +79,7 @@ class LLPredictor():
 				toPredict[bpos].append(apos)
 			else:
 				toPredict[bpos]= [apos]
-		print toPredict
+		#print toPredict
 
 		# Get the base frequency vector for each 
 		# position to be predicted
