@@ -59,11 +59,11 @@ def makeTexTable(texFile, logoType, logoTypeDir):
 				              	  %(logoTypeDir[i-1] + fname))
 			else:
 				newfname = '_'.join([logoNum, targ, prot, 'low']) + '.pdf'
-				#print logoTypeDir[i-1] + newfname
 				if os.path.exists(logoTypeDir[i-1] + newfname):
 					texFile.write(' & ' + '\\includegraphics[scale=0.5]{%s}' \
 				              	  %(logoTypeDir[i-1] + newfname))
 				else:
+					print "Couldn't find: " + logoTypeDir[i-1] + newfname
 					texFile.write(' & ' + '- ')
 		texFile.write('\\\\\n')
 
@@ -72,13 +72,18 @@ def makeTexTable(texFile, logoType, logoTypeDir):
 
 def main():
 	
-	style = 'triplestop20'
-	useExact = True
+	style = 'llratio'
+	useExact = False
 	mat = 'PAM30'
 	trainFing = 'F2'
 	trainStrin = 'low'
 	outDir = '../../figures/predictionLogos/'
 	inDirPrefix = '../../data/'
+
+	if style == 'llratio':
+		logoType = ['Exper', 'Lookup', 'NN.Top25.PAM30', 'LLRatio.Temp2']
+		logoTypeDir = ['revExp/F2_GAG/logos3/', 'lookupTable/',
+					   'NN_top25_' + mat + '/', 'llRatioCA/']
 
 	if style == 'blsVnn':
 		k = str(25)
@@ -100,7 +105,8 @@ def main():
 		logoTypeDir = ['revExp/F2_GAG/logos3/', 'lookupTable/', 
 			       	   'NNonly_top' + k + '/','NN_top' + k + '_' + mat + '/']
 
-	filters = ['cut3bc_0_5', 'cut10bc_0_5', 'cut10bc_0', 'cut10bc_025', 'cut3bc_025']
+	#filters = ['cut3bc_0_5', 'cut10bc_0_5', 'cut10bc_0', 'cut10bc_025', 'cut3bc_025']
+	filters = ['cut10bc_0_5']
 	for f in filters:
 		if useExact:
 			texFile = open(outDir + '_'.join([trainFing, trainStrin, style, f, 'useExact']) \

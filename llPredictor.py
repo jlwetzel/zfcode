@@ -28,7 +28,13 @@ class LLPredictor():
 		headerLine = fin.readline()
 		self.contacts = headerLine.strip().split()[1:]
 		self.contacts = [(i[1], i[3]) for i in self.contacts]
-		self.llmats = {}
+		self.llmats = self.makeLLMatsDict(fin)
+		fin.close()
+		
+
+	def makeLLMatsDict(self, fin):
+		# Create a dictionary of log-likelihood matrices
+		llmats = {}
 		for line in fin:
 			sp_line = line.strip().split()
 			c = (eval(sp_line[0][1]), eval(sp_line[0][3]))
@@ -37,61 +43,61 @@ class LLPredictor():
 			aInd = aminos.index(a)
 			bInd = nucs.index(b)
 			score = eval(sp_line[3])
-			if self.llmats.has_key(c):
-				self.llmats[c][bInd,aInd] = score
+			if llmats.has_key(c):
+				llmats[c][bInd,aInd] = score
 			else:
-				self.llmats[c] = np.zeros((len(nucs), len(aminos)),
-				                            dtype = 'float')
-				self.llmats[c][bInd,aInd] = score
+				llmats[c] = np.zeros((len(nucs), len(aminos)),
+				                      dtype = 'float')
+				llmats[c][bInd,aInd] = score
+
+		#llmats = self.centerMatColumns(llmats)
+		return llmats
+
+	def centerMatColumns(self, llmats):
+		# Mean center columns of the matrix
+		for k in llmats.keys():
+			for j in range(len(aminos)):
+				meanVal = np.mean(llmats[k][:,j])
+				llmats[k][:,j] = llmats[k][:,j] - meanVal
+		return llmats
 
 	def predictCanonZF(self, prot):
 		# Predicts the 3bp nucleotide specificty of prot, 
 		# which is are the canonical (-1,2,3,6) positions
 		# of the alpha helix of a ZF domain
 
+		temp = 2   # temperature parameter for boltzmann distr
 		nucMat = np.zeros(shape = (3,4), dtype = float)
 		
-		# Get a score for each triple
-		scores = {}
-		for n1 in nucs:
-			for n2 in nucs:
-				for n3 in nucs:
-					scores[n1+n2+n3] = 0.0
-		
-		sumOfAllScores = 0.0
-		for triple in scores.keys():
+		# Make a dictionary of lists of amino positions positions
+		# to predict bases from ... bPos -> [aPos1, aPos2 ..., aPos_n]
+		toPredict = {}
+		for k in sorted(self.llmats.keys()):
+			bpos = k[0]
+			apos = k[1]
+			if toPredict.has_key(bpos):
+				toPredict[bpos].append(apos)
+			else:
+				toPredict[bpos]= [apos]
+		print toPredict
+
+		# Get the base frequency vector for each 
+		# position to be predicted
+		for bpos in sorted(toPredict.keys()):
+			for apos in toPredict[bpos]:
+				a = prot[aminoposMap[apos]]
+				#print a
+				os_bpos = baseposMap[bpos]
+				#print bpos, apos, self.llmats[(bpos, apos)]
+				nucMat[os_bpos] += \
+					self.llmats[(bpos, apos)][:,aminos.index(a)]
 			
-			for c in self.llmats.keys():
-				bInd = baseposMap[c[0]]
-				aInd = aminoposMap[c[1]]
-				b = triple[bInd]
-				a = prot[aInd]
+			# Average if there were multiple contacts for the base
+			nucMat[os_bpos] = nucMat[os_bpos]/float(len(toPredict[bpos]))
 
-				# Assume b3a2 contact is weaker than b3a0 contact
-				if (c[1] == 2 and c[0] == 3):
-					scores[triple] += 0.25*(self.llmats[c][nucs.index(b), aminos.index(a)])
-				elif (c[1] == 0 and c[0] == 3):
-					scores[triple] += 0.75*(self.llmats[c][nucs.index(b), aminos.index(a)])
-				else:
-					scores[triple] += self.llmats[c][nucs.index(b), aminos.index(a)]
-
-			scores[triple] = 2**scores[triple]
-			sumOfAllScores += scores[triple]
-
-		# Normalize the scores to a distribution across triples
-		for triple in scores.keys():
-			scores[triple] = scores[triple]/sumOfAllScores
-			#print triple, scores[triple]
-
-		# Fill a numpy matrix with the scores for each nuc at 
-		# each position
-		baseSums = {}
-		for triple in scores.keys():
-			bases = list(triple)
-			for i in range(len(bases)):
-				b = bases[i]
-				bInd = nucs.index(b)
-				nucMat[i,bInd] += scores[triple]
+			# Convert back to get prob ratio and normalize
+			nucMat[os_bpos] = np.exp(temp*nucMat[os_bpos])
+			nucMat[os_bpos] = nucMat[os_bpos]/np.sum(nucMat[os_bpos])
 
 		return nucMat
 
@@ -116,14 +122,15 @@ def testLLPredictor(table):
 	#for k in sorted(pred.llmats.keys()):
 	#	print k
 	#	print pred.llmats[k]
-	x = pred.predictCanonZFArray(["RDLR"])
-	label = "RDLR"
+	x = pred.predictCanonZFArray(["RDLR", "REHR"])
+	print x
+	label = "RDLR-REHR"
 	makeNucMatFile('../data/scratch/', label, x)
 	logoIn = '../data/scratch/' + label + '.txt'
 	logoOut = '../data/scratch/' + label + '.pdf'
 	makeLogo(logoIn, logoOut, alpha = 'dna', 
 			         colScheme = 'classic',
-			         annot = "'5,M,3'",
+			         #annot = "'5,M,3'",
 			         xlab = label)
 
 def predictMarcusPWMs(predictor, outputDir, finger, strin, 
@@ -207,7 +214,8 @@ def makeDir(path):
 
 def main():
 
-	#testLLPredictor('../figures/llAnalysis/F2/low/cut10bc_0_5/llRatios_ca.txt')
+	#testLLPredictor('../figures/llAnalysis/F2/low/cut10bc_0_5/llRatios_c.txt')
+	
 	testFing = 'F2'
 	testStrin = 'low'
 	fings = ['F2']#['F3', 'F2']
@@ -224,6 +232,7 @@ def main():
 				predictor = LLPredictor(inDir + 'llRatios_ca.txt')
 				predictMarcusPWMs(predictor, outDir, testFing, testStrin,
 				                  filtsLabs[i])
+				
 
 if __name__ == '__main__':
 	main()
