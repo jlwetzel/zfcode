@@ -3,12 +3,17 @@ library(ggplot2)
 
 fing <- 'F2'
 strin <- 'low'
-filtPrefix <- '../../data/b1hData/newDatabase/6varpos'
+
+#filtPrefix <- '../../data/b1hData/newDatabase/6varpos' # My files
+filtPrefix <- '../../data/b1hData/antonProcessed' # Anton files
 outDirPrefix <- '../../figures/mutInfo'
 filtPrefix <- paste(filtPrefix, fing, strin, sep = '/')
 outDirPrefix <- paste(outDirPrefix, fing, strin, sep = '/')
-filters <- c('cut10bc_0_5', 'cut10bc_025', 'cut3bc_0_5', 'cut3bc_025')
-filtDirs <- paste(filtPrefix, paste("protein_seq", filters, sep = '_'),sep = '/')
+#filters <- c('cut10bc_0_5', 'cut10bc_025', 'cut3bc_0_5', 'cut3bc_025')
+#filtDirs <- paste(filtPrefix, paste("protein_seq", filters, sep = '_'),sep = '/') # My files
+filters <- c('filt_10e-4_05_0', 'filt_10e-4_0_5')
+filtDirs <- paste(filtPrefix, filters,sep = '/') # Anton files
+
 outDirs <- paste(outDirPrefix, filters, sep = '/')
 
 runAllAnalysis <- function(filtDirs, outDirs, filters) {
@@ -24,7 +29,7 @@ mutInfoAnalysis <- function(data, outDir) {
   # positions along the helix and the dna strand
   
   helixPosNames <- c('a0', 'a1', 'a2', 'a3', 'a5', 'a6')
-  basePosNames <- c('n1', 'n2', 'n3')
+  basePosNames <- c('b1', 'b2', 'b3')
   nucs = c('A', 'C', 'G', 'T')
   
   # Get mutual information for helix against helix
