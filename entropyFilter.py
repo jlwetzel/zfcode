@@ -10,6 +10,9 @@ def hasSupport(seq, keepSeqs, supportCutoff, canInd):
 	# other (non-identical) seqs in keepSeqs when 
 	# looking in canonical positions (-1,2,3,6)
 
+	if supportCutoff == 0:
+		return True
+
 	canSeq1 = ''
 	for j in canInd:
 		canSeq1 += seq[j]
