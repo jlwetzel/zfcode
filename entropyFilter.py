@@ -79,7 +79,7 @@ def main():
 	entCutoff = 0
 	supportCutoff = 5
 	freqCutoff = 0.0001
-	oldProts = 'unFiltered'
+	oldProts = 'unfiltered'
 
 	for f in fings:
 		for s in strins:
