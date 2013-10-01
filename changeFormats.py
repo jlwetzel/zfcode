@@ -20,20 +20,23 @@ def targetFiles2singleCSV(dirPath, numVarPos, fileSuffix,
 	# additional information listed above.
 
 	allFile = open(dirPath + "all.csv", 'w')
-	
+	print "Here"
+
 	# Write the header
 	if numVarPos == 6:
 		if style == 'verbose':
-			allFile.write('freq,n1,n2,n3,a0,a1,a2,a3,a4,a6,' + \
-	    	          	  'obsCode,possCode,jsd,entropy\n')
+			#allFile.write('freq,b1,b2,b3,a0,a1,a2,a3,a5,a6,' + \
+	    	#          	  'obsCode,possCode,jsd,entropy\n')  # My files
+			allFile.write('freq,b1,b2,b3,a0,a1,a2,a3,a5,a6,' + \
+	    	          	  'possCode,obsCode,entropy\n')  #Anton files
 		elif style == 'plain':
-			allFile.write('freq,n1,n2,n3,a0,a1,a2,a3,a4,a6\n')
+			allFile.write('freq,b1,b2,b3,a0,a1,a2,a3,a5,a6\n')
 	elif numVarPos == 5:
 		if style == 'verbose':
-			allFile.write('freq,n1,n2,n3,a0,a2,a3,a4,a6,' + \
+			allFile.write('freq,b1,b2,b3,a0,a2,a3,a5,a6,' + \
 	    	          	'obsCode,possCode,jsd,entropy\n')
 		elif style == 'plain':
-			allFile.write('freq,n1,n2,n3,a0,a2,a3,a4,a6\n')
+			allFile.write('freq,b1,b2,b3,a0,a2,a3,a5,a6\n')
 
 	interface = set()
 	protSet = set()
@@ -66,9 +69,12 @@ def targetFiles2singleCSV(dirPath, numVarPos, fileSuffix,
 						obs += a + ','
 					
 					if style == 'verbose':
-						obsCode, possCode, jsd, entropy = sp_line[2], \
-							sp_line[3], sp_line[4], sp_line[5]
-						obs += ','.join([obsCode, possCode, jsd, entropy])
+						#obsCode, possCode, jsd, entropy = sp_line[2], \
+						#	sp_line[3], sp_line[4], sp_line[5]  #My files 
+						obsCode, possCode, entropy = sp_line[3], \
+							sp_line[2], sp_line[4]  #Anton files 
+						#obs += ','.join([obsCode, possCode, jsd, entropy]) # My files
+						obs += ','.join([possCode, obsCode, entropy]) # Anton files
 						obs += '\n'
 					elif style == 'plain':
 						obs = obs[:-1] + '\n'
@@ -100,10 +106,14 @@ def csv2txtFile(dirPath, numVarPos, style = 'verbose'):
 		if numVarPos == 6:
 			prot = ''.join(sp_line[4:10])
 			if style == 'verbose':
-				obsCode = sp_line[10]
-				possCode = sp_line[11]
-				jsd = sp_line[12]
-				entropy = sp_line[13]
+				#obsCode = sp_line[10]
+				#possCode = sp_line[11]
+				#jsd = sp_line[12]
+				#entropy = sp_line[13]  # My files
+				obsCode = sp_line[11]
+				possCode = sp_line[10]
+				entropy = sp_line[12]   # Anton files
+
 		elif numVarPos == 5:
 			prot = ''.join(sp_line[4:9])
 			if style == 'verbose':
@@ -113,8 +123,10 @@ def csv2txtFile(dirPath, numVarPos, style = 'verbose'):
 				entropy = sp_line[12]
 
 		if style == 'verbose':
-			outStr = '\t'.join([base, prot, freq, obsCode, possCode,
-		                    jsd, entropy]) + '\n'
+			#outStr = '\t'.join([base, prot, freq, obsCode, possCode,
+		    #                jsd, entropy]) + '\n'   # My files
+			outStr = '\t'.join([base, prot, freq, possCode, obsCode,
+		                    	entropy]) + '\n'   # Anton files
 		elif style == 'plain':
 			outStr = '\t'.join([base, prot, freq]) + '\n'
 		outfile.write(outStr)

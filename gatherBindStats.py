@@ -122,9 +122,6 @@ def getProtSet(path, contacts):
 	# Returns the set of unique proteins for the 
 	# contact positions given by contacts.
 	# Path should be to a file of the 'all.txt' format.
-	# Only includes those proteins which have a JSD 
-	# of at most jsdCut from the expected E. coli 
-	# codon distribution for that protein.
 	
 	inFile = open(path, 'r')
 	inFile.readline()  # Skip the header line
@@ -525,8 +522,7 @@ def computeBindingDiversity(proteinDir):
     # Get the protein sets from the binding data.
 
     sys.stdout = open('../stats/bindingDiv_' + \
-                      '_'.join(proteinDir.split('_')[2:]) +\
-                      '.txt', 'w')
+                      proteinDir + '.txt', 'w')
 
     maxSize6 = 20**6
     maxSize4 = 20**4
@@ -541,7 +537,9 @@ def computeBindingDiversity(proteinDir):
     allProts4 = set(allProts4)
 
     # Get the dictionary of binding sets indexed by finger and stringency
-    pathPref = '../data/b1hData/newDatabase/6varpos'
+    #pathPref = '../data/b1hData/newDatabase/6varpos' #My files
+    pathPref = '../data/b1hData/antonProcessed' #Anton files
+
     #proteinDir = 'protein_seq_cut3bc_0_5'
     fings = ['F1', 'F2', 'F3']
     strins = ['high', 'low']
@@ -567,9 +565,7 @@ def computeBindingDiversity(proteinDir):
 
 def main():
 
-    protDirs = ['protein_seq_cut10bc_0', 'protein_seq_cut10bc_0_5', 
-                'protein_seq_cut10bc_025', 'protein_seq_cut3bc_0', 
-                'protein_seq_cut3bc_0_5', 'protein_seq_cut3bc_025']
+    protDirs = ['filt_10e-4_05_0', 'filt_10e-4_0_5']
 
     for protDir in protDirs:
         computeBindingDiversity(protDir)
