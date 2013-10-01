@@ -35,7 +35,7 @@ def hasSupport(seq, keepSeqs, supportCutoff, canInd):
 	return False
 
 
-def filterEntropySupport(oldFile, newFile, entCutoff, 
+def filterEntropySupport(oldFile, newFile, freqCutoff, entCutoff, 
                          supportCutoff, canInd):
 	# Scans oldFile for lines that don't pass entropy cutoff.
 	# These lines are removed, except in the case of proteins
@@ -53,9 +53,12 @@ def filterEntropySupport(oldFile, newFile, entCutoff,
 	keepLines = []
 	for line in fin:
 		sp_line = line.strip().split()
-		entropy = eval(sp_line[5])
-		numPoss = eval(sp_line[3])
-		if entropy >= entCutoff or numPoss == 1:
+		#entropy = eval(sp_line[5])  #For my format
+		#numPoss = eval(sp_line[3])  #For my format
+		entropy = eval(sp_line[4])   #Anton's format
+		numPoss = eval(sp_line[2])   #Anton's format
+		freq = eval(sp_line[1])      #Anton's format
+		if freq >= freqCutoff and (entropy >= entCutoff or numPoss == 1):
 			keepLines.append(line)
 	fin.close()
 
@@ -75,16 +78,25 @@ def main():
 	strins = ['low', 'high']
 	entCutoff = 0
 	supportCutoff = 5
-	oldProts = 'protein_seq_cut10bc'
+	freqCutoff = 0.0001
+	oldProts = 'unFiltered'
 
 	for f in fings:
 		for s in strins:
-			oldDir = '../data/b1hData/newDatabase/' + \
-				'/'.join([varpos, f, s, oldProts]) + '/'
+			oldDir = '../data/b1hData/antonProcessed/' + \
+				'/'.join([f, s, oldProts]) + '/'
 
 			# Make a new directory for the filtered proteins
+			
+			# For my data
+			#newDir = '/'.join(oldDir.split('/')[:-2]) + \
+			#	'/' + oldProts + '_' + \
+			#	(str(entCutoff)).replace('.', '') + \
+			#	'_' + str(supportCutoff) + '/'
+			
+			# For Anton's data
 			newDir = '/'.join(oldDir.split('/')[:-2]) + \
-				'/' + oldProts + '_' + \
+				'/' + 'filt_10e-4_'+ \
 				(str(entCutoff)).replace('.', '') + \
 				'_' + str(supportCutoff) + '/'
 			try:
@@ -104,7 +116,10 @@ def main():
 				elif varpos == '5varpos':
 					canInd = [0,1,2,4]
 				filterEntropySupport(oldDir + fname, newDir + fname,
-				                     entCutoff, supportCutoff, canInd)
+				                     freqCutoff,
+				                     entCutoff, 
+				                     supportCutoff, 
+				                     canInd)
 				normalizeFreq(newDir + fname, 1)
 
 if __name__ == '__main__':

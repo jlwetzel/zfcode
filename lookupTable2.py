@@ -650,7 +650,7 @@ def main():
 	
 	hughesTargs = ['XXX'] * len(hughes)
 	hughes = zip(hughesTargs, hughes)
-	scratch = [('AGG', 'LNDHLQN')]
+	scratch = [('GTG', 'RNDLLQR')]
 
 
 	pairs = scratch
