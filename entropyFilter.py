@@ -61,7 +61,6 @@ def filterEntropySupport(oldFile, newFile, freqCutoff, entCutoff,
 		freq = eval(sp_line[1])      #Anton's format
 		if freq >= freqCutoff and (entropy >= entCutoff or numPoss == 1):
 			keepLines.append(line)
-			print line
 	fin.close()
 
 	# Only keep seqs from keepLines that are supported 
