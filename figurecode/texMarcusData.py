@@ -72,10 +72,10 @@ def makeTexTable(texFile, logoType, logoTypeDir):
 
 def main():
 	
-	style = 'llratio'
-	useExact = False
+	style = 'top25'
+	useExact = True
 	mat = 'PAM30'
-	trainFing = 'F2'
+	trainFing = 'F3'
 	trainStrin = 'low'
 	outDir = '../../figures/predictionLogos/'
 	inDirPrefix = '../../data/'
@@ -106,7 +106,7 @@ def main():
 			       	   'NNonly_top' + k + '/','NN_top' + k + '_' + mat + '/']
 
 	#filters = ['cut3bc_0_5', 'cut10bc_0_5', 'cut10bc_0', 'cut10bc_025', 'cut3bc_025']
-	filters = ['cut10bc_0_5']
+	filters = ['filt_10e-4_0_5', 'filt_10e-4_05_0']
 	for f in filters:
 		if useExact:
 			texFile = open(outDir + '_'.join([trainFing, trainStrin, style, f, 'useExact']) \

@@ -261,6 +261,7 @@ def printBindingSetStats(fings, strins, bindset, maxSize, allProts = None):
                                                     type = 'oneoff')
             print "Neighbor coverage %s %s (all one-off): %d" \
                 %(f, s, numHaveNeighbors1 + len(bindset[f,s]))
+            """
             numHaveNeighbors2 = getNumHaveNeighbors(missing, bindset[f,s],
                                                     type = 'decomp-oneoff')
             print "Neighbor coverage %s %s (decomp one-off): %d" \
@@ -269,7 +270,7 @@ def printBindingSetStats(fings, strins, bindset, maxSize, allProts = None):
                                                     type = 'decomp-twooff-furthest')
             print "Neighbor coverage %s %s (decomp two-off furthest): %d" \
                 %(f, s, numHaveNeighbors3 + len(bindset[f,s]))
-            
+            """
 
     # How helpful for neighbors for intersected high and low stringencies?
     print
@@ -281,6 +282,7 @@ def printBindingSetStats(fings, strins, bindset, maxSize, allProts = None):
                                                 type = 'oneoff')
         print "Neighbor coverage %s (all one-off): %d" \
             %(k, numHaveNeighbors1 + len(bindset[f,s]))
+        """
         numHaveNeighbors2 = getNumHaveNeighbors(missing, bothStrinsUnion[k],
                                                 type = 'decomp-oneoff')
         print "Neighbor coverage %s (decomp one-off): %d" \
@@ -289,6 +291,7 @@ def printBindingSetStats(fings, strins, bindset, maxSize, allProts = None):
                                                 type = 'decomp-twooff-furthest')
         print "Neighbor coverage %s (decomp two-off furthest): %d" \
             %(k, numHaveNeighbors3 + len(bindset[f,s]))
+        """
 
     print "UNIONING STRINGENCIES AND FINGERS"
     for i in range(len(fings)):
@@ -300,6 +303,7 @@ def printBindingSetStats(fings, strins, bindset, maxSize, allProts = None):
                                                     type = 'oneoff')
             print "Neighbor coverage %s %s (all one-off): %d" \
                 %(fings[i], fings[j], numHaveNeighbors + len(twoFings))
+            """
             numHaveNeighbors = getNumHaveNeighbors(missing, twoFings,
                                                     type = 'decomp-oneoff')
             print "Neighbor coverage %s %s (decomp one-off): %d" \
@@ -308,6 +312,8 @@ def printBindingSetStats(fings, strins, bindset, maxSize, allProts = None):
                                                     type = 'decomp-twooff-furthest')
             print "Neighbor coverage %s %s (decomp two-off furthest): %d" \
                 %(fings[i], fings[j], numHaveNeighbors + len(twoFings))
+            """
+
     if len(fings) == 3:
         union = bothStrinsUnion['F1'] | bothStrinsUnion['F2'] | bothStrinsUnion['F3']
         missing = allProts - union
@@ -316,6 +322,7 @@ def printBindingSetStats(fings, strins, bindset, maxSize, allProts = None):
                                                 type = 'oneoff')
         print "Neighbor coverage F1 F2 F3 (all one-off): %d" \
             %(numHaveNeighbors + len(union))
+        """
         numHaveNeighbors = getNumHaveNeighbors(missing, union,
                                                 type = 'decomp-oneoff')
         print "Neighbor coverage F1 F2 F3 (decomp one-off): %d" \
@@ -324,6 +331,7 @@ def printBindingSetStats(fings, strins, bindset, maxSize, allProts = None):
                                                 type = 'decomp-twooff-furthest')
         print "Neighbor coverage F1 F2 F3 (decomp two-off furthest): %d" \
             %(numHaveNeighbors + len(union))
+        """
 
     return bothStrinsUnion
 
@@ -427,67 +435,104 @@ def compareToNatural(bindset, natset, org, fings,
             print "%s %s: %.3f" %(f, s, len(inter)/float(len(natset)))
             haveNeighbors1 = getNumHaveNeighbors((natset - inter), bindset[f,s],    
                                                  'oneoff')
+            """
             haveNeighbors2 = getNumHaveNeighbors((natset - inter), bindset[f,s],    
                                                  'decomp-oneoff')
             haveNeighbors3 = getNumHaveNeighbors((natset - inter), bindset[f,s],    
                                                  'decomp-twooff-furthest')
+            """
             print "Neighbor Coverage (all one-off): %.3f" \
                 %( (haveNeighbors1 + len(inter)) / float(len(natset)))
+            """
             print "Neighbor Coverage (decomp one-off): %.3f" \
                 %( (haveNeighbors2 + len(inter)) / float(len(natset)))
             print "Neighbor Coverage (decomp two-off furthest): %.3f" \
                 %( (haveNeighbors3 + len(inter)) / float(len(natset)))
+                """
 
     print
     for i in range(len(fings)):
         for j in range(i + 1, len(fings)):
             for s in strins:
-                inter = (bindset[fings[i], s] & bindset[fings[j], s]) & natset
-                union = (bindset[fings[i], s] | bindset[fings[j], s]) & natset
+                interPair = bindset[fings[i], s] & bindset[fings[j], s]
+                inter = interPair & natset
+                unionPair = bindset[fings[i], s] | bindset[fings[j], s]
+                union = unionPair & natset
+                
                 print "%s %s Intersection (%s): %.3f" %(fings[i], fings[j], 
                                                         s, len(inter)/\
                                                         float(len(natset)))
+                haveNeighbors = getNumHaveNeighbors((natset - inter), interPair,    
+                                                    'oneoff')
+                print "Neighbor Coverage (all one-off): %.3f" \
+                    %( (haveNeighbors + len(inter)) / float(len(natset)))
                 print "%s %s Union (%s)       : %.3f" %(fings[i], fings[j], 
                                                         s, len(union)/\
                                                         float(len(natset)))
+                haveNeighbors = getNumHaveNeighbors((natset - union), unionPair,    
+                                                    'oneoff')
+                print "Neighbor Coverage (all one-off): %.3f" \
+                    %( (haveNeighbors + len(union)) / float(len(natset)))
+
 
     print            
     for s in strins:
-    	inter = bindset[fings[0], s]
-    	union = set()
+    	interAll = bindset[fings[0], s]
+    	unionAll = set()
     	for f in fings:
-    		union = union | bindset[f,s]
-    		inter = inter & bindset[f,s]
-    	union = union & natset
-        inter = inter & natset
+    		unionAll = unionAll | bindset[f,s]
+    		interAll = interAll & bindset[f,s]
+    	union = unionAll & natset
+        inter = interAll & natset
         print "All Intersection (%s): %.3f" %(s, len(inter)/float(len(natset)))
+        
+        haveNeighbors = getNumHaveNeighbors((natset - inter), interAll,    
+                                                    'oneoff')
+        print "Neighbor Coverage (all one-off): %.3f" \
+                    %( (haveNeighbors + len(inter)) / float(len(natset)))
         print "All Union (%s): %.3f" %(s, len(union)/float(len(natset)))
+        haveNeighbors = getNumHaveNeighbors((natset - union), unionAll,    
+                                                    'oneoff')
+        print "Neighbor Coverage (all one-off): %.3f" \
+                    %( (haveNeighbors + len(union)) / float(len(natset)))
+
+
 
     print
     print "UNIONING HIGH AND LOW STRINGENCIES:"
     for k in sorted(bothStrinsUnion.keys()):
         inter = (bothStrinsUnion[k] & natset)
         print "All of %s: %.3f" %(k, len(inter)/float(len(natset)))
+        haveNeighbors = getNumHaveNeighbors((natset - inter), bothStrinsUnion[k],    
+                                                    'oneoff')
+        print "Neighbor Coverage (all one-off): %.3f" \
+                    %( (haveNeighbors + len(inter)) / float(len(natset)))
+                    
 
     for i, k1 in enumerate(sorted(bothStrinsUnion.keys())):
         for j, k2 in enumerate(sorted(bothStrinsUnion.keys())):
             if j > i:
-                union = (bothStrinsUnion[k1] | bothStrinsUnion[k2]) & natset
+                pairSet = bothStrinsUnion[k1] | bothStrinsUnion[k2]
+                union = pairSet & natset
                 print "All of %s and %s: %.3f" \
                     %(k1, k2, len(union)/float(len(natset)))
                 
-                haveNeighbors1 = getNumHaveNeighbors((natset - union), bindset[f,s],    
+                haveNeighbors1 = getNumHaveNeighbors((natset - union), pairSet,    
                                                  'oneoff')
-                haveNeighbors2 = getNumHaveNeighbors((natset - union), bindset[f,s],    
+                """
+                haveNeighbors2 = getNumHaveNeighbors((natset - union), pairSet,    
                                                      'decomp-oneoff')
-                haveNeighbors3 = getNumHaveNeighbors((natset - union), bindset[f,s],    
+                haveNeighbors3 = getNumHaveNeighbors((natset - union), pairSet,    
                                                      'decomp-twooff-furthest')
+                """
                 print "Neighbor Coverage (all one-off): %.3f" \
                     %( (haveNeighbors1 + len(union)) / float(len(natset)))
+                """
                 print "Neighbor Coverage (decomp one-off): %.3f" \
                     %( (haveNeighbors2 + len(union)) / float(len(natset)))
                 print "Neighbor Coverage (decomp two-off furthest): %.3f" \
                     %( (haveNeighbors3 + len(union)) / float(len(natset)))
+                    """
                 
     if len(fings) == 3:
         unionAll = (bothStrinsUnion['F1'] | bothStrinsUnion['F2'] \
@@ -495,19 +540,22 @@ def compareToNatural(bindset, natset, org, fings,
         print "All of F1, F2, and F3: %.3f" \
             %(len(unionAll)/float(len(natset)))
 
-        haveNeighbors1 = getNumHaveNeighbors((natset - unionAll), bindset[f,s],    
+        haveNeighbors1 = getNumHaveNeighbors((natset - unionAll), unionAll,    
                                          'oneoff')
-        haveNeighbors2 = getNumHaveNeighbors((natset - unionAll), bindset[f,s],    
+        """
+        haveNeighbors2 = getNumHaveNeighbors((natset - unionAll), unionAll,    
                                              'decomp-oneoff')
-        haveNeighbors3 = getNumHaveNeighbors((natset - unionAll), bindset[f,s],    
+        haveNeighbors3 = getNumHaveNeighbors((natset - unionAll), unionAll,    
                                              'decomp-twooff-furthest')
+        """
         print "Neighbor Coverage (all one-off): %.3f" \
             %( (haveNeighbors1 + len(unionAll)) / float(len(natset)))
+        """
         print "Neighbor Coverage (decomp one-off): %.3f" \
             %( (haveNeighbors2 + len(unionAll)) / float(len(natset)))
         print "Neighbor Coverage (decomp two-off furthest): %.3f" \
             %( (haveNeighbors3 + len(unionAll)) / float(len(natset)))
-
+            """
 
 def compareBindingSets(bset1, bset2):
     inter = bset1 & bset2
