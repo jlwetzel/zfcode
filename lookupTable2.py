@@ -457,7 +457,7 @@ def get3merList(freqDict, protein, canonical = False,
 			if freqDict[targ].has_key(protein):
 				targList.append([targ, freqDict[targ][protein]]) 
 		normalizeTargList(targList)
-		return targList
+		return targList, None
 
 	# The target list is empty and we are allowed to use 
 	# nearest neighbors
