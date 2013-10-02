@@ -238,15 +238,14 @@ def runMarcusDataAnalysis(style, decomp, weight_mat, order_mat,
 	# PErform the lookup or nn strategy on various datasets
 	testFings = ['F2']
 	testStrins = ['low']
-	filts = ['cut10bc_0_5', 'cut3bc_0_5', 'cut10bc_0', 'cut3bc_025', 'cut10bc_025']
-	filtsLabs = ['c10_0_5', 'c3_0_5', 'c10_0', 'c3_025', 'c10_025']
+	filts = ['filt_10e-4_05_0', 'filt_10e-4_0_5']
+	filtsLabs = ['10e-4_05_0', '10e-4_0_5']
 	for f in testFings:
 		for s in testStrins:
 			for i, filt in enumerate(filts):
 				
 				if re.match(r'(.)*top[0-9][0-9]', style) != None:
 					topk = eval( style[(len(style) - 2):] )
-					print topk
 				else:
 					topk = None
 				setWeightMatrices(weight_mat, order_mat)
@@ -259,8 +258,8 @@ def runMarcusDataAnalysis(style, decomp, weight_mat, order_mat,
 
 				decompDict = getDecompDict(decomp)
 
-				inDir = '../data/b1hData/newDatabase/6varpos/' \
-					+ trainFing + '/' + trainStrin + '/' + 'protein_seq_' + filt + '/'
+				inDir = '../data/b1hData/antonProcessed/' \
+					+ trainFing + '/' + trainStrin + '/' +  filt + '/'
 
 				outDir = outDirPref + trainFing + '/' + trainStrin + \
 					'/' + filt + '/'
@@ -357,21 +356,25 @@ def predict_matrix_bls(protein): #predict matrix by BLS02 -- written by Anton Pe
 
 def main():
 
-	styles = ['top15', 'top20', 'top25', 'top30']
+	styles = ['top15', 'top20', 'top25', 'top30', 'top35']
 	decomps = ['singles'] * 5
-	weight_mats = ['PAM250_bin']
-	order_mats = ['PAM250_bin']
-	useExact = True
-	trainFing = "F3"
-	trainStrin = "low"
+	weight_mats = ['PAM30']
+	order_mats = ['PAM30']
+	useExact = [True, False]
+	trainFings = ["F1", "F2", "F3"] 
+	trainStrins = ["low", "high"]
 
 	# Run the "topk" neighbors analysis
-	for i, style in enumerate(styles):
-		for j, weight_mat in enumerate(weight_mats):
-			print "Running:\t%s\t%s\t%s\t%s" %(style, decomps[i], weight_mat, 
-			                                   order_mats[j])
-			runMarcusDataAnalysis(style, decomps[i], weight_mat, order_mats[j], 
-                      		  	  trainFing, trainStrin, useExact)
+	for trainFing in trainFings:
+		for trainStrin in trainStrins:
+			for useExact in useExacts:
+				for i, style in enumerate(styles):
+					for j, weight_mat in enumerate(weight_mats):
+						print "Running:\t%s\t%s\t%s\t%s\t%s\t%s\t%s" \
+							%(style, decomps[i], weight_mat, order_mats[j], \
+							  trainFing, trainStrin, useExact)
+						runMarcusDataAnalysis(style, decomps[i], weight_mat, order_mats[j], 
+			                      		  	  trainFing, trainStrin, useExact)
 
 if __name__ == '__main__':
 	main()
