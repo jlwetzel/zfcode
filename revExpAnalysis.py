@@ -360,7 +360,7 @@ def main():
 	decomps = ['singles'] * 5
 	weight_mats = ['PAM30']
 	order_mats = ['PAM30']
-	useExact = [True, False]
+	useExacts = [True, False]
 	trainFings = ["F1", "F2", "F3"] 
 	trainStrins = ["low", "high"]
 
