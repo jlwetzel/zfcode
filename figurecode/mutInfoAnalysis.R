@@ -1,7 +1,7 @@
 library(infotheo)
 library(ggplot2)
 
-fing <- 'F3'
+fing <- 'F2'
 strin <- 'low'
 
 #filtPrefix <- '../../data/b1hData/newDatabase/6varpos' # My files
