@@ -1,8 +1,8 @@
 library(infotheo)
 library(ggplot2)
 
-fing <- 'F1'
-strin <- 'high'
+fing <- 'F3'
+strin <- 'low'
 
 #filtPrefix <- '../../data/b1hData/newDatabase/6varpos' # My files
 filtPrefix <- '../../data/b1hData/antonProcessed' # Anton files
@@ -27,6 +27,16 @@ runAllAnalysis <- function(filtDirs, outDirs, filters) {
 mutInfoAnalysis <- function(data, outDir) {
   # Perform analysis of mutual information for different contact 
   # positions along the helix and the dna strand
+  
+  # Create a randomized dataframe where labels triplets
+  # are shuffled with respect to proteins
+  randData <- data
+  randOrder <- sample(seq(1,length(data$b1)))
+  randData$b1 <- randData$b1[randOrder]
+  randData$b2 <- randData$b2[randOrder]
+  randData$b3 <- randData$b3[randOrder]
+  write.csv(randData,
+            paste(outDir, "data", "shuffleTriples.csv", sep = '/'))
   
   helixPosNames <- c('a0', 'a1', 'a2', 'a3', 'a5', 'a6')
   basePosNames <- c('b1', 'b2', 'b3')
@@ -75,6 +85,15 @@ mutInfoAnalysis <- function(data, outDir) {
   writeFrame(paste(outDir, "data", "contactMutInfo.txt", sep = '/'),
              contactFrame)
   makeHeatPlot(paste(outDir, "contactMutInfo.pdf", sep = '/'),
+               contactFrame)
+  
+  # Get mutual information for contacts with randomly 
+  # shuffled triples
+  contactMutInfo <- getNormMutInfo(randData, helixPosNames, basePosNames)
+  contactFrame <- mat2Frame(contactMutInfo)
+  writeFrame(paste(outDir, "data", "rand_contactMutInfo.txt", sep = '/'),
+             contactFrame)
+  makeHeatPlot(paste(outDir, "rand_contactMutInfo.pdf", sep = '/'),
                contactFrame)
 
   # Get mutual information for base-amino contacts in the context
