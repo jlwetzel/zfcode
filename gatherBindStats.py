@@ -421,13 +421,13 @@ def getNumHaveNeighbors(missing, bindset, type = 'oneoff'):
 
     return numHaveNeighbors
 
-def compareToNatural(bindset, natset, org, fings, 
-                     strins, bothStrinsUnion):
-	# Compares the binding set of to the natural set of 
-	# ZFs.  bindset should be indexed by (fing,strin) tuples.
+def compareToNaturalUnique(bindset, natset, org, fings, 
+                           strins, bothStrinsUnion):
+    # Compares the binding set of to the natural set of 
+    # ZFs.  bindset should be indexed by (fing,strin) tuples.
     print
-    print "Fraction of %s ZFs (-1,2,3,6) Captured: (%d possible)" \
-    	%(org, len(natset))
+    print "Fraction of UNIQUE %s ZFs (-1,2,3,6) Captured: (%d possible)" \
+        %(org, len(natset))
     print "#"*64
     for f in fings:
         for s in strins:
@@ -477,12 +477,12 @@ def compareToNatural(bindset, natset, org, fings,
 
     print            
     for s in strins:
-    	interAll = bindset[fings[0], s]
-    	unionAll = set()
-    	for f in fings:
-    		unionAll = unionAll | bindset[f,s]
-    		interAll = interAll & bindset[f,s]
-    	union = unionAll & natset
+        interAll = bindset[fings[0], s]
+        unionAll = set()
+        for f in fings:
+            unionAll = unionAll | bindset[f,s]
+            interAll = interAll & bindset[f,s]
+        union = unionAll & natset
         inter = interAll & natset
         print "All Intersection (%s): %.3f" %(s, len(inter)/float(len(natset)))
         
@@ -557,6 +557,100 @@ def compareToNatural(bindset, natset, org, fings,
             %( (haveNeighbors3 + len(unionAll)) / float(len(natset)))
             """
 
+def addUpCounts(natDict, zfSet):
+    # Simly returns the number total count of ZFs that the 
+    # keys in zfSet account for in natDict
+    #
+    # natDict maps unique ZFs from a genome to the number of times
+    # they occur
+    # zfSet is a subset of the keys for natDict
+
+    totalNat = 0
+    for k in zfSet:
+        totalNat += natDict[k]
+
+    return totalNat
+
+
+def compareToNaturalCounts(bindset, natDict, org, fings, 
+                           strins, bothStrinsUnion):
+    # Find out how many of the natural ZFs we have if we use the
+    # counts instead of just looking at unique fingers
+
+    # Get total number of ZFs
+    totalNat = addUpCounts(natDict, natDict.keys())
+
+    print
+    print "Fraction of %s ZFs (-1,2,3,6) Captured (USING COUNTS): (%d possible)" \
+        %(org, totalNat)
+    print "#"*64
+    for f in fings:
+        for s in strins:
+            inter = bindset[f,s] & natset
+            tot = addUpCounts(natDict, inter)
+            print "%s %s: %.3f" %(f, s, tot/float(totalNat))
+            
+    print
+    for i in range(len(fings)):
+        for j in range(i + 1, len(fings)):
+            for s in strins:
+                
+                interPair = bindset[fings[i], s] & bindset[fings[j], s]
+                inter = interPair & natset
+                tot = addUpCounts(natDict, inter)
+                print "%s %s (Intersection) %s: %.3f" %(fings[i], fings[j],
+                                                        s, tot/float(totalNat))
+                
+                unionPair = bindset[fings[i], s] | bindset[fings[j], s]
+                union = unionPair & natset
+                tot = addUpCounts(natDict, union)
+                print "%s %s (Union) %s: %.3f" %(fings[i], fings[j],
+                                                 s, tot/float(totalNat))
+
+
+    print            
+    for s in strins:
+        interAll = bindset[fings[0], s]
+        unionAll = set()
+        for f in fings:
+            unionAll = unionAll | bindset[f,s]
+            interAll = interAll & bindset[f,s]
+        
+        inter = interAll & natset
+        tot = addUpCounts(natDict, inter)
+        print "All Intersection (%s): %.3f" %(s, tot/float(totalNat))
+        
+        union = unionAll & natset
+        tot = addUpCounts(natDict, union)
+        print "All Union (%s): %.3f" %(s, tot/float(totalNat))
+
+
+    print
+    print "UNIONING HIGH AND LOW STRINGENCIES:"
+    for k in sorted(bothStrinsUnion.keys()):
+        inter = (bothStrinsUnion[k] & natset)
+        tot = addUpCounts(natDict, inter)
+        print "All of %s: %.3f" %(k, tot/float(totalNat))
+                            
+
+    for i, k1 in enumerate(sorted(bothStrinsUnion.keys())):
+        for j, k2 in enumerate(sorted(bothStrinsUnion.keys())):
+            if j > i:
+                
+                pairSet = bothStrinsUnion[k1] | bothStrinsUnion[k2]
+                union = pairSet & natset
+                tot = addUpCounts(natDict, union)
+                print "All of %s and %s: %.3f" \
+                    %(k1, k2, tot/float(totalNat))
+                                
+    if len(fings) == 3:
+        unionAll = (bothStrinsUnion['F1'] | bothStrinsUnion['F2'] \
+                    | bothStrinsUnion['F3']) & natset
+        tot = addUpCounts(natDict, unionAll)
+        print "All of F1, F2, and F3: %.3f" \
+            %(tot/float(totalNat))
+
+
 def compareBindingSets(bset1, bset2):
     inter = bset1 & bset2
     union = bset1 | bset2
@@ -565,6 +659,16 @@ def compareBindingSets(bset1, bset2):
     print "Intersection: %d" %len(inter)
     print "Union: %d" %len(union)
     print "Jaccard: %.3f" %(len(inter)/float(len(union)))
+
+def getHsapZFDict(path):
+    # Parses the homo-sapiens ZF set that Anton collected
+
+    protDict = {}
+    protFile = open(path, 'r')
+    for line in protFile:
+        sp_line = line.strip().split()
+        protDict[sp_line[0]] = eval(sp_line[1])
+    return protDict
 
 def computeBindingDiversity(proteinDir):
     # Get the protein sets from the binding data.
@@ -604,19 +708,20 @@ def computeBindingDiversity(proteinDir):
     bothStrinsUnion = printBindingSetStats(fings, strins, bindingSets4, 
                                            maxSize4, allProts4)
 
-    dmelSet = getUniqueShilpaZFs('../data/shilpa/Drosophila_melanogaster_ZF.fulldom', 
-                                 [0, 2, 3, 6])
-    hsapSet = getUniqueShilpaZFs('../data/shilpa/Homo_sapiens_ZF.fulldom', 
-                                 [0, 2, 3, 6])
-    compareToNatural(bindingSets4, hsapSet, 'Human', fings, strins, bothStrinsUnion)
-    compareToNatural(bindingSets4, dmelSet, 'Fly', fings, strins, bothStrinsUnion)
+    hsapZFDict = getHsapZFDict('../data/hsapZFs/Hsap_zf_domains_2013.txt')
+    hsapZFSet = set(hsapSet.keys())
+    compareToNaturalUnique(bindingSets4, hsapZFSet, 'Human',
+                           fings, strins, bothStrinsUnion)
+    compareToNaturalCounts(bindingSets4, hsapZFDict, 'Human',
+                           fings, strins, bothStrinsUnion)
 
 def main():
 
-    protDirs = ['filt_10e-4_05_0', 'filt_10e-4_0_5']
+    protDirs = ['filt_10e-4_05_0', 'filt_10e-4_025_0_c', 'filt_10e-4_0_5']
 
     for protDir in protDirs:
         computeBindingDiversity(protDir)
+        
 
 if __name__ == '__main__':
 	main()
