@@ -562,7 +562,7 @@ def compareToNaturalCounts(bindset, natDict, org, fings,
     # Compares the binding set of to the natural set of 
     # ZFs.  bindset should be indexed by (fing,strin) tuples.
 
-    natset = natDict.keys()
+    natset = set(natDict.keys())
     totalNat = addUpCounts(natDict, natset)
 
 
