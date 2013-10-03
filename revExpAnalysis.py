@@ -238,8 +238,8 @@ def runMarcusDataAnalysis(style, decomp, weight_mat, order_mat,
 	# PErform the lookup or nn strategy on various datasets
 	testFings = ['F2']
 	testStrins = ['low']
-	filts = ['filt_10e-4_05_0', 'filt_10e-4_0_5']
-	filtsLabs = ['10e-4_05_0', '10e-4_0_5']
+	filts = ['filt_10e-4_025_0_c']
+	filtsLabs = ['10e-4_05_0_c']
 	for f in testFings:
 		for s in testStrins:
 			for i, filt in enumerate(filts):

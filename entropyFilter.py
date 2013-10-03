@@ -80,10 +80,10 @@ def main():
 	varpos = '6varpos'
 	fings = ['F1', 'F2', 'F3']
 	strins = ['low', 'high']
-	entCutoff = 0.5
+	entCutoff = 0.25
 	supportCutoff = 0
 	freqCutoff = 0.0001
-	oldProts = 'unfiltered'
+	oldProts = 'unfiltered2'
 
 	for f in fings:
 		for s in strins:
@@ -102,7 +102,7 @@ def main():
 			newDir = '/'.join(oldDir.split('/')[:-2]) + \
 				'/' + 'filt_10e-4_'+ \
 				(str(entCutoff)).replace('.', '') + \
-				'_' + str(supportCutoff) + '/'
+				'_' + str(supportCutoff) + '_c/'
 			try:
 				os.mkdir(newDir)
 			except OSError:
