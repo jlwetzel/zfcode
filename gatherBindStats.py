@@ -557,7 +557,7 @@ def compareToNaturalUnique(bindset, natset, org, fings,
             %( (haveNeighbors3 + len(unionAll)) / float(len(natset)))
             """
 
-def compareToNaturalUnique(bindset, natDict, org, fings, 
+def compareToNaturalCounts(bindset, natDict, org, fings, 
                            strins, bothStrinsUnion):
     # Compares the binding set of to the natural set of 
     # ZFs.  bindset should be indexed by (fing,strin) tuples.
