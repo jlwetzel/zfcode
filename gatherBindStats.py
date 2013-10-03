@@ -613,7 +613,7 @@ def computeBindingDiversity(proteinDir):
 
 def main():
 
-    protDirs = ['filt_10e-4_05_0', 'filt_10e-4_0_5']
+    protDirs = ['filt_10e-4_05_0', 'filt_10e-4_05_0_c', 'filt_10e-4_0_5']
 
     for protDir in protDirs:
         computeBindingDiversity(protDir)
