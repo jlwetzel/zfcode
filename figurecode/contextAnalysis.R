@@ -3,8 +3,8 @@ library(ggplot2)
 # Create the list of directories
 fings <- c('F1', 'F2', 'F3')
 strins <- c('low', 'high')
-filts <- c('filt_10e-4_05_0', 'filt_10e-4_0_5')
-inPref <- '../../data/b1hData/antonProcessed/'
+filts <- c('filt_10e-4_025_0_c', 'filt_10e-4_05_0')
+inPref <- '../../data/b1hData/antonProcessed'
 outDir <- '../../figures/contextAnalysis'
 inFiles <- vector()
 outTags <- vector()
