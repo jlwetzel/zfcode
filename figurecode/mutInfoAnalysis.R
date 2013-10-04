@@ -11,7 +11,7 @@ filtPrefix <- paste(filtPrefix, fing, strin, sep = '/')
 outDirPrefix <- paste(outDirPrefix, fing, strin, sep = '/')
 #filters <- c('cut10bc_0_5', 'cut10bc_025', 'cut3bc_0_5', 'cut3bc_025')
 #filtDirs <- paste(filtPrefix, paste("protein_seq", filters, sep = '_'),sep = '/') # My files
-filters <- c('filt_10e-4_025_0_c', 'filt_10e-4_05_0', 'filt_10e-4_0_5')
+filters <- c('filt_10e-4_025_0_c')#, 'filt_10e-4_05_0', 'filt_10e-4_0_5')
 filtDirs <- paste(filtPrefix, filters,sep = '/') # Anton files
 
 outDirs <- paste(outDirPrefix, filters, sep = '/')
@@ -190,10 +190,12 @@ makeHeatPlot <- function(fname, dframe) {
   # Makes a faceted heatplot
   xl <- paste("")
   yl <- paste("")
+  br <- seq(0,1, 0.1)
   g <- ggplot(dframe, aes(var1, var2)) + 
     geom_tile(aes(fill = score)) +
-    scale_fill_gradient(low = 'white', high = 'darkblue',
-                        limits = c(0,1)) +
+    scale_fill_gradient2(breaks = br,
+                         low = 'white', high = 'darkblue',
+                         limits = c(0,1), guide = 'legend') +
     xlab(xl) +
     ylab(yl)
   ggsave(fname, plot = g)
