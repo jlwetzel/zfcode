@@ -106,7 +106,7 @@ def main():
 			       	   'NNonly_top' + k + '/','NN_top' + k + '_' + mat + '/']
 
 	#filters = ['cut3bc_0_5', 'cut10bc_0_5', 'cut10bc_0', 'cut10bc_025', 'cut3bc_025']
-	filters = ['filt_10e-4_0_5', 'filt_10e-4_05_0']
+	filters = ['filt_10e-4_025_0_c']
 	for f in filters:
 		if useExact:
 			texFile = open(outDir + '_'.join([trainFing, trainStrin, style, f, 'useExact']) \
