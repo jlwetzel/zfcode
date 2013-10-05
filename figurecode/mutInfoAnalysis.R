@@ -1,8 +1,8 @@
 library(infotheo)
 library(ggplot2)
 
-fing <- 'F2'
-strin <- 'low'
+fing <- 'F3'
+strin <- 'high'
 
 #filtPrefix <- '../../data/b1hData/newDatabase/6varpos' # My files
 filtPrefix <- '../../data/b1hData/antonProcessed' # Anton files
@@ -51,6 +51,7 @@ mutInfoAnalysis <- function(data, outDir) {
   makeHeatPlot(paste(outDir, "helixMutInfo.pdf", sep = '/'),
                helixFrame)
 
+  if(FALSE) {
   # Get mutual information for helix against helix in the 
   # context of specific bases in specific positions
   for (bpos in basePosNames) {
@@ -68,6 +69,7 @@ mutInfoAnalysis <- function(data, outDir) {
       writeFrame(tfile, helixFrame)
       makeHeatPlot(pfile, helixFrame)
     }
+  }
   }
 
   # Get mutual information for base positions against base positions
@@ -96,6 +98,7 @@ mutInfoAnalysis <- function(data, outDir) {
   makeHeatPlot(paste(outDir, "rand_contactMutInfo.pdf", sep = '/'),
                contactFrame)
 
+  if (FALSE){
   # Get mutual information for base-amino contacts in the context
   # of specific bases in specific positions
   for (bpos in basePosNames){
@@ -112,6 +115,7 @@ mutInfoAnalysis <- function(data, outDir) {
       writeFrame(tfile, contactFrame)
       makeHeatPlot(pfile, contactFrame)
     }
+  }
   }
 }
 
@@ -190,12 +194,12 @@ makeHeatPlot <- function(fname, dframe) {
   # Makes a faceted heatplot
   xl <- paste("")
   yl <- paste("")
-  br <- seq(0,1, 0.1)
+  br <- seq(0,1, 0.05)
   g <- ggplot(dframe, aes(var1, var2)) + 
     geom_tile(aes(fill = score)) +
     scale_fill_gradient2(breaks = br,
-                         low = 'white', high = 'darkblue',
-                         limits = c(0,1), guide = 'legend') +
+                         low = 'white', high = 'steelblue',
+                         limits = c(0,0.5), guide = 'legend') +
     xlab(xl) +
     ylab(yl)
   ggsave(fname, plot = g)

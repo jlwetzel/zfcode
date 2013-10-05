@@ -1,9 +1,9 @@
 library(ggplot2)
 
 # Create the list of directories
-fings <- c("F2")#c('F1', 'F2', 'F3')
+fings <- c('F1', 'F2', 'F3')
 strins <- c('low', 'high')
-filts <- c("filt_10e-4_025_0_c")#c('filt_10e-4_025_0_c', 'filt_10e-4_05_0')
+filts <- c('filt_10e-4_025_0_c', 'filt_10e-4_05_0', 'filt_10e-4_0_5')
 inPref <- '../../data/b1hData/antonProcessed'
 outDir <- '../../figures/contextAnalysis'
 inFiles <- vector()
@@ -53,21 +53,34 @@ for (f in fings)
       v1 <- v1Vals[4:length(v1Vals)]
       v2Vals <- as.numeric(dfList[[highTag]][dfList[[highTag]]$prot == p,])
       v2 <- v2Vals[4:length(v2Vals)]
-      freqs <- c(freqs, v1Vals[3])
-      pcc <- cor(v1, v2)
-      pccs <- c(pccs, cor(v1, v2))
-      if (pcc < 0) {
-        freqsNegCorr <- c(freqsNegCorr, v1Vals[3])
-      }
+      
+      # Cosine similarity
+      num <- sum(v1*v2)
+      den <- sqrt(sum(v1*v1)) * sqrt(sum(v2*v2))
+      cosSim <- num/den
+      pccs <- c(pccs, cosSim)
+      
+      # To use Jaccard coefficient 
+      #set1 <- which(as.logical(v1))
+      #set2 <- which(as.logical(v2))
+      #int <- intersect(set1, set2)
+      #un <- union(set1, set2)
+      #jaccard <- length(int)/length(un)
+      #pccs <- c(pccs, jaccard)  
+      
+      # To use Pearson Correlation
+      #pcc <- cor(v1, v2)
+      #pccs <- c(pccs, pcc)
     }
     
     pccFrame <- data.frame(prot = interProts, pcc = pccs)
-    plotFile <- paste("intersectHighLow", "PCC",
-                     f, s, filt, sep = '_')
+    plotFile <- paste("intersectHighLow", "CosineSim",
+                     f, filt, sep = '_')
     plotFile <- paste0(outDir, '/', plotFile, '.pdf')
-    #g <- ggplot(pccFrame, aes(pcc)) + 
-    #  geom_histogram() +
-    #  xlab("PCC between high and low") +
-    #  ylab("Number of Canonical Proteins")
-    #ggsave(plotFile, plot = g)
+    print(plotFile)
+    g <- ggplot(pccFrame, aes(pcc)) + 
+      geom_histogram() +
+      xlab("Cosine similarity between high and low") +
+      ylab("Number of Canonical Proteins")
+    ggsave(plotFile, plot = g)
   }
