@@ -2,7 +2,7 @@ library(infotheo)
 library(ggplot2)
 
 fing <- 'F3'
-strin <- 'high'
+strin <- 'union'
 
 #filtPrefix <- '../../data/b1hData/newDatabase/6varpos' # My files
 filtPrefix <- '../../data/b1hData/antonProcessed' # Anton files
@@ -175,30 +175,33 @@ mat2Frame <- function(mat){
   # a data.frame according to its name
   
   vecLen <- nrow(mat)*ncol(mat)
-  var1 <- vector(mode = 'character')
-  var2 <- vector(mode = 'character')
+  hpos <- vector(mode = 'character')
+  bpos <- vector(mode = 'character')
   score <- vector(mode = 'numeric')
   
   for (i in 1:nrow(mat)){
     for (j in 1:ncol(mat)) {
-      var1 <- c(var1, rownames(mat)[i])
-      var2 <- c(var2, colnames(mat)[j])
+      if (rownames(mat)[i] == "a0")
+        hpos <- c(hpos, "-1")
+      else
+        hpos <- c(hpos, substr(rownames(mat)[i], 2, 2))
+      bpos <- c(bpos, substr(colnames(mat)[j], 2, 2))
       score <- c(score, mat[i,j])
     }
   }
-  dframe <- data.frame(var1 = var1, var2 = var2,
+  dframe <- data.frame(hpos = hpos, bpos = bpos,
                        score = score)
 }
 
 makeHeatPlot <- function(fname, dframe) {
   # Makes a faceted heatplot
-  xl <- paste("")
-  yl <- paste("")
+  xl <- paste("Helix position")
+  yl <- paste("Base position")
   br <- seq(0,1, 0.05)
-  g <- ggplot(dframe, aes(var1, var2)) + 
+  g <- ggplot(dframe, aes(hpos, bpos)) + 
     geom_tile(aes(fill = score)) +
     scale_fill_gradient2(breaks = br,
-                         low = 'white', high = 'steelblue',
+                         low = 'white', high = 'royalblue',
                          limits = c(0,0.5), guide = 'legend') +
     xlab(xl) +
     ylab(yl)
