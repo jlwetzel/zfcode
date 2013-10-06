@@ -55,10 +55,19 @@ for (f in fings)
       v2 <- v2Vals[4:length(v2Vals)]
       
       # Cosine similarity
+      #num <- sum(v1*v2)
+      #den <- sqrt(sum(v1*v1)) * sqrt(sum(v2*v2))
+      #cosSim <- num/den
+      #pccs <- c(pccs, cosSim)
+      
+      # Cosine similarity using binary vectors
+      v1 <- as.numeric(as.logical(v1))
+      v2 <- as.numeric(as.logical(v2))
       num <- sum(v1*v2)
       den <- sqrt(sum(v1*v1)) * sqrt(sum(v2*v2))
       cosSim <- num/den
       pccs <- c(pccs, cosSim)
+      
       
       # To use Jaccard coefficient 
       #set1 <- which(as.logical(v1))
@@ -74,7 +83,7 @@ for (f in fings)
     }
     
     pccFrame <- data.frame(prot = interProts, pcc = pccs)
-    plotFile <- paste("intersectHighLow", "CosineSim",
+    plotFile <- paste("intersectHighLow", "CosineSim_binary",
                      f, filt, sep = '_')
     plotFile <- paste0(outDir, '/', plotFile, '.pdf')
     print(plotFile)
