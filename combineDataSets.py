@@ -170,10 +170,10 @@ def main():
 
 	# Unioning between fingers F2 and F3 (intersections)
 	filt = "filt_10e-4_025_0_c"
-	path1 = '../data/b1hData/antonProcessed/F2/inter/'
-	path2 = '../data/b1hData/antonProcessed/F3/inter/'
-	outPath = '../data/b1hData/antonProcessed/F2F3/unionIntersections/'
-	combineFingers(path1, path2, filt, outPath, 'union')
+	path1 = '../data/b1hData/antonProcessed/F2/union/'
+	path2 = '../data/b1hData/antonProcessed/F3/union/'
+	outPath = '../data/b1hData/antonProcessed/F2F3/intersectUnions/'
+	combineFingers(path1, path2, filt, outPath, 'inter')
 
 
 if __name__ == '__main__':
