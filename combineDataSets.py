@@ -120,36 +120,100 @@ def combineHighAndLow(path, filt, combineType):
 		# Write to a file
 		writeToFile(combineDict, newPath + fname)
 
-def combineFingers(path1, path2, filt, outPath, combineType):
+def combineFingers(path1, path2, filt, outPath, combineType,
+                   interType = None):
 
 	# Combines datasets across fingers
+	# combineType is either 'union' or 'inter'
+	# interType is only needed if combineType is 'inter'
+	# and specifices whether to intersect at the level of 
+	# triplet files or at the level of whole datasets
 
 	path1 = path1 + '/' + filt + '/'
 	path2 = path2 + '/' + filt + '/'
 	outPath = outPath + '/' + filt + '/'
 	makeDir(outPath)
 
+
 	p1Handle = os.popen('ls %s' %(path1))
-	# Combine each pair of files per target
-	for fname in p1Handle:
-		fname = fname.strip()
-		if re.match(r'[ACGT]{3}(.)*.txt', fname) == None:
-			continue
+	
+	# Handle the case of unioning or intersecting based on 
+	# individual triplet files
+	if (combineType == 'inter' and interType == "triples") \
+		or combineType == 'union':
 
-		# Get the dictionaries for combining
-		p1Dict = getSeqDict(path1 + fname)
-		p2Dict = getSeqDict(path2 + fname)
+		# Combine each pair of files per target
+		for fname in p1Handle:
+			fname = fname.strip()
+			if re.match(r'[ACGT]{3}(.)*.txt', fname) == None:
+				continue
 
-		# Combine by averaging frequencies
-		combineDict = combineSeqDicts(p1Dict, p2Dict,
-		                              combineType)
+			# Get the dictionaries for combining
+			p1Dict = getSeqDict(path1 + fname)
+			p2Dict = getSeqDict(path2 + fname)
 
-		# Renormalize if we are dropping anything
-		if combineType == 'inter':
-			normalizeSeqDict(combineDict)
+			# Combine by averaging frequencies
+			combineDict = combineSeqDicts(p1Dict, p2Dict,
+			                              combineType)
 
-		# Write to a file
-		writeToFile(combineDict, outPath + fname)
+			# Renormalize if we are dropping anything
+			if combineType == 'inter':
+				normalizeSeqDict(combineDict)
+
+			# Write to a file
+			writeToFile(combineDict, outPath + fname)
+
+
+	# Handle the case of intersecting on all unique proteins
+	# in the two datasets.
+	elif (combineType == 'inter' and interType == 'all'):
+
+		# Get the intersection of unique canonical proteins
+		# across the two fingers
+		p1Set = set()
+		p2Set = set()
+		for fname in p1Handle:
+			fname = fname.strip()
+			if re.match(r'[ACGT]{3}(.)*.txt', fname) == None:
+				continue
+
+			p1Dict = getSeqDict(path1 + fname)
+			p2Dict = getSeqDict(path2 + fname)
+			for k in p1Dict.keys():
+				p1Set.add(k)
+			for k in p2Dict.keys():
+				p2Set.add(k)
+		interSet = p1Set & p2Set
+
+		# Combine each pair of files per target
+		p1Handle = os.popen('ls %s' %(path1))
+		for fname in p1Handle:
+			fname = fname.strip()
+			if re.match(r'[ACGT]{3}(.)*.txt', fname) == None:
+				continue
+
+			# Get the dictionaries for combining
+			p1Dict = getSeqDict(path1 + fname)
+			p2Dict = getSeqDict(path2 + fname)
+
+			# Combine by averaging frequencies
+			for k in p1Dict.keys():
+				if k not in interSet:
+					del p1Dict[k]
+			for k in p2Dict.keys():
+				if k not in interSet:
+					del p2Dict[k]
+			combineDict = combineSeqDicts(p1Dict, p2Dict,
+			                              combineType)
+
+			# Renormalize if we are dropping anything
+			if combineType == 'inter':
+				normalizeSeqDict(combineDict)
+
+			# Write to a file
+			writeToFile(combineDict, outPath + fname)
+
+
 
 def main():
 
@@ -171,10 +235,12 @@ def main():
 
 	# Unioning between fingers F2 and F3 (intersections)
 	filt = "filt_10e-4_025_0_c"
-	path1 = '../data/b1hData/antonProcessed/F2/union/'
-	path2 = '../data/b1hData/antonProcessed/F3/union/'
-	outPath = '../data/b1hData/antonProcessed/F2F3/intersectUnions/'
-	combineFingers(path1, path2, filt, outPath, 'inter')
+	path1 = '../data/b1hData/antonProcessed/F2/inter/'
+	path2 = '../data/b1hData/antonProcessed/F3/inter/'
+	outPath = '../data/b1hData/antonProcessed/F2F3/' + \
+		'intersectIntersections_all/'
+	combineFingers(path1, path2, filt, outPath,
+	               combineType = 'inter', interType = 'all')
 
 
 if __name__ == '__main__':
