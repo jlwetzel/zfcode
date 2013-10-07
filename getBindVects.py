@@ -125,8 +125,8 @@ def makeBindVectFiles(bindPref, fings, strins, filts, canInd, allTargs):
 
 def main():
 	bindPref = '../data/b1hData/antonProcessed/'
-	fings = ["F2F3"]#["F1", "F2", "F3"]
-	strins = ["intersectIntersections"]#["inter"]
+	fings = ["F1", "F2", "F3"]
+	strins = ["inter", "union"]
 	filts = ['filt_10e-4_025_0_c']
 	canInd = [0,2,3,5]
 
