@@ -204,7 +204,7 @@ def combineFingers(path1, path2, filt, outPath, combineType,
 				if k not in interSet:
 					del p2Dict[k]
 			combineDict = combineSeqDicts(p1Dict, p2Dict,
-			                              combineType)
+			                              'union')
 
 			# Renormalize if we are dropping anything
 			if combineType == 'inter':
@@ -235,10 +235,10 @@ def main():
 
 	# Unioning between fingers F2 and F3 (intersections)
 	filt = "filt_10e-4_025_0_c"
-	path1 = '../data/b1hData/antonProcessed/F2/inter/'
-	path2 = '../data/b1hData/antonProcessed/F3/inter/'
+	path1 = '../data/b1hData/antonProcessed/F2/union/'
+	path2 = '../data/b1hData/antonProcessed/F3/union/'
 	outPath = '../data/b1hData/antonProcessed/F2F3/' + \
-		'intersectIntersections_all/'
+		'intersectUnions_all/'
 	combineFingers(path1, path2, filt, outPath,
 	               combineType = 'inter', interType = 'all')
 
