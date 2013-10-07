@@ -45,6 +45,7 @@ def combineSeqDicts(d1, d2, combineType):
 			combineDict[k] = d1[k]/2
 		else:
 			combineDict[k] = d2[k]/2
+	
 	return combineDict
 
 
