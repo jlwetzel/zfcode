@@ -183,7 +183,10 @@ def combineFingers(path1, path2, filt, outPath, combineType,
 				p1Set.add(k)
 			for k in p2Dict.keys():
 				p2Set.add(k)
+
+		print len(p1Set), len(p2Set)
 		interSet = p1Set & p2Set
+		print(len(interSet))
 
 		# Combine each pair of files per target
 		p1Handle = os.popen('ls %s' %(path1))
