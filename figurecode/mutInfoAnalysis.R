@@ -1,8 +1,8 @@
 library(infotheo)
 library(ggplot2)
 
-fing <- 'F3'
-strin <- 'union'
+fing <- 'F2F3'
+strin <- 'unionUnions'
 
 #filtPrefix <- '../../data/b1hData/newDatabase/6varpos' # My files
 filtPrefix <- '../../data/b1hData/antonProcessed' # Anton files
