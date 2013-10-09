@@ -132,7 +132,7 @@ def pwmfile2matrix(pwmFile):
 def makeLogo(infile, outfile, format = 'pdf', alpha = 'protein',
              composition = 'none', size = 'large', 
              colScheme = 'chemistry', xlab = None,
-             annot = None, fineprint = None):
+             ylab = None, annot = None, fineprint = None):
 	# Creates a logo based on a pwm by calling weblogo.
 	#
 	# - infile is a path to a pwm file in the transfac 
@@ -147,7 +147,9 @@ def makeLogo(infile, outfile, format = 'pdf', alpha = 'protein',
 	if annot != None:
 		opts += ' --annotate %s' %annot
 	if fineprint != None:
-		opts +  ' --fineprint %s' %fineprint
+		opts += ' --fineprint %s' %fineprint
+	if ylab != None:
+		opts += ' --ylabel %s' %ylab
 	#print opts
 	#print infile
 	#print outfile

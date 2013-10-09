@@ -538,7 +538,7 @@ def lookupCanonZF(freqDict, canonProt, useNN = True, skipExact = False,
 
 	# Make the list of targets bound and normalized frequencies.
 	if not useNN:
-		targList = get3merList(freqDict, canonProt, canonical,
+		targList, npb = get3merList(freqDict, canonProt, canonical,
 	                           useNN, skipExact, decompose, topk)
 	else:
 		targList, neighborsPerBase = get3merList(freqDict, canonProt, canonical,
@@ -546,6 +546,7 @@ def lookupCanonZF(freqDict, canonProt, useNN = True, skipExact = False,
 	                                         verbose)
 	
 	# This is target/frequncy list
+	#print targList
 	if isinstance(targList, list):
 		# If the target list is empty, we can't return a specificity,
 		# so we just return a uniform distribution for each base
@@ -616,10 +617,66 @@ def getPosEntropies(freqDict, norm = False):
 		entropyDict['a' + repr(i)] = entropy(freqs)
 
 	print entropyDict
-	
+
+def getTop64F2Tuples(fname):
+	# Read the list of top 64 most specific proteins
+	# into a list if tuples (target, protein)
+	fin = open(fname, 'r')
+	top64 = []
+	for line in fin:
+		sp_line = line.strip().split()
+		targ = sp_line[0]
+		prot = sp_line[1]
+		top64.append( (targ, prot) )
+
+	return top64
+
+def predictTop64(fname):
+
+	inDir = '../data/b1hData/antonProcessed/F2/low/filt_10e-4_025_0_c/'
+	canonical = True
+	varpos = 6
+	canInd = getPosIndex(varpos, canonical)
+	freqDict = computeFreqDict(inDir, canInd)
+	singles = {1: [3], 2: [2], 3: [0]}
+	decomp = singles
+
+	# Set up directories for the prediction logos
+	dirpath = '/'.join(fname.split('/')[:-1]) + '/'	
+	makeDir(dirpath + 'nnTop25/')
+	makeDir(dirpath + 'nnOnlyTop25/')
+	makeDir(dirpath + 'lookup/')
+
+	# Get the list of protein tuples
+	bestTargProts = getTop64F2Tuples(fname)
+	targs = [i[0] for i in bestTargProts]
+	prots = [i[1] for i in bestTargProts]
+	canProts = [i[0]+i[2]+i[3]+i[6] for i in prots]
+
+	# Do the exact lookup
+	outpath = dirpath + 'nnTop25/'
+	for i, canProt in enumerate(canProts):
+		#print targs[i], canProt
+		nmat, npb = lookupCanonZF(freqDict, canProt, useNN = True, 
+		                          skipExact = False, decompose = decomp, 
+		                          topk = 25, verbose = None)
+		label = '_'.join([str(i+1).zfill(2), targs[i], prots[i], 'nnop25'])
+		makeNucMatFile(outpath, label, nmat)
+		logoIn = outpath + label + '.txt'
+		logoOut = outpath + label + '.pdf'
+		makeLogo(logoIn, logoOut, alpha = 'dna', 
+			         colScheme = 'classic',
+			         annot = "'5,M,3'",
+			         ylab = "' '",
+			         fineprint = "' '")
+
 
 def main():
 
+	fname = '../data/revExp/best64F2/best64F2.txt'
+	predictTop64(fname)
+
+	"""
 	# Debugging stuff
 	outDir = '../data/scratch/'
 	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut10bc_0_5/'
@@ -699,7 +756,8 @@ def main():
 			print "Top %d: " %k
 			print getConsensus(nmat)
 			print "Final Matrix:"
-			print nmat	                 	
+			print nmat	
+			"""                 	
 
 if __name__ == '__main__':
 	main()
