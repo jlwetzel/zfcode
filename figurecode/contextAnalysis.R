@@ -188,7 +188,9 @@ runHighVsLowAnalysis <- function(simType) {
 
 runF2vF3SimAnalysis <- function(simType) {
   # Perform a similarity analysis bewteen F2 and F3 
-  # for the given combined stringency/filter
+  # for the given combined stringency/filter ...
+  # Create a histogram of similarity scores between 
+  # binding vectors
 
   fings <- c('F2', 'F3')
   strins <- c('union', 'inter')
@@ -218,11 +220,122 @@ runF2vF3SimAnalysis <- function(simType) {
   compareF2vsF3(dfList, strins, filts, simType, outDir)
 }
 
+runF2vF3DiffAnalysis1 <- function() {
+  # For each DNA triplet, how many of the canonical proteins
+  # that are in F2 high and F2 low are in either F3 low or 
+  # F3 high ... and vice-versa
+
+  strins <- c('inter', 'union', 'high', 'low')
+  fings <- c('F3', 'F2', 'F3', 'F3') 
+
+  filts <- c('filt_10e-4_025_0_c')
+  inPref <- '../../data/b1hData/antonProcessed'
+  outDir <- '../../figures/contextAnalysis/F2vsF3/diffAnalysis1'
+  dirs <- paste(inPref, fings, strins, filts, sep = '/')
+  bases <- c('A', 'C', 'G', 'T')
+  triplets <- vector()
+  for (b1 in bases)
+    for (b2 in bases)
+      for (b3 in bases)
+        triplets <- c(triplets, paste0(b1, b2, b3))
+
+  # Read in the two datasets to be compared
+  faFrame <- read.table(paste(dirs[1], 'all_4pos.txt', sep = '/'),
+                           sep = '\t', header = TRUE)
+  fbFrame <- read.table(paste(dirs[2], 'all_4pos.txt', sep = '/'),
+                           sep = '\t', header = TRUE)
+  faLowFrame <- read.table(paste(dirs[3], 'all_4pos.txt', sep = '/'),
+                           sep = '\t', header = TRUE)
+  faHighFrame <- read.table(paste(dirs[4], 'all_4pos.txt', sep = '/'),
+                           sep = '\t', header = TRUE)
+
+  # Create vectors for a dataframe
+  targs <- vector()
+  cmpType <- vector()
+  numProts1 <- vector()
+  numProts2 <- vector()
+  interSize <- vector()
+  unionSize <- vector()
+
+  for (t in triplets) {
+    
+    # Compare fa and fb
+    targs <- c(targs, t)
+    cmpType <- c(cmpType, "fafb")
+    faProts <- faFrame[faFrame$targ==t,]$prot
+    fbProts <- fbFrame[fbFrame$targ==t,]$prot
+    numProts1 <- c(numProts1, length(faProts))
+    numProts2 <- c(numProts2, length(fbProts))
+    interSize <- c(interSize, length(intersect(faProts,
+                                               fbProts)))
+    unionSize <- c(unionSize, length(union(faProts,fbProts)))
+    
+    # Compare high and low for one of the the first set
+    targs <- c(targs, t)
+    cmpType <- c(cmpType, "lowhigh")
+    lProts <- faLowFrame[faLowFrame$targ==t,]$prot
+    hProts <- faHighFrame[faHighFrame$targ==t,]$prot
+    numProts1 <- c(numProts1, length(hProts))
+    numProts2 <- c(numProts2, length(lProts))
+    interSize <- c(interSize, length(intersect(lProts,
+                                               hProts)))
+    unionSize <- c(unionSize, length(union(lProts,hProts)))
+  }
+
+  print(targs)
+  print(interSize)
+  print(unionSize)
+
+  # Create the dataframe
+  countFrame <- data.frame(targ = targs, cmpType = cmpType,
+                           numProts1 = numProts1, numProts2 = numProts2,
+                           interSize = interSize, unionSize = unionSize)
+
+
+  ftag <- paste0(fings[1], strins[1], '_', fings[2], strins[2])
+  tableName <- paste(outDir, (paste0(ftag,'.txt')), sep = '/')
+  write.table(file = tableName, countFrame, row.names=FALSE, quote=FALSE)
+
+  # Make the graph/s
+  ctypeBreaks <- c("fafb", "lowhigh")
+  ctypeLabs <- c(paste0(fings[1], " inter vs. ", fings[2], " union"), 
+                 paste0(fings[1], " high vs. ", fings[1], " low"))
+
+  # Side by side boxplot
+  g <- ggplot(countFrame, aes(x = cmpType, y = interSize/unionSize,
+                              fill = "royalblue")) +
+    geom_boxplot(fill = "royalblue") +
+    ylab("Jaccard index") +
+    scale_x_discrete("", breaks = ctypeBreaks, labels = ctypeLabs) +
+    theme_bw()
+  plotName <- paste(outDir, (paste0(ftag,'_diff_box.pdf')), sep = '/')
+  ggsave(plotName, plot = g)
+
+  # Faceted bargraph
+  g <- ggplot(countFrame, aes(x = cmpType, y = interSize/unionSize,
+                              fill = cmpType)) +
+    geom_bar(stat = "identity") +
+    scale_fill_manual("", breaks = ctypeBreaks,
+                        labels = ctypeLabs,
+                        values = c("indianred", "royalblue")) +
+    facet_wrap(~targ, nrow = 8, ncol = 8) +
+    theme_bw() +
+    ylab("Jaccard index") +
+    theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+         axis.title.x = element_blank(), legend.position = "bottom",
+         legend.direction = "horizontal")
+
+  plotName <- paste(outDir, paste0(ftag,'_diff_bar.pdf'), sep = '/')
+  print(plotName)
+  ggsave(plotName, plot = g)
+}
+
 main <- function() {
   #runHighVsLowAnalysis('pcc')
   #runF2vF3SimAnalysis('pcc')
-  runF2vF3SimAnalysis('cosine')
+  #runF2vF3SimAnalysis('cosine')
   #runF2vF3SimAnalysis('cosine_bin')
+  runF2vF3DiffAnalysis1()
 }
 
 main()

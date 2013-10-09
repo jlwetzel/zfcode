@@ -194,7 +194,7 @@ mat2Frame <- function(mat){
 }
 
 makeHeatPlot <- function(fname, dframe) {
-  # Makes a faceted heatplot
+  # Makes a heatplot
   xl <- paste("Helix position")
   yl <- paste("Base position")
   br <- seq(0,1, 0.05)

@@ -2,6 +2,7 @@
 
 import os
 import sys
+import re
 
 nucs = ['A', 'C', 'G', 'T']
 
@@ -135,12 +136,67 @@ def csv2txtFile(dirPath, numVarPos, style = 'verbose'):
 	csvFile.close()
 	outfile.close()
 
+def make4posFiles(dirPath):
+	# Create a canonical positon triplet file for each triplet
+
+	allFile = open(dirPath + 'all_4pos.txt', 'w')
+	header = "targ\tprot\tfreq\n"
+	allFile.write(header)
+
+	handle = os.popen("ls %s" %dirPath)
+	for fname in handle:
+		
+		# Skip if invalid filename
+		fname = fname.strip()
+		if re.match(r'[ACGT]{3}.txt', fname) == None:
+			continue
+		targ = fname.split('.')[0]
+
+		# Get frequencies in terms of 4 canonical positions
+		freqDict = {}
+		fin = open(dirPath + fname, 'r')
+		for line in fin:
+			sp_line = line.strip().split()
+			seq = sp_line[0]
+			freq = float(sp_line[1])
+			canSeq = ''
+			for i in [0,2,3,5]:
+				canSeq += seq[i]
+			if freqDict.has_key(canSeq):
+				freqDict[canSeq] += freq
+			else:
+				freqDict[canSeq] = freq
+		fin.close()
+
+		# Write the sorted frequency canonical seqs to
+		# the new files
+		freqList = sorted([(i[1], i[0]) for i in freqDict.items()], reverse = True)
+		fout = open(dirPath + '4pos_' + targ + '.txt', 'w')
+		for (freq, aseq) in freqList:
+			outStr = "%s\t%f\n" %(aseq, freq)
+			fout.write(outStr)
+			outStr = "%s\t%s\t%f\n" %(targ, aseq, freq)
+			allFile.write(outStr)
+		fout.close()
+	allFile.close()
+
+
 def main():
-	pass
 	#path = sys.argv[1]
 	#targetFiles2CSV("../data/b1hData/oldData/F3/unfiltered/high/")
 	#csv2oneFile("../data/b1hData/oldData/F3/unfiltered/high/")
 
+	pathPref = '../data/b1hData/antonProcessed/'
+	#fings = ["F1", "F2", "F3"]
+	fings = ["F2F3"]
+	#strins = ["high", "low", "union", "inter"]
+	strins = ["intersectIntersections", "unionIntersections", "intersectUnions", "unionUnions"]
+	filts = ["filt_10e-4_025_0_c"]
+	for f in fings:
+		for s in strins:
+			for filt in filts:
+				path = '/'.join([pathPref, f, s, filt]) + '/'
+				make4posFiles(path)
 
 if __name__ == '__main__':
 	main()
