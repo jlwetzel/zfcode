@@ -654,19 +654,20 @@ def predictTop64(fname):
 	canProts = [i[0]+i[2]+i[3]+i[6] for i in prots]
 
 	# Do the exact lookup
-	outpath = dirpath + 'nnTop25/'
+	outpath = dirpath + 'lookup/'
 	for i, canProt in enumerate(canProts):
 		#print targs[i], canProt
-		nmat, npb = lookupCanonZF(freqDict, canProt, useNN = True, 
+		nmat, npb = lookupCanonZF(freqDict, canProt, useNN = False, 
 		                          skipExact = False, decompose = decomp, 
 		                          topk = 25, verbose = None)
-		label = '_'.join([str(i+1).zfill(2), targs[i], prots[i], 'nnop25'])
+		label = '_'.join([str(i+1).zfill(2), targs[i], prots[i], 'lookup'])
 		makeNucMatFile(outpath, label, nmat)
 		logoIn = outpath + label + '.txt'
 		logoOut = outpath + label + '.pdf'
 		makeLogo(logoIn, logoOut, alpha = 'dna', 
 			         colScheme = 'classic',
 			         annot = "'5,M,3'",
+			         xlab = prots[i],
 			         ylab = "' '",
 			         fineprint = "' '")
 
