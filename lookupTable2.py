@@ -633,7 +633,7 @@ def getTop64F2Tuples(fname):
 
 def predictTop64(fname):
 
-	inDir = '../data/b1hData/antonProcessed/F2/low/filt_10e-4_025_0_c/'
+	inDir = '../data/b1hData/antonProcessed/F3/union/filt_10e-4_025_0_c/'
 	canonical = True
 	varpos = 6
 	canInd = getPosIndex(varpos, canonical)
@@ -654,13 +654,13 @@ def predictTop64(fname):
 	canProts = [i[0]+i[2]+i[3]+i[6] for i in prots]
 
 	# Do the exact lookup
-	outpath = dirpath + 'lookup/'
+	outpath = dirpath + 'nnOnlyTop25/'
 	for i, canProt in enumerate(canProts):
 		#print targs[i], canProt
-		nmat, npb = lookupCanonZF(freqDict, canProt, useNN = False, 
+		nmat, npb = lookupCanonZF(freqDict, canProt, useNN = True, 
 		                          skipExact = False, decompose = decomp, 
 		                          topk = 25, verbose = None)
-		label = '_'.join([str(i+1).zfill(2), targs[i], prots[i], 'lookup'])
+		label = '_'.join([str(i+1).zfill(2), targs[i], prots[i], 'nnOnlyTop25'])
 		makeNucMatFile(outpath, label, nmat)
 		logoIn = outpath + label + '.txt'
 		logoOut = outpath + label + '.pdf'
