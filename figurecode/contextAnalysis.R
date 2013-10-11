@@ -365,7 +365,7 @@ runWeightedFractionAnalysis <- function(varPos, refSet) {
     }
 
   # Set the output directory
-  outDir <- '../../figures/contextAnalysis/F2vsF3/weightedFraction'
+  outDir <- '../../figures/contextAnalysis/F2vsF3/weightedFraction/tmp'
 
   # Get the set of triplets
   bases <- c('A', 'C', 'G', 'T')
@@ -428,11 +428,21 @@ runWeightedFractionAnalysis <- function(varPos, refSet) {
   }
 
   cols <- c("indianred", "royalblue", "gray50")
+  
+  # Set up to use text jittered
+  fracFrame$nameJit <- jitter(as.numeric(fracFrame$dsetName), factor = 1)
+
+  # Make the plot
   g <- ggplot(fracFrame, aes(x = dsetName, y = frac)) +
     scale_colour_manual("", breaks = dsetName,values = cols) + 
     geom_boxplot(outlier.size = 0) +
-    geom_jitter(aes(color = dsetName), size = 1.5,
-                position = position_jitter(0.25)) +
+    #geom_point(aes(x = nameJit, color = dsetName),
+    #           size = 1.5) +
+    #geom_jitter(aes(color = dsetName), size = 1.5,
+    #            position = position_jitter(0.25)) +
+    geom_text(aes(x = nameJit, label = as.character(targ),
+                  color = dsetName),
+              size = 2.5) + 
     ylab(ylabs) +
     theme_bw() +
     theme(axis.title.x = element_blank())
@@ -451,13 +461,10 @@ runWeightedFractionAnalysis <- function(varPos, refSet) {
 
 }
 
-makeTripletHeatmap <- function(fing, strin, filt) {
-  
-  inPref <- '../../data/b1hData/antonProcessed'
-  inFile <- patse(inPref, fing, strin, filt,
-                  'all_4pos.txt', sep = '/')
-  dframe <- read.table(file=path, sep = '\t',
-                       header = TRUE)
+parseWeightedJaccard <- function(dframe) {
+  # Compute the weighted Jaccard coefficient 
+  # of binding canonical protein for all 
+  # pairs of DNA triplets in the dframe
 
   # Get the set of triplets
   bases <- c('A', 'C', 'G', 'T')
@@ -467,8 +474,99 @@ makeTripletHeatmap <- function(fing, strin, filt) {
       for (b3 in bases)
         triplets <- c(triplets, paste0(b1, b2, b3))
 
+  # Create a jaccard dataframe
+  trip1 <- vector()
+  trip2 <- vector()
+  wjac <- vector()
+  for (i in 1:length(triplets)) {
+    for (j in 1:length(triplets)) {
+      
+      # Get the weighted jaccard similarity for this
+      # pair of triplets ( (sum of intersection)/2)
+      t1 <- triplets[i]
+      t2 <- triplets[j]
+      if (i < j){
+        tframe1 <- subset(dframe, targ == t1)
+        tframe2 <- subset(dframe, targ == t2)
+        f1 <- tframe1$freq
+        f2 <- tframe2$freq
+        names(f1) <- tframe1$prot
+        names(f2) <- tframe2$prot
+        interProts <- intersect(names(f1), names(f2))
+        unionProts <- union(names(f1), names(f2))
+        interWeight <- 0.0
+      for (p in interProts)
+        interWeight <- interWeight + f1[p] + f2[p]
+      wjaccard <- interWeight/2
+      
+      # Correct for rounding errors
+      if (wjaccard > 1)
+        wjaccard = 1
+      
+      } else {
+        wjaccard <- NA
+      }
+      
+      # Add new entry to each vector for new dframe
+      trip1 <- c(trip1, t1)
+      trip2 <- c(trip2, t2)
+      wjac <- c(wjac, wjaccard)
+    }
+  }
+  jacFrame <- data.frame(trip1 = trip1, trip2 = trip2,
+                         wjac = wjac)
+  jacFrame
+}
+
+makeTripletHeatmap <- function(fing, strin, filt,
+                               noParse = FALSE) {
   
 
+
+  # Set the output directory
+  outDir <- '../../figures/contextAnalysis/tripletHeatMap'
+  inPref <- '../../data/b1hData/antonProcessed'
+  
+  # Compute the coefficients if not already done
+  if (noParse) {
+    path <- paste(outDir, paste(fing, strin, 
+                                'wJaccTrip.txt', sep = '_'),
+                  sep = '/')
+    jacFrame <- read.table(file=path, header = TRUE)
+    print(nrow(jacFrame))
+  } else {
+    path <- paste(inPref, fing, strin, filt,
+                  'all_4pos.txt', sep = '/')
+    dframe <- read.table(file=path, sep = '\t',
+                       header = TRUE)
+    jacFrame <- parseWeightedJaccard(dframe)
+    tableName <- paste(outDir, paste(fing, strin, 
+                                   'wJaccTrip.txt', sep = '_'),
+                        sep = '/')
+    write.table(file = tableName, jacFrame, row.names=FALSE, 
+                quote=FALSE)
+    print(nrow(jacFrame))
+  } 
+
+  # Plot the heatmap and save to file
+  br <- seq(0,1, 0.05)
+  print(names(jacFrame))
+  g <- ggplot(jacFrame, aes(x = trip1, y = trip2)) + 
+    geom_tile(aes(fill = wjac)) +
+    #scale_fill_gradient2(breaks = br,
+    #                     low = 'white', high = 'royalblue',
+    #                     limits = c(0,1), guide = 'legend') +
+    scale_fill_gradient2("", low = 'white', high = 'royalblue',
+                         limits = c(0,1)) +
+    theme(axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y = element_text(size = 8),
+          axis.text.x = element_text(angle=90, vjust=0.5, size = 8))
+
+  plotName <- paste(outDir, paste(fing, strin, 
+                                   'wJaccTrip.pdf', sep = '_'),
+                        sep = '/')
+  ggsave(plotName, plot = g, width = 9, height = 7.5)
 }
 
 main <- function() {
@@ -476,9 +574,10 @@ main <- function() {
   #runF2vF3SimAnalysis('pcc')
   #runF2vF3SimAnalysis('cosine')
   #runF2vF3SimAnalysis('cosine_bin')
-  #runWeightedFractionAnalysis(6, "F3high")
-  #runWeightedFractionAnalysis(4, "F3high")
-  makeTripletHeatmap("F2", "union", 'filt_10e-4_025_0_c')
+  runWeightedFractionAnalysis(6, "F3high")
+  runWeightedFractionAnalysis(4, "F3high")
+  #makeTripletHeatmap("F2", "union", 
+  #                   'filt_10e-4_025_0_c')#, noParse = TRUE)
 }
 
 main()
