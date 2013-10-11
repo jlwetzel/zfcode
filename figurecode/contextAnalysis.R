@@ -330,12 +330,155 @@ runF2vF3DiffAnalysis1 <- function() {
   ggsave(plotName, plot = g)
 }
 
+runWeightedFractionAnalysis <- function(varPos, refSet) {
+  # Find the weighted fraction of a particular high 
+  # stringency dataset contained in the other datasets
+  #
+  # varPos is the number of variable positions to consider
+  # 4 corresponds to (-1,2,3,6), 6 to (-1,1,2,3,5,6)
+  # 
+  # refSet is the reference set (e.g. "F2high")
+
+
+
+  # Read in the various datasets
+  inPref <- '../../data/b1hData/antonProcessed'
+  strins <- c('low', 'high')
+  fings <- c('F2', 'F3')
+  filt <- 'filt_10e-4_025_0_c'
+  dsets <- list()
+  for (f in fings)
+    for (s in strins) {
+      dsetLab <- paste0(f,s)
+      path <- paste(inPref, f, s, filt, sep = '/')
+      if (varPos == 4) {
+        path <- paste(path, 'all_4pos.txt', sep = '/')
+        print(path)
+        dsets[[dsetLab]] <- read.table(file=path, sep = '\t',
+                                       header = TRUE)
+      } else {
+        path <- paste(path, 'all.txt', sep = '/')
+        dsets[[dsetLab]] <- read.table(path, sep = '\t',
+                                       header = FALSE)
+        names(dsets[[dsetLab]]) <- c('targ', 'prot', 'freq')
+      }
+    }
+
+  # Set the output directory
+  outDir <- '../../figures/contextAnalysis/F2vsF3/weightedFraction'
+
+  # Get the set of triplets
+  bases <- c('A', 'C', 'G', 'T')
+  triplets <- vector()
+  for (b1 in bases)
+    for (b2 in bases)
+      for (b3 in bases)
+        triplets <- c(triplets, paste0(b1, b2, b3))
+
+  # Get the fraction of the weighted fraction of the 
+  # reference variables' proteins contained in each 
+  # other set
+  frac <- vector()
+  targ <- vector()
+  dsetName <- vector()
+  for (n in names(dsets)) {
+    if (n != refSet) 
+      for (t in triplets) {
+        
+        tsetRef <- subset(dsets[[refSet]], targ == t)
+        tset <- subset(dsets[[n]], targ == t)
+        freqsRef <- tsetRef$freq
+        
+        #print(tsetRef$freq)
+        #print(freqsRef)
+        #print(length(freqsRef))
+        #print(length(as.character(tsetRef$prot)))
+        #print(as.character(tsetRef$prot))
+        names(freqsRef) <- as.character(tsetRef$prot)
+        
+        seqOlap <- intersect(as.character(tset$prot),
+                             names(freqsRef))
+        fracCovered <- 0.0
+        for (s in seqOlap) {
+          fracCovered <- fracCovered + freqsRef[s]
+        }
+      frac <- c(frac, fracCovered)
+      dsetName <- c(dsetName, n)
+      targ <- c(targ, t)
+      }
+    }
+
+  fracFrame <- data.frame(targ = targ, frac = frac, 
+                          dsetName = dsetName)
+
+  #print(fracFrame)
+
+  if (refSet == 'F2high') {
+    fracFrame$dsetName <- factor(fracFrame$dsetName, 
+                                 levels = c("F2low", "F3high", "F3low"),
+                                 labels = c("F2 low", "F3 high", "F3 low"))
+    llabs <- c("F2 low", "F3 high", "F3 low")
+    ylabs <- paste0("Weighted fraction of F2 high")
+  } else {
+    fracFrame$dsetName <- factor(fracFrame$dsetName, 
+                                 levels = c("F3low", "F2high", "F2low"),
+                                 labels = c("F3 low", "F2 high", "F2 low"))
+    llabs <- c("F3 low", "F2 high", "F2 low")
+    ylabs <- paste0("Weighted fraction of F3 high")
+  }
+
+  cols <- c("indianred", "royalblue", "gray50")
+  g <- ggplot(fracFrame, aes(x = dsetName, y = frac)) +
+    scale_colour_manual("", breaks = dsetName,values = cols) + 
+    geom_boxplot(outlier.size = 0) +
+    geom_jitter(aes(color = dsetName), size = 1.5,
+                position = position_jitter(0.25)) +
+    ylab(ylabs) +
+    theme_bw() +
+    theme(axis.title.x = element_blank())
+
+
+  plotName <- paste(outDir, 
+                    paste0(refSet, '_', 
+                           varPos, 'pos_weightedFrac.pdf'),
+                    sep = '/')
+  tableName <- paste(outDir, 
+                    paste0(refSet, '_', 
+                           varPos, 'pos_weightedFrac.txt'),
+                    sep = '/')
+  write.table(file = tableName, fracFrame, row.names=FALSE, quote=FALSE)
+  ggsave(plotName, plot = g)
+
+}
+
+makeTripletHeatmap <- function(fing, strin, filt) {
+  
+  inPref <- '../../data/b1hData/antonProcessed'
+  inFile <- patse(inPref, fing, strin, filt,
+                  'all_4pos.txt', sep = '/')
+  dframe <- read.table(file=path, sep = '\t',
+                       header = TRUE)
+
+  # Get the set of triplets
+  bases <- c('A', 'C', 'G', 'T')
+  triplets <- vector()
+  for (b1 in bases)
+    for (b2 in bases)
+      for (b3 in bases)
+        triplets <- c(triplets, paste0(b1, b2, b3))
+
+  
+
+}
+
 main <- function() {
-  #runHighVsLowAnalysis('pcc')
+  #runHighVsLowAnalysis('cosine')
   #runF2vF3SimAnalysis('pcc')
   #runF2vF3SimAnalysis('cosine')
   #runF2vF3SimAnalysis('cosine_bin')
-  runF2vF3DiffAnalysis1()
+  #runWeightedFractionAnalysis(6, "F3high")
+  #runWeightedFractionAnalysis(4, "F3high")
+  makeTripletHeatmap("F2", "union", 'filt_10e-4_025_0_c')
 }
 
 main()
