@@ -238,12 +238,12 @@ def main():
 
 	# Unioning between fingers F2 and F3 (intersections)
 	filt = "filt_10e-4_025_0_c"
-	path1 = '../data/b1hData/antonProcessed/F2/union/'
-	path2 = '../data/b1hData/antonProcessed/F3/union/'
+	path1 = '../data/b1hData/antonProcessed/F2/high/'
+	path2 = '../data/b1hData/antonProcessed/F3/high/'
 	outPath = '../data/b1hData/antonProcessed/F2F3/' + \
-		'intersectUnions_all/'
+		'unionHigh/'
 	combineFingers(path1, path2, filt, outPath,
-	               combineType = 'inter', interType = 'all')
+	               combineType = 'union', interType = 'all')
 
 
 if __name__ == '__main__':

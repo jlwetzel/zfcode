@@ -190,7 +190,8 @@ def main():
 	#fings = ["F1", "F2", "F3"]
 	fings = ["F2F3"]
 	#strins = ["high", "low", "union", "inter"]
-	strins = ["intersectIntersections", "unionIntersections", "intersectUnions", "unionUnions"]
+	strins = ["intersectIntersections", "unionIntersections", "intersectUnions", "unionUnions", \
+		"unionLow", "unionHigh"]
 	filts = ["filt_10e-4_025_0_c"]
 	for f in fings:
 		for s in strins:

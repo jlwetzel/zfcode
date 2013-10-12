@@ -388,12 +388,6 @@ runWeightedFractionAnalysis <- function(varPos, refSet) {
         tsetRef <- subset(dsets[[refSet]], targ == t)
         tset <- subset(dsets[[n]], targ == t)
         freqsRef <- tsetRef$freq
-        
-        #print(tsetRef$freq)
-        #print(freqsRef)
-        #print(length(freqsRef))
-        #print(length(as.character(tsetRef$prot)))
-        #print(as.character(tsetRef$prot))
         names(freqsRef) <- as.character(tsetRef$prot)
         
         seqOlap <- intersect(as.character(tset$prot),
@@ -418,34 +412,45 @@ runWeightedFractionAnalysis <- function(varPos, refSet) {
                                  levels = c("F2low", "F3high", "F3low"),
                                  labels = c("F2 low", "F3 high", "F3 low"))
     llabs <- c("F2 low", "F3 high", "F3 low")
-    ylabs <- paste0("Weighted fraction of F2 high")
-  } else {
+    ylabs <- paste0("Weight fraction of high stringency found in low stringency")
+  } else if (refSet == 'F3high') {
     fracFrame$dsetName <- factor(fracFrame$dsetName, 
                                  levels = c("F3low", "F2high", "F2low"),
                                  labels = c("F3 low", "F2 high", "F2 low"))
     llabs <- c("F3 low", "F2 high", "F2 low")
-    ylabs <- paste0("Weighted fraction of F3 high")
+    ylabs <- paste0("Weight fraction of high stringency found in low stringency")
+  } else if (refSet == 'F2F3unionHigh') {
+    fracFrame$dsetName <- factor(fracFrame$dsetName, 
+                                 levels = c("F2F3unionLow"),
+                                 labels = c("F2F3 Union Low"))
+    llabs <- c("F2F3 Union Low")
+    ylabs <- paste0("Weight fraction of high stringency found in low stringency")
   }
 
   cols <- c("indianred", "royalblue", "gray50")
+  #cols <- c("royalblue")
   
   # Set up to use text jittered
   #fracFrame$nameJit <- jitter(as.numeric(fracFrame$dsetName), factor = 1)
 
   # Make the plot
   g <- ggplot(fracFrame, aes(x = dsetName, y = frac)) +
-    scale_colour_manual("", breaks = dsetName,values = cols) + 
-    geom_boxplot(outlier.size = 0) +
-    geom_point(aes(x = dsetName, color = dsetName),
-               size = 1.5) +
-    geom_jitter(aes(color = dsetName), size = 1.5,
-                position = position_jitter(0.25)) +
+    scale_fill_manual("", breaks = dsetName,values = cols) + 
+    geom_boxplot(aes(outlier.size = 1)) +
+    #geom_point(aes(x = dsetName, color = dsetName),
+    #           size = 1.5) +
+    #geom_jitter(aes(color = dsetName), size = 1.5,
+    #            position = position_jitter(0.25)) +
     #geom_text(aes(x = nameJit, label = as.character(targ),
     #              color = dsetName),
     #          size = 2.5) + 
     ylab(ylabs) +
     theme_bw() +
-    theme(axis.title.x = element_blank())
+    theme(axis.title.x = element_blank(),
+          axis.title.y = element_text(size=9),
+          axis.text.y = element_text(size=9))#,
+          #axis.text.x = element_blank(), 
+          #axis.ticks.x = element_blank()) 
 
 
   plotName <- paste(outDir, 
@@ -457,7 +462,7 @@ runWeightedFractionAnalysis <- function(varPos, refSet) {
                            varPos, 'pos_weightedFrac.txt'),
                     sep = '/')
   write.table(file = tableName, fracFrame, row.names=FALSE)
-  ggsave(plotName, plot = g)
+  ggsave(plotName, plot = g, width = 4, height = 5.5)
 
 }
 
@@ -556,8 +561,8 @@ makeTripletHeatmap <- function(fing, strin, filt,
     #scale_fill_gradient2(breaks = br,
     #                     low = 'white', high = 'royalblue',
     #                     limits = c(0,1), guide = 'legend') +
-    scale_fill_gradient2("", breaks = br, low = 'white', high = 'royalblue',
-                         limits = c(0,1), guide = "legend") +
+    scale_fill_gradient2("Weighted Jaccard", low = 'white', high = 'royalblue',
+                         limits = c(0,1))+#, guide = "legend") +
     geom_segment(aes(x = 0.5, xend = 0.5, y = 0.5, yend = 64.5)) + 
     geom_segment(aes(x = 16.5, xend = 16.5, y = 0.5, yend = 65 - 16.5)) + 
     geom_segment(aes(x = 32.5, xend = 32.5, y = 0.5, yend = 65 - 32.5)) + 
@@ -566,7 +571,19 @@ makeTripletHeatmap <- function(fing, strin, filt,
     geom_segment(aes(y = 16.5, yend = 16.5, x = 0.5, xend = 65 - 16.5)) + 
     geom_segment(aes(y = 32.5, yend = 32.5, x = 0.5, xend = 65 - 32.5)) + 
     geom_segment(aes(y = 48.5, yend = 48.5, x = 0.5, xend = 65 - 48.5)) + 
-    theme_bw() +
+    #geom_segment(aes(y = 49.5, yend = 49.5, x = 0.5, xend = 65 - 49.5),
+    #             size = 0.1, color = "gray80") + 
+    
+    theme_bw() + 
+
+    theme(plot.background = element_blank(),panel.grid.major = element_blank(),
+          panel.border = element_blank(), panel.background = element_blank(),
+          legend.position = c(0.65, 0.65),
+          legend.background = element_rect(fill="gray90", size=.5, linetype="dotted")) +
+
+    #draws x and y axis line
+    theme(axis.line = element_line(color = 'black', size = 0.5)) + 
+
     theme(axis.title.x = element_blank(),
           axis.title.y = element_blank(),
           axis.text.y = element_text(size = 8),
@@ -575,7 +592,7 @@ makeTripletHeatmap <- function(fing, strin, filt,
   plotName <- paste(outDir, paste(fing, strin, 
                                    'wJaccTrip.pdf', sep = '_'),
                         sep = '/')
-  ggsave(plotName, plot = g, width = 9, height = 7.5)
+  ggsave(plotName, plot = g, width = 7.75, height = 7.5)
 }
 
 main <- function() {
@@ -583,8 +600,8 @@ main <- function() {
   #runF2vF3SimAnalysis('pcc')
   #runF2vF3SimAnalysis('cosine')
   #runF2vF3SimAnalysis('cosine_bin')
-  #runWeightedFractionAnalysis(6, "F2high")
-  #runWeightedFractionAnalysis(4, "F2high")
+  runWeightedFractionAnalysis(6, "F3high")
+  runWeightedFractionAnalysis(4, "F3high")
   #makeTripletHeatmap("F2", "union", 
   #                   'filt_10e-4_025_0_c', noParse = TRUE)
 }
