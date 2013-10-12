@@ -365,7 +365,7 @@ runWeightedFractionAnalysis <- function(varPos, refSet) {
     }
 
   # Set the output directory
-  outDir <- '../../figures/contextAnalysis/F2vsF3/weightedFraction/tmp'
+  outDir <- '../../figures/contextAnalysis/F2vsF3/weightedFraction'
 
   # Get the set of triplets
   bases <- c('A', 'C', 'G', 'T')
@@ -430,19 +430,19 @@ runWeightedFractionAnalysis <- function(varPos, refSet) {
   cols <- c("indianred", "royalblue", "gray50")
   
   # Set up to use text jittered
-  fracFrame$nameJit <- jitter(as.numeric(fracFrame$dsetName), factor = 1)
+  #fracFrame$nameJit <- jitter(as.numeric(fracFrame$dsetName), factor = 1)
 
   # Make the plot
   g <- ggplot(fracFrame, aes(x = dsetName, y = frac)) +
     scale_colour_manual("", breaks = dsetName,values = cols) + 
     geom_boxplot(outlier.size = 0) +
-    #geom_point(aes(x = nameJit, color = dsetName),
-    #           size = 1.5) +
-    #geom_jitter(aes(color = dsetName), size = 1.5,
-    #            position = position_jitter(0.25)) +
-    geom_text(aes(x = nameJit, label = as.character(targ),
-                  color = dsetName),
-              size = 2.5) + 
+    geom_point(aes(x = dsetName, color = dsetName),
+               size = 1.5) +
+    geom_jitter(aes(color = dsetName), size = 1.5,
+                position = position_jitter(0.25)) +
+    #geom_text(aes(x = nameJit, label = as.character(targ),
+    #              color = dsetName),
+    #          size = 2.5) + 
     ylab(ylabs) +
     theme_bw() +
     theme(axis.title.x = element_blank())
@@ -456,23 +456,15 @@ runWeightedFractionAnalysis <- function(varPos, refSet) {
                     paste0(refSet, '_', 
                            varPos, 'pos_weightedFrac.txt'),
                     sep = '/')
-  write.table(file = tableName, fracFrame, row.names=FALSE, quote=FALSE)
+  write.table(file = tableName, fracFrame, row.names=FALSE)
   ggsave(plotName, plot = g)
 
 }
 
-parseWeightedJaccard <- function(dframe) {
+parseWeightedJaccard <- function(dframe, triplets) {
   # Compute the weighted Jaccard coefficient 
   # of binding canonical protein for all 
   # pairs of DNA triplets in the dframe
-
-  # Get the set of triplets
-  bases <- c('A', 'C', 'G', 'T')
-  triplets <- vector()
-  for (b1 in bases)
-    for (b2 in bases)
-      for (b3 in bases)
-        triplets <- c(triplets, paste0(b1, b2, b3))
 
   # Create a jaccard dataframe
   trip1 <- vector()
@@ -485,7 +477,7 @@ parseWeightedJaccard <- function(dframe) {
       # pair of triplets ( (sum of intersection)/2)
       t1 <- triplets[i]
       t2 <- triplets[j]
-      if (i < j){
+      if (i <= j){
         tframe1 <- subset(dframe, targ == t1)
         tframe2 <- subset(dframe, targ == t2)
         f1 <- tframe1$freq
@@ -504,7 +496,7 @@ parseWeightedJaccard <- function(dframe) {
         wjaccard = 1
       
       } else {
-        wjaccard <- NA
+        wjaccard <- 0
       }
       
       # Add new entry to each vector for new dframe
@@ -521,7 +513,13 @@ parseWeightedJaccard <- function(dframe) {
 makeTripletHeatmap <- function(fing, strin, filt,
                                noParse = FALSE) {
   
-
+  # Get the set of triplets
+  bases <- c('A', 'C', 'G', 'T')
+  triplets <- vector()
+  for (b1 in bases)
+    for (b2 in bases)
+      for (b3 in bases)
+        triplets <- c(triplets, paste0(b1, b2, b3))
 
   # Set the output directory
   outDir <- '../../figures/contextAnalysis/tripletHeatMap'
@@ -539,7 +537,7 @@ makeTripletHeatmap <- function(fing, strin, filt,
                   'all_4pos.txt', sep = '/')
     dframe <- read.table(file=path, sep = '\t',
                        header = TRUE)
-    jacFrame <- parseWeightedJaccard(dframe)
+    jacFrame <- parseWeightedJaccard(dframe, triplets)
     tableName <- paste(outDir, paste(fing, strin, 
                                    'wJaccTrip.txt', sep = '_'),
                         sep = '/')
@@ -547,6 +545,8 @@ makeTripletHeatmap <- function(fing, strin, filt,
                 quote=FALSE)
     print(nrow(jacFrame))
   } 
+
+  jacFrame$trip2 <- factor(jacFrame$trip2, levels = rev(triplets))
 
   # Plot the heatmap and save to file
   br <- seq(0,1, 0.05)
@@ -556,8 +556,17 @@ makeTripletHeatmap <- function(fing, strin, filt,
     #scale_fill_gradient2(breaks = br,
     #                     low = 'white', high = 'royalblue',
     #                     limits = c(0,1), guide = 'legend') +
-    scale_fill_gradient2("", low = 'white', high = 'royalblue',
-                         limits = c(0,1)) +
+    scale_fill_gradient2("", breaks = br, low = 'white', high = 'royalblue',
+                         limits = c(0,1), guide = "legend") +
+    geom_segment(aes(x = 0.5, xend = 0.5, y = 0.5, yend = 64.5)) + 
+    geom_segment(aes(x = 16.5, xend = 16.5, y = 0.5, yend = 65 - 16.5)) + 
+    geom_segment(aes(x = 32.5, xend = 32.5, y = 0.5, yend = 65 - 32.5)) + 
+    geom_segment(aes(x = 48.5, xend = 48.5, y = 0.5, yend = 65 - 48.5)) +
+    geom_segment(aes(y = 0.5, yend = 0.5, x = 0.5, xend = 64.5)) +  
+    geom_segment(aes(y = 16.5, yend = 16.5, x = 0.5, xend = 65 - 16.5)) + 
+    geom_segment(aes(y = 32.5, yend = 32.5, x = 0.5, xend = 65 - 32.5)) + 
+    geom_segment(aes(y = 48.5, yend = 48.5, x = 0.5, xend = 65 - 48.5)) + 
+    theme_bw() +
     theme(axis.title.x = element_blank(),
           axis.title.y = element_blank(),
           axis.text.y = element_text(size = 8),
@@ -574,10 +583,10 @@ main <- function() {
   #runF2vF3SimAnalysis('pcc')
   #runF2vF3SimAnalysis('cosine')
   #runF2vF3SimAnalysis('cosine_bin')
-  runWeightedFractionAnalysis(6, "F3high")
-  runWeightedFractionAnalysis(4, "F3high")
+  #runWeightedFractionAnalysis(6, "F2high")
+  #runWeightedFractionAnalysis(4, "F2high")
   #makeTripletHeatmap("F2", "union", 
-  #                   'filt_10e-4_025_0_c')#, noParse = TRUE)
+  #                   'filt_10e-4_025_0_c', noParse = TRUE)
 }
 
 main()

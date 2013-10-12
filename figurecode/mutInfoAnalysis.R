@@ -1,8 +1,8 @@
 library(infotheo)
 library(ggplot2)
 
-fing <- 'F2F3'
-strin <- 'unionUnions'
+fing <- 'F2'
+strin <- 'union'
 
 #filtPrefix <- '../../data/b1hData/newDatabase/6varpos' # My files
 filtPrefix <- '../../data/b1hData/antonProcessed' # Anton files
@@ -49,7 +49,7 @@ mutInfoAnalysis <- function(data, outDir) {
   writeFrame(paste(outDir, "data", "helixMutInfo.txt", sep = '/'),
              helixFrame)
   makeHeatPlot(paste(outDir, "helixMutInfo.pdf", sep = '/'),
-               helixFrame)
+               helixFrame, "Helix position", "Helix position")
 
   if(FALSE) {
   # Get mutual information for helix against helix in the 
@@ -79,7 +79,7 @@ mutInfoAnalysis <- function(data, outDir) {
   writeFrame(paste(outDir, "data", "baseMutInfo.txt", sep = '/'),
              baseFrame)
   makeHeatPlot(paste(outDir, "baseMutInfo.pdf", sep = '/'),
-               baseFrame)
+               baseFrame, "Base position", "Base position")
 
   # Get mutual information for base-amino position contacts
   contactMutInfo <- getNormMutInfo(data, helixPosNames, basePosNames)
@@ -87,7 +87,7 @@ mutInfoAnalysis <- function(data, outDir) {
   writeFrame(paste(outDir, "data", "contactMutInfo.txt", sep = '/'),
              contactFrame)
   makeHeatPlot(paste(outDir, "contactMutInfo.pdf", sep = '/'),
-               contactFrame)
+               contactFrame, "Helix position", "Base position")
   
   # Get mutual information for contacts with randomly 
   # shuffled triples
@@ -96,7 +96,7 @@ mutInfoAnalysis <- function(data, outDir) {
   writeFrame(paste(outDir, "data", "rand_contactMutInfo.txt", sep = '/'),
              contactFrame)
   makeHeatPlot(paste(outDir, "rand_contactMutInfo.pdf", sep = '/'),
-               contactFrame)
+               contactFrame, "Helix position", "Base position")
 
   if (FALSE){
   # Get mutual information for base-amino contacts in the context
@@ -113,7 +113,8 @@ mutInfoAnalysis <- function(data, outDir) {
       contactMutInfo <- getNormMutInfo(dsub, helixPosNames, basePosNames)
       contactFrame <- mat2Frame(contactMutInfo)
       writeFrame(tfile, contactFrame)
-      makeHeatPlot(pfile, contactFrame)
+      makeHeatPlot(pfile, contactFrame, "Helix position",
+                   "Base position")
     }
   }
   }
@@ -171,40 +172,69 @@ makeTriangular <- function(mat, diag = FALSE) {
 }
 
 mat2Frame <- function(mat){
-  # Utility function for mapping a log odds marix to 
+  # Utility function for mapping a log odds matrix to 
   # a data.frame according to its name
   
-  vecLen <- nrow(mat)*ncol(mat)
-  hpos <- vector(mode = 'character')
-  bpos <- vector(mode = 'character')
-  score <- vector(mode = 'numeric')
-  
+  hpos <- vector()
+  bpos <- vector()
+  score <- vector()
+
+  xIsHelix <- FALSE
+  yIsHelix <- FALSE
+
   for (i in 1:nrow(mat)){
     for (j in 1:ncol(mat)) {
-      if (rownames(mat)[i] == "a0")
+      if (rownames(mat)[i] == "a0") {
+        yIsHelix <- TRUE
         hpos <- c(hpos, "-1")
-      else
-        hpos <- c(hpos, substr(rownames(mat)[i], 2, 2))
-      bpos <- c(bpos, substr(colnames(mat)[j], 2, 2))
+      } else {
+        hpos <- c(hpos, substr(rownames(mat)[i], 2, 2)) 
+      }
+      if (colnames(mat)[j] == "a0"){
+        xIsHelix <- TRUE
+        bpos <- c(bpos, "-1")
+      } else { 
+        bpos <- c(bpos, substr(colnames(mat)[j], 2, 2))
+      }
       score <- c(score, mat[i,j])
     }
   }
   dframe <- data.frame(hpos = hpos, bpos = bpos,
                        score = score)
+
+  if (xIsHelix) {
+    dframe$bpos <- factor(as.factor(dframe$bpos),
+                          levels = c("-1", "1", "2", 
+                                     "3", "5", "6"))
+  } else {
+    dframe$bpos <- factor(as.factor(dframe$bpos),
+                          levels = c("1", "2", "3"))
+  }
+
+  if (yIsHelix) {
+    dframe$hpos <- factor(as.factor(dframe$hpos),
+                          levels = c("-1", "1", "2", 
+                                     "3", "5", "6"))
+  } else {
+    dframe$hpos <- factor(as.factor(dframe$hpos),
+                          levels = c("1", "2", "3"))
+  }
+
+  dframe
+
 }
 
-makeHeatPlot <- function(fname, dframe) {
+makeHeatPlot <- function(fname, dframe, xl, yl) {
   # Makes a heatplot
-  xl <- paste("Helix position")
-  yl <- paste("Base position")
   br <- seq(0,1, 0.05)
   g <- ggplot(dframe, aes(hpos, bpos)) + 
     geom_tile(aes(fill = score)) +
     scale_fill_gradient2(breaks = br,
                          low = 'white', high = 'royalblue',
-                         limits = c(0,0.5), guide = 'legend') +
+                         limits = c(0,0.45), guide = 'legend') +
     xlab(xl) +
-    ylab(yl)
+    ylab(yl) +
+    theme_bw()
   ggsave(fname, plot = g)
 }
 

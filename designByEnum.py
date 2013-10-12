@@ -31,6 +31,9 @@ def getTopProts(inDir, topkPer3mer, suppDir, minSupport, ind):
 		if re.match(r'[ACGT]{3}(.)*.txt', fname) == None:
 			continue
 
+		#if fname != "TTC.txt":
+		#	continue
+
 		# Find out how many proteins total are in the file
 		handle2 = os.popen("less %s | wc -l" %(inDir + fname))
 		maxRank = eval(handle2.readline().strip().split()[0])
@@ -105,6 +108,9 @@ def predictTopProts(freqDict, topProtDict, outDir, topk,
 
 	for targ in sorted(topProtDict.keys()):
 
+		#if targ != "TTC":
+		#	continue
+
 		orderedProts = [i[0] for i in topProtDict[targ]]
 		orderedFreqs = [i[1] for i in topProtDict[targ]]
 		orderedLines = [i[2] for i in topProtDict[targ]]
@@ -123,9 +129,10 @@ def predictTopProts(freqDict, topProtDict, outDir, topk,
 		for i, prot in enumerate(orderedProts):
 			
 			# Make the nearest neighbors lookup prediction
-			nmat, neighborsPerBase = lookupCanonZF(freqDict, prot, useNN = True,
+			nmat, neighborsPerBase = lookupCanonZF(freqDict, prot, useNN = False,
 			                     		skipExact = False, decompose = singles,
 			                     		topk = topk)
+			#print nmat
 			#print neighborsPerBase
 			
 			# Create the frequency matrix file
@@ -232,6 +239,9 @@ def getTopTenProtsAllTargs(inDir, topProtDict, topk, opt = 'avgMinDiff'):
 
 	for targ in sorted(topProtDict.keys()):
 
+		#if targ != "TTC":
+		#	continue
+
 		targPwmDir = inDir + targ + '/pwms/'
 		targLogoDir = inDir + targ + '/logos/'
 		handle = os.popen('ls ' + targPwmDir)
@@ -293,15 +303,15 @@ def main():
 	varpos = 6
 	canInd = getPosIndex(varpos, canonical)
 	topk = 0
-	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut10bc_0_5/'
-	outDir = '../data/design/F2_low_lookup_cut10bc_0_5_supp3/'
-	suppDir = '../data/design/support/F2/low/protein_seq_cut10bc_0_5/'
+	inDir = '../data/b1hData/antonProcessed/F3/union/filt_10e-4_025_0_c/'
+	outDir = '../data/design/F3_union_lookup_entropy025_all/'
+	suppDir = '../data/design/support/F3/union/filt_10e-4_025_0_c/'
 	topFrac = 1
 	maxPerTarg = 20000
 
 	# Get the frequency dictionary for doing predictions
 	freqDict = computeFreqDict(inDir, canInd)
-	#print sorted(freqDict["GTG"].keys())
+	#print freqDict
 
 	# Figure out how many proteins for top x% for each 3-mer
 	topkPer3mer = [int(topFrac*(len(freqDict[k]))) \
@@ -323,7 +333,7 @@ def main():
 	print summa
 
 	# Create logos/pfms for each of the prots in topProtDict
-	#predictTopProts(freqDict, topProtDict, outDir, topk, withLogos = True)
+	predictTopProts(freqDict, topProtDict, outDir, topk, withLogos = True)
 
 	# Find the top 10 most specific pwms for each 3mer target
 	for opt in ['minMinDiff', 'avgMinDiff']:
