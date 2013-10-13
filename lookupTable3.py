@@ -27,7 +27,7 @@ def getSubDict(fname, expo = True):
 	return subDict
 
 ###  Possible substitution matrices for nearest neighbors lookups
-NEIGHBOR_WEIGHTS = None #getSubDict('../data/substitution_mats/PAM30.txt')
+NEIGHBOR_WEIGHTS = None#getSubDict('../data/substitution_mats/PAM30.txt')
 NEIGHBOR_ORDER = getSubDict('../data/substitution_mats/PAM30.txt')
 
 nucs = ['A', 'C', 'G', 'T']
@@ -389,6 +389,7 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, decomp, topk,
 		# Give a uniform vector if all weights are 0
 		if np.sum(nWeights) == 0:
 			pwm[k-1] = np.array([0.25, 0.25, 0.25, 0.25], dtype = float)
+			neighborsPerBase.append(len(baseVectors))
 			continue
 
 		nWeights = nWeights/np.sum(nWeights)
@@ -693,6 +694,7 @@ def predictTop64(fname, maxDensity = None):
 		nmat, npb = lookupCanonZF(freqDict, canProt, useNN = True, 
 		                          skipExact = False, decompose = decomp, 
 		                          topk = 57, verbose = None, #inDir, 
+		                          #canSeqWeights = None, maxDensity = None)
 		                          canSeqWeights = canSeqWeights, maxDensity = maxDensity)
 		print targs[i], canProt, npb
 		label = '_'.join([str(i+1).zfill(2), targs[i], prots[i], newDir[:-1]])
