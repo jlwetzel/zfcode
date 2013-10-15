@@ -417,6 +417,14 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, decomp, topk,
 				nWeights = np.array([unifWeight]*len(neighborDict[k]),
 			                       dtype = float)
 
+		######## UNDECOMPOSE NEIGHBORS ##########
+		#wNeighbors = [(nWeights[i], neighborDict[k][i]) for i in \
+		#				range(len(nWeights))]
+		#wNeighbors.sort(reverse = True)
+		#nWeights = [wNeighbors[i][0] for i in range(len(wNeighbors))]
+		#neighborDict[k] = [wNeighbors[i][1] for i in range(len(wNeighbors))]
+		################END UNDECOMPOSE ########################
+
 		# Get the normalized frequency vectors for each neighbor at  
 		# this base position
 		for i, n in enumerate(neighborDict[k]):
@@ -701,7 +709,7 @@ def getTop64F2Tuples(fname):
 
 def predictTop64(fname):
 
-	inDir = '../data/b1hData/antonProcessed/F3/union/filt_10e-4_025_0_c/'
+	inDir = '../data/b1hData/antonProcessed/F2/union/filt_10e-4_025_0_c/'
 	canonical = True
 	varpos = 6
 	canInd = getPosIndex(varpos, canonical)
@@ -711,8 +719,8 @@ def predictTop64(fname):
 
 	# Set up directories for the prediction logos
 	dirpath = '/'.join(fname.split('/')[:-1]) + '/'	
-	makeDir(dirpath + 'nnTop25_newPAM30/')
-	makeDir(dirpath + 'nnTop25_newPAM30/')
+	#makeDir(dirpath + 'nnTop10_newPAM30/')
+	makeDir(dirpath + 'nnOnlyTop10_newPAM30/')
 	#makeDir(dirpath + 'lookup/')
 
 	# Get the list of protein tuples
@@ -722,13 +730,13 @@ def predictTop64(fname):
 	canProts = [i[0]+i[2]+i[3]+i[6] for i in prots]
 
 	# Do the exact lookup
-	outpath = dirpath + 'nnTop25_newPAM30/'
+	outpath = dirpath + 'nnOnlyTop10_newPAM30/'
 	for i, canProt in enumerate(canProts):
 		#print targs[i], canProt
 		nmat, npb = lookupCanonZF(freqDict, canProt, useNN = True, 
-		                          skipExact = False, decompose = decomp, 
-		                          topk = 25, verbose = None)
-		label = '_'.join([str(i+1).zfill(2), targs[i], prots[i], 'nnTop25_newPAM30'])
+		                          skipExact = True, decompose = decomp, 
+		                          topk = 10, verbose = None)
+		label = '_'.join([str(i+1).zfill(2), targs[i], prots[i], 'nnOnlyTop10_newPAM30'])
 		makeNucMatFile(outpath, label, nmat)
 		logoIn = outpath + label + '.txt'
 		logoOut = outpath + label + '.pdf'

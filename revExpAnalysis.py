@@ -356,13 +356,13 @@ def predict_matrix_bls(protein): #predict matrix by BLS02 -- written by Anton Pe
 
 def main():
 
-	#styles = ['top25']#['top15', 'top20', 'top25', 'top30', 'top35'] #For nearest neighbors
-	styles = ['lookonly']  #For direct lookup
+	styles = ['top10', 'top15', 'top20', 'top25', 'top30'] #For nearest neighbors
+	#styles = ['lookonly']  #For direct lookup
 	decomps = ['singles'] * 5
 	weight_mats = ['PAM30']
 	order_mats = ['PAM30']
-	#useExacts = [True, False]  #For dnearest neighbors
-	useExacts = [True]  # For direct lookup
+	useExacts = [True, False]  #For dnearest neighbors
+	#useExacts = [True]  # For direct lookup
 	trainFings = ["F2", "F3"]#["F1", "F2", "F3"] 
 	trainStrins = ["union"]#["low", "high"]
 
