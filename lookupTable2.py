@@ -72,7 +72,7 @@ def getNeighborWeights2(prot, neighbors, skipExact, matType = 'weight',
 	maxScore = 0.0
 	for a in prot:
 		maxScore += weightMat[a, a]
-	maxScore = math.exp(maxScore)
+	maxScore = maxScore
 
 	# Get the list of normalized neighbor weights
 	nWeights = []
@@ -362,8 +362,8 @@ def sortAndWeightNeighbors(prot, bpos, neighbors, decomp, skipExact):
 	# Get the weights for the now sorted complete list of neighbors
 	if NEIGHBOR_WEIGHTS != None:
 		nWeights = getNeighborWeights(prot, neighborsSorted,
-		                              skipExact, matType = 'weight',
-		                              bpos = None, decompOrder = None)
+		                              skipExact, matType = 'weight')
+									  # Use for powers of 2 weighting
 		                              #bpos = bpos, decompOrder = order)
 	else:
 		unifWeight = 1/float(len(neighborsSorted))
@@ -441,12 +441,14 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, decomp, topk,
 		# Give a uniform vector if all weights are 0
 		if np.sum(nWeights) == 0:
 			pwm[k-1] = np.array([0.25, 0.25, 0.25, 0.25], dtype = float)
+			neighborsPerBase.append(len(nWeights))
 			continue
 
 		nWeights = nWeights/np.sum(nWeights)
 		neighborDict[k] = [neighborDict[k][i] for i, n \
 		                    in enumerate(baseVectors) if n != None][:topk]
 		baseVectors = [i for i in baseVectors if i != None][:topk]
+		#print topk, len(baseVectors)
 		neighborsPerBase.append(len(baseVectors))
 
 		# If we found at least one neighbor
@@ -719,9 +721,7 @@ def predictTop64(fname):
 
 	# Set up directories for the prediction logos
 	dirpath = '/'.join(fname.split('/')[:-1]) + '/'	
-	#makeDir(dirpath + 'nnTop10_newPAM30/')
-	makeDir(dirpath + 'nnOnlyTop10_newPAM30/')
-	#makeDir(dirpath + 'lookup/')
+	makeDir(dirpath + 'nnOnlyTop25_newPAM30/')
 
 	# Get the list of protein tuples
 	bestTargProts = getTop64F2Tuples(fname)
@@ -730,13 +730,13 @@ def predictTop64(fname):
 	canProts = [i[0]+i[2]+i[3]+i[6] for i in prots]
 
 	# Do the exact lookup
-	outpath = dirpath + 'nnOnlyTop10_newPAM30/'
+	outpath = dirpath + 'nnOnlyTop25_newPAM30/'
 	for i, canProt in enumerate(canProts):
-		#print targs[i], canProt
 		nmat, npb = lookupCanonZF(freqDict, canProt, useNN = True, 
 		                          skipExact = True, decompose = decomp, 
-		                          topk = 10, verbose = None)
-		label = '_'.join([str(i+1).zfill(2), targs[i], prots[i], 'nnOnlyTop10_newPAM30'])
+		                          topk = 25, verbose = None)
+		print targs[i], canProt, npb
+		label = '_'.join([str(i+1).zfill(2), targs[i], prots[i], 'nnOnlyTop25_newPAM30'])
 		makeNucMatFile(outpath, label, nmat)
 		logoIn = outpath + label + '.txt'
 		logoOut = outpath + label + '.pdf'

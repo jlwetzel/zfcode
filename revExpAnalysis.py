@@ -65,7 +65,7 @@ def lookupMarcusPWMs(inDir, outputDir, freqDict,
 		prot = sp_fname[2].split('.')[0]
 		canonProt = prot[0] + prot[2] + prot[3] + prot[6]
 		label = '_'.join([str(protNum), goal, prot, strin])
-	
+
 		targList, neighborPerBase = get3merList(freqDict, canonProt, canonical,
 		    	               					useNN, skipExact, decompose,
 		    	               					topk)
