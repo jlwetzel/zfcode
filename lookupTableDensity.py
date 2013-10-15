@@ -27,7 +27,7 @@ def getSubDict(fname, expo = True):
 	return subDict
 
 ###  Possible substitution matrices for nearest neighbors lookups
-NEIGHBOR_WEIGHTS = None#getSubDict('../data/substitution_mats/PAM30.txt')
+NEIGHBOR_WEIGHTS = None #getSubDict('../data/substitution_mats/PAM30.txt')
 NEIGHBOR_ORDER = getSubDict('../data/substitution_mats/PAM30.txt')
 
 nucs = ['A', 'C', 'G', 'T']
@@ -657,7 +657,7 @@ def getCanSeqWeights(fname):
 
 def predictTop64(fname, maxDensity = None):
 
-	inDir = '../data/b1hData/antonProcessed/F3/union/filt_10e-4_025_0_c/'
+	inDir = '../data/b1hData/antonProcessed/F2/union/filt_10e-4_025_0_c/'
 	canonical = True
 	varpos = 6
 	canInd = getPosIndex(varpos, canonical)
@@ -674,7 +674,7 @@ def predictTop64(fname, maxDensity = None):
 	# Set up directory for the prediction logos
 	dirpath = '/'.join(fname.split('/')[:-1]) + '/'
 	makeDir(dirpath)
-	newDir = 'nnDens' + str(maxDensity).replace('.', '_') + '/'
+	newDir = 'nnOnlyDens' + str(maxDensity).replace('.', '_') + '/'
 	print dirpath + newDir
 	makeDir(dirpath + newDir)
 	
@@ -692,8 +692,8 @@ def predictTop64(fname, maxDensity = None):
 		#if targs[i] != 'TCC':
 		#	continue
 		nmat, npb = lookupCanonZF(freqDict, canProt, useNN = True, 
-		                          skipExact = False, decompose = decomp, 
-		                          topk = 57, verbose = None, #inDir, 
+		                          skipExact = True, decompose = decomp, 
+		                          topk = 25, verbose = None, #inDir, 
 		                          #canSeqWeights = None, maxDensity = None)
 		                          canSeqWeights = canSeqWeights, maxDensity = maxDensity)
 		print targs[i], canProt, npb
@@ -711,6 +711,7 @@ def predictTop64(fname, maxDensity = None):
 def main():
 
 	fname = '../data/revExp/best64F2/best64F2.txt'
+	#predictTop64(fname)
 	predictTop64(fname, 0.01)
 
 	"""

@@ -7,7 +7,7 @@ from fixTables import normalizeFreq
 from entropy import *
 #from gatherBindStats import getProtDict
 
-def getSubDict(fname, expo = True):
+def getSubDict(fname, expo):
 	# Return a substitution dictionary indicated
 	# by the given file path.
 
@@ -27,8 +27,10 @@ def getSubDict(fname, expo = True):
 	return subDict
 
 ###  Possible substitution matrices for nearest neighbors lookups
-NEIGHBOR_WEIGHTS = getSubDict('../data/substitution_mats/PAM30.txt')
-NEIGHBOR_ORDER = getSubDict('../data/substitution_mats/PAM30.txt')
+NEIGHBOR_WEIGHTS = getSubDict('../data/substitution_mats/PAM30.txt',
+                              expo = False)
+NEIGHBOR_ORDER = getSubDict('../data/substitution_mats/PAM30.txt',
+                            expo = False)
 
 nucs = ['A', 'C', 'G', 'T']
 aminos = ['A', 'C', 'D', 'E', 'F', 'G', 'I', 'H', 'K', 'L', 
@@ -53,11 +55,75 @@ def getPosIndex(npos, canonical):
 			ind = range(5)
 	return ind
 
-def getNeighborWeights(prot, neighbors, skipExact, matType = 'weight'):
+def getNeighborWeights2(prot, neighbors, skipExact, matType = 'weight',
+                        bpos = None, decompOrder = None):
 	# Returns a numpy array of weights for each neighbor in the 
 	# order that the neighbors appear in the list.
 	# matType decides which matrix to use, either the 
 	# one for ordering or the one for weighting.
+
+	# Decide which matrix to use
+	if matType == 'weight':
+		weightMat = NEIGHBOR_WEIGHTS
+	elif matType == 'order':
+		weightMat = NEIGHBOR_ORDER
+
+	# Get the maximum possible score (match to self)
+	maxScore = 0.0
+	for a in prot:
+		maxScore += weightMat[a, a]
+	maxScore = math.exp(maxScore)
+
+	# Get the list of normalized neighbor weights
+	nWeights = []
+	for k, n in enumerate(neighbors):
+
+		nScore = 0.0
+		for i, a in enumerate(n):
+			nScore += weightMat[prot[i], a]
+		nWeights.append(nScore/maxScore)
+
+	# Shift linear so that min weight is zero
+	nWeights = np.array(nWeights, dtype = 'float')
+	nWeights = nWeights - nWeights.min()
+
+	# Adjust weights according to the decompositon
+	# using powers of 2.  (i.e. furthest away position
+	# multiplied by 8, then 4, then 2).  Multiply the
+	# exact match by 8.
+	if matType == 'weight' and decompOrder != None:
+		for k, n in enumerate(neighbors):
+			
+			offPos = None
+			for i, a in enumerate(n):
+				if a != prot[i]:
+					offPos = i
+					break
+
+			if offPos == None:
+				nWeights[i] *= 8
+			else:
+				nWeights[i] *= 2**(3 - decompOrder[bpos].index(offPos))
+
+	# normalize weights to a distribution
+	nWeights = nWeights/nWeights.sum()
+
+	return nWeights
+
+
+# Deprecated
+def getNeighborWeights(prot, neighbors, skipExact, matType = 'weight',
+                       bpos = None, decompOrder = None):
+	# Returns a numpy array of weights for each neighbor in the 
+	# order that the neighbors appear in the list.
+	# matType decides which matrix to use, either the 
+	# one for ordering or the one for weighting.
+
+	#print "getNeighborWeights() is deprecated!!"
+	#print "use getNeighborWeights2() instead!!!!"
+	# Keep this around for a bit
+	return getNeighborWeights2(prot, neighbors, skipExact, matType,
+	                           bpos, decompOrder)
 
 	# Decide which matrix to use
 	if matType == 'weight':
@@ -296,7 +362,9 @@ def sortAndWeightNeighbors(prot, bpos, neighbors, decomp, skipExact):
 	# Get the weights for the now sorted complete list of neighbors
 	if NEIGHBOR_WEIGHTS != None:
 		nWeights = getNeighborWeights(prot, neighborsSorted,
-		                              skipExact, matType = 'weight')
+		                              skipExact, matType = 'weight',
+		                              bpos = None, decompOrder = None)
+		                              #bpos = bpos, decompOrder = order)
 	else:
 		unifWeight = 1/float(len(neighborsSorted))
 		nWeights = np.array([unifWeight]*len(neighborsSorted),
@@ -643,9 +711,9 @@ def predictTop64(fname):
 
 	# Set up directories for the prediction logos
 	dirpath = '/'.join(fname.split('/')[:-1]) + '/'	
-	makeDir(dirpath + 'nnTop25/')
-	makeDir(dirpath + 'nnOnlyTop25/')
-	makeDir(dirpath + 'lookup/')
+	makeDir(dirpath + 'nnTop25_newPAM30/')
+	makeDir(dirpath + 'nnTop25_newPAM30/')
+	#makeDir(dirpath + 'lookup/')
 
 	# Get the list of protein tuples
 	bestTargProts = getTop64F2Tuples(fname)
@@ -654,13 +722,13 @@ def predictTop64(fname):
 	canProts = [i[0]+i[2]+i[3]+i[6] for i in prots]
 
 	# Do the exact lookup
-	outpath = dirpath + 'nnOnlyTop25/'
+	outpath = dirpath + 'nnTop25_newPAM30/'
 	for i, canProt in enumerate(canProts):
 		#print targs[i], canProt
 		nmat, npb = lookupCanonZF(freqDict, canProt, useNN = True, 
 		                          skipExact = False, decompose = decomp, 
 		                          topk = 25, verbose = None)
-		label = '_'.join([str(i+1).zfill(2), targs[i], prots[i], 'nnOnlyTop25'])
+		label = '_'.join([str(i+1).zfill(2), targs[i], prots[i], 'nnTop25_newPAM30'])
 		makeNucMatFile(outpath, label, nmat)
 		logoIn = outpath + label + '.txt'
 		logoOut = outpath + label + '.pdf'
