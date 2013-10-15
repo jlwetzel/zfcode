@@ -711,7 +711,7 @@ def getTop64F2Tuples(fname):
 
 def predictTop64(fname):
 
-	inDir = '../data/b1hData/antonProcessed/F2/union/filt_10e-4_025_0_c/'
+	inDir = '../data/b1hData/antonProcessed/F3/union/filt_10e-4_025_0_c/'
 	canonical = True
 	varpos = 6
 	canInd = getPosIndex(varpos, canonical)
@@ -721,7 +721,7 @@ def predictTop64(fname):
 
 	# Set up directories for the prediction logos
 	dirpath = '/'.join(fname.split('/')[:-1]) + '/'	
-	makeDir(dirpath + 'nnOnlyTop25_newPAM30/')
+	makeDir(dirpath + 'nnOnlyTop10_newPAM30/')
 
 	# Get the list of protein tuples
 	bestTargProts = getTop64F2Tuples(fname)
@@ -730,13 +730,13 @@ def predictTop64(fname):
 	canProts = [i[0]+i[2]+i[3]+i[6] for i in prots]
 
 	# Do the exact lookup
-	outpath = dirpath + 'nnOnlyTop25_newPAM30/'
+	outpath = dirpath + 'nnOnlyTop10_newPAM30/'
 	for i, canProt in enumerate(canProts):
 		nmat, npb = lookupCanonZF(freqDict, canProt, useNN = True, 
 		                          skipExact = True, decompose = decomp, 
-		                          topk = 25, verbose = None)
+		                          topk = 10, verbose = None)
 		print targs[i], canProt, npb
-		label = '_'.join([str(i+1).zfill(2), targs[i], prots[i], 'nnOnlyTop25_newPAM30'])
+		label = '_'.join([str(i+1).zfill(2), targs[i], prots[i], 'nnOnlyTop10_newPAM30'])
 		makeNucMatFile(outpath, label, nmat)
 		logoIn = outpath + label + '.txt'
 		logoOut = outpath + label + '.pdf'
