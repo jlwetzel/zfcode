@@ -756,7 +756,7 @@ def main():
 	
 	# Debugging stuff
 	outDir = '../zfPredictions/F2vF3/'
-	inDir = '../data/b1hData/antonProcessed/F3/union/filt_10e-4_025_0_c/'
+	inDir = '../data/b1hData/antonProcessed/F2/union/filt_10e-4_025_0_c/'
 	canonical = True
 	varpos = 6
 	canInd = getPosIndex(varpos, canonical)
@@ -800,14 +800,13 @@ def main():
 		nmat, npb = lookupCanonZF(freqDict, canProt, useNN = False, skipExact = False, 
 		                     decompose = None, topk = None, verbose = None)
 		
-		label = '_'.join([targs[i], prots[i], 'lookup'])
+		label = '_'.join([str(i).zfill(2), targs[i], prots[i], 'lookup'])
 		makeNucMatFile(outDir, label, nmat)
 		logoIn = outDir + label + '.txt'
 		logoOut = outDir + label + '.pdf'
 		makeLogo(logoIn, logoOut, alpha = 'dna', 
 			         colScheme = 'classic',
-			         annot = "'5,M,3'",
-			         xlab = prots[i])
+			         annot = "'5,M,3'")
 		
 		print "Lookup:"
 		print getConsensus(nmat)
@@ -817,20 +816,19 @@ def main():
 		for k in [10, 15, 20, 25, 30, 35, 40]:
 
 
-			if k != 10:
+			if k != 25:
 				continue
 
 			nmat, npb = lookupCanonZF(freqDict, canProt, useNN = True, skipExact = False, 
 		                     	      decompose = decomp, topk = k, verbose = None)
 			
-			label = '_'.join([targs[i], prots[i], 'top' + str(k)])
+			label = '_'.join([str(i).zfill(2), targs[i], prots[i], 'top' + str(k)])
 			makeNucMatFile(outDir, label, nmat)
 			logoIn = outDir + label + '.txt'
 			logoOut = outDir + label + '.pdf'
 			makeLogo(logoIn, logoOut, alpha = 'dna', 
 				         colScheme = 'classic',
-				         annot = "'5,M,3'",
-				         xlab = '_'.join([targs[i], prots[i]]))
+				         annot = "'5,M,3'")
 
 			print "Top %d: " %k
 			print getConsensus(nmat)
