@@ -2,7 +2,7 @@ library(infotheo)
 library(ggplot2)
 
 fing <- 'F2F3'
-strin <- 'unionIntersections'
+strin <- 'unionUnions'
 
 #filtPrefix <- '../../data/b1hData/newDatabase/6varpos' # My files
 filtPrefix <- '../../data/b1hData/antonProcessed' # Anton files
@@ -48,7 +48,7 @@ mutInfoAnalysis <- function(data, outDir) {
   helixFrame <- mat2Frame(helixMutInfo)
   writeFrame(paste(outDir, "data", "helixMutInfo.txt", sep = '/'),
              helixFrame)
-  makeHeatPlot(paste(outDir, "helixMutInfo.pdf", sep = '/'),
+  makeHeatPlot(paste(outDir, "helixMutInfo.eps", sep = '/'),
                helixFrame, "Helix position", "Helix position")
 
   if(FALSE) {
@@ -78,7 +78,7 @@ mutInfoAnalysis <- function(data, outDir) {
   baseFrame <- mat2Frame(baseMutInfo)
   writeFrame(paste(outDir, "data", "baseMutInfo.txt", sep = '/'),
              baseFrame)
-  makeHeatPlot(paste(outDir, "baseMutInfo.pdf", sep = '/'),
+  makeHeatPlot(paste(outDir, "baseMutInfo.eps", sep = '/'),
                baseFrame, "Base position", "Base position")
 
   # Get mutual information for base-amino position contacts
@@ -86,7 +86,7 @@ mutInfoAnalysis <- function(data, outDir) {
   contactFrame <- mat2Frame(contactMutInfo)
   writeFrame(paste(outDir, "data", "contactMutInfo.txt", sep = '/'),
              contactFrame)
-  makeHeatPlot(paste(outDir, "contactMutInfo.pdf", sep = '/'),
+  makeHeatPlot(paste(outDir, "contactMutInfo.eps", sep = '/'),
                contactFrame, "Helix position", "Base position")
   
   # Get mutual information for contacts with randomly 
@@ -95,7 +95,7 @@ mutInfoAnalysis <- function(data, outDir) {
   contactFrame <- mat2Frame(contactMutInfo)
   writeFrame(paste(outDir, "data", "rand_contactMutInfo.txt", sep = '/'),
              contactFrame)
-  makeHeatPlot(paste(outDir, "rand_contactMutInfo.pdf", sep = '/'),
+  makeHeatPlot(paste(outDir, "rand_contactMutInfo.eps", sep = '/'),
                contactFrame, "Helix position", "Base position")
 
   if (FALSE){
@@ -231,7 +231,7 @@ makeHeatPlot <- function(fname, dframe, xl, yl) {
     geom_tile(aes(fill = score)) +
     scale_fill_gradient2(breaks = br,
                          low = 'white', high = 'royalblue',
-                         limits = c(0,0.45), guide = 'legend') +
+                         limits = c(0,0.4), guide = 'legend') +
     xlab(xl) +
     ylab(yl) +
     theme_bw()

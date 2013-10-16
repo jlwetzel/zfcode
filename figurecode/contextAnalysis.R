@@ -100,13 +100,13 @@ compareHighLowString <- function(dfList, fings, filts, simType, outDir) {
                              weight = weights)
       plotFile <- paste("intersectHighLow", simTag, f, 
                         filt, sep = '_')
-      plotFile <- paste0(outDir, '/', plotFile, '.pdf')
+      plotFile <- paste0(outDir, '/', plotFile, '.eps')
 
       makeSimHist(simFrame, plotFile, xlabel)
 
       plotFile <- paste("intersectHighLow", simTag, 'vWeight', f, 
                         filt, sep = '_')
-      plotFile <- paste0(outDir, '/', plotFile, '.pdf')
+      plotFile <- paste0(outDir, '/', plotFile, '.eps')
       plotWeightVsSim(simFrame, plotFile, "Protein weight",
                       xlabel)
     }
@@ -173,7 +173,7 @@ compareF2vsF3 <- function(dfList, strins, filts, simType, outDir) {
       simFrame <- data.frame(prot = interProts, sim = simVect)
       plotFile <- paste("F2vsF3", simTag, s, 
                         filt, sep = '_')
-      plotFile <- paste0(outDir, '/', plotFile, '.pdf')
+      plotFile <- paste0(outDir, '/', plotFile, '.eps')
 
       makeSimHist(simFrame, plotFile, xlabel)
     }
@@ -367,8 +367,8 @@ runWeightedFractionAnalysis <- function(varPos, refSet) {
 
   # Read in the various datasets
   inPref <- '../../data/b1hData/antonProcessed'
-  strins <- c('low', 'high')
-  fings <- c('F2', 'F3')
+  strins <- c('unionHigh', 'unionLow')#c('low', 'high')
+  fings <- c('F2F3')#c('F2', 'F3')
   filt <- 'filt_10e-4_025_0_c'
   dsets <- list()
   for (f in fings)
@@ -461,11 +461,13 @@ runWeightedFractionAnalysis <- function(varPos, refSet) {
     theme_bw() +
     theme(axis.title.x = element_blank(),
           axis.title.y = element_text(size=9),
-          axis.text.y = element_text(size=9))
+          axis.text.y = element_text(size=9),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank())
 
   plotName <- paste(outDir, 
                     paste0(refSet, '_', 
-                           varPos, 'pos_weightedFrac.pdf'),
+                           varPos, 'pos_weightedFrac.eps'),
                     sep = '/')
   print(plotName)
   tableName <- paste(outDir, 
@@ -590,7 +592,8 @@ makeTripletHeatmap <- function(fing, strin, filt,
     theme(plot.background = element_blank(),panel.grid.major = element_blank(),
           panel.border = element_blank(), panel.background = element_blank(),
           legend.position = c(0.65, 0.65),
-          legend.background = element_rect(fill="gray90", size=.5, linetype="dotted")) +
+          legend.background = element_rect(fill="white", color = "black",
+                                           size=.5)) +
 
     #draws x and y axis line
     theme(axis.line = element_line(color = 'black', size = 0.5)) + 
@@ -601,7 +604,7 @@ makeTripletHeatmap <- function(fing, strin, filt,
           axis.text.x = element_text(angle=90, vjust=0.5, size = 8))
 
   plotName <- paste(outDir, paste(fing, strin, 
-                                   'wJaccTrip.pdf', sep = '_'),
+                                   'wJaccTrip.eps', sep = '_'),
                         sep = '/')
   ggsave(plotName, plot = g, width = 7.75, height = 7.5)
 }
@@ -611,9 +614,9 @@ main <- function() {
   #runF2vF3SimAnalysis('pcc')
   #runF2vF3SimAnalysis('cosine')
   #runF2vF3SimAnalysis('cosine_bin')
-  runWeightedFractionAnalysis(6, "F3high")
-  runWeightedFractionAnalysis(4, "F3high")
-  #makeTripletHeatmap("F2", "union", 
+  runWeightedFractionAnalysis(6, "F2F3unionHigh")
+  runWeightedFractionAnalysis(4, "F2F3unionHigh")
+  #makeTripletHeatmap("F3", "union", 
   #                   'filt_10e-4_025_0_c', noParse = TRUE)
 }
 

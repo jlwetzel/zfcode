@@ -711,7 +711,7 @@ def getTop64F2Tuples(fname):
 
 def predictTop64(fname):
 
-	inDir = '../data/b1hData/antonProcessed/F3/union/filt_10e-4_025_0_c/'
+	inDir = '../data/b1hData/antonProcessed/F2/union/filt_10e-4_025_0_c/'
 	canonical = True
 	varpos = 6
 	canInd = getPosIndex(varpos, canonical)
@@ -721,7 +721,7 @@ def predictTop64(fname):
 
 	# Set up directories for the prediction logos
 	dirpath = '/'.join(fname.split('/')[:-1]) + '/'	
-	makeDir(dirpath + 'nnOnlyTop10_newPAM30/')
+	makeDir(dirpath + 'lookup/')
 
 	# Get the list of protein tuples
 	bestTargProts = getTop64F2Tuples(fname)
@@ -730,17 +730,18 @@ def predictTop64(fname):
 	canProts = [i[0]+i[2]+i[3]+i[6] for i in prots]
 
 	# Do the exact lookup
-	outpath = dirpath + 'nnOnlyTop10_newPAM30/'
+	outpath = dirpath + 'lookup/'
 	for i, canProt in enumerate(canProts):
-		nmat, npb = lookupCanonZF(freqDict, canProt, useNN = True, 
-		                          skipExact = True, decompose = decomp, 
-		                          topk = 10, verbose = None)
+		nmat, npb = lookupCanonZF(freqDict, canProt, useNN = False, 
+		                          skipExact = False, decompose = decomp, 
+		                          topk = None, verbose = None)
 		print targs[i], canProt, npb
-		label = '_'.join([str(i+1).zfill(2), targs[i], prots[i], 'nnOnlyTop10_newPAM30'])
+		label = '_'.join([str(i+1).zfill(2), targs[i], prots[i], 'lookup'])
 		makeNucMatFile(outpath, label, nmat)
 		logoIn = outpath + label + '.txt'
-		logoOut = outpath + label + '.pdf'
-		makeLogo(logoIn, logoOut, alpha = 'dna', 
+		logoOut = outpath + label + '.eps'
+		makeLogo(logoIn, logoOut, alpha = 'dna',
+					 format = 'eps', 
 			         colScheme = 'classic',
 			         annot = "'5,M,3'",
 			         xlab = prots[i],
@@ -749,11 +750,10 @@ def predictTop64(fname):
 
 def main():
 
-	"""
 	fname = '../data/revExp/best64F2/best64F2.txt'
 	predictTop64(fname)
-	"""
 	
+	"""
 	# Debugging stuff
 	outDir = '../zfPredictions/F2vF3/'
 	inDir = '../data/b1hData/antonProcessed/F2/union/filt_10e-4_025_0_c/'
@@ -768,7 +768,8 @@ def main():
 	doubles = {1: [2,3], 2: [2,3], 3: [0,1]}
 	singles = {1: [3], 2: [2], 3: [0]}
 	decomp = triples
-	
+	"""
+
 	"""
 	f3s = [('ATT','FQSGLIQ'), ('CAC', 'HQANLIH'),('CGG', 'RNAHLTD'),
 		   ('GAC', 'DQSNLTR'), ('GCG', 'TKYDLTR'), ('TGT', 'MKQHLTY'),
@@ -785,6 +786,7 @@ def main():
 	scratch = [('GTG', 'RNDLLQR')]
 	"""
 
+	"""
 	pairs = [('AAA', 'SAGSLYN'), ('CAA', 'AASTLWH'), ('CCC','LKKTLTD'),
 			 ('ATC', 'DKSYLYT'), ('ATT', 'FQSGLIQ'), ('CGG', 'RNAHLTD'),
 			 ('GAC', 'DQSNLTR'), ('AGT', 'MKQHLTY'), ('ACC', 'CPKALRA'),
@@ -834,6 +836,7 @@ def main():
 			print getConsensus(nmat)
 			print "Final Matrix:"
 			print nmat	
+			"""
 
 if __name__ == '__main__':
 	main()
