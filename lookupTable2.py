@@ -654,7 +654,7 @@ def setWeightMatrices(weight_mat, order_mat):
 		if weight_mat.split('.')[0].split('_')[-1] == 'bin':
 			expo = False
 		else:
-			expo = True
+			expo = False
 		NEIGHBOR_WEIGHTS = getSubDict(matLoc + weight_mat + '.txt', 
 	                              expo = expo)
 	else:
@@ -664,7 +664,7 @@ def setWeightMatrices(weight_mat, order_mat):
 		if order_mat.split('.')[0].split('_')[-1] == 'bin':
 			expo = False
 		else:
-			expo = True
+			expo = False
 		NEIGHBOR_ORDER = getSubDict(matLoc + order_mat + '.txt',
 	                            expo = expo)	
 	else:
@@ -747,31 +747,29 @@ def predictTop64(fname):
 			         ylab = "' '",
 			         fineprint = "' '")
 
-
 def main():
 
+	"""
 	fname = '../data/revExp/best64F2/best64F2.txt'
 	predictTop64(fname)
-
 	"""
+	
 	# Debugging stuff
-	outDir = '../data/scratch/'
-	inDir = '../data/b1hData/newDatabase/6varpos/F2/low/protein_seq_cut10bc_0_5/'
+	outDir = '../zfPredictions/F2vF3/'
+	inDir = '../data/b1hData/antonProcessed/F3/union/filt_10e-4_025_0_c/'
 	canonical = True
 	varpos = 6
 	canInd = getPosIndex(varpos, canonical)
 	freqDict = computeFreqDict(inDir, canInd)
-	#setWeightMatrices('PAM250', 'PAM250')
-	setWeightMatrices('PAM250_bin', 'PAM250_bin')
-	topk = 25
+	setWeightMatrices('PAM30', 'PAM30')
+	topk = 10
 	
 	triples = {1: [1,2,3], 2: [0,2,3], 3: [0,1,2]}
 	doubles = {1: [2,3], 2: [2,3], 3: [0,1]}
 	singles = {1: [3], 2: [2], 3: [0]}
 	decomp = triples
 	
-	# Working on this
-	#entropyDict = getPosEntropies(freqDict)
+	"""
 	f3s = [('ATT','FQSGLIQ'), ('CAC', 'HQANLIH'),('CGG', 'RNAHLTD'),
 		   ('GAC', 'DQSNLTR'), ('GCG', 'TKYDLTR'), ('TGT', 'MKQHLTY'),
 		   ('AAA', 'SAGSLYN'), ('CAA', 'QKINLIN'), ('ATC', 'DKSYLYT'),
@@ -785,9 +783,13 @@ def main():
 	hughesTargs = ['XXX'] * len(hughes)
 	hughes = zip(hughesTargs, hughes)
 	scratch = [('GTG', 'RNDLLQR')]
+	"""
 
-
-	pairs = scratch
+	pairs = [('AAA', 'SAGSLYN'), ('CAA', 'AASTLWH'), ('CCC','LKKTLTD'),
+			 ('ATC', 'DKSYLYT'), ('ATT', 'FQSGLIQ'), ('CGG', 'RNAHLTD'),
+			 ('GAC', 'DQSNLTR'), ('AGT', 'MKQHLTY'), ('ACC', 'CPKALRA'),
+			 ('TGA', 'SYNGLRG'), ('GTT', 'FAMQLTR'), ('CCC', 'DPRCLVR')]
+	#pairs = scratch
 	targs = [i[0] for i in pairs]
 	prots = [i[1] for i in pairs]
 	canProts = [i[0]+i[2]+i[3]+i[6] for i in prots]
@@ -805,7 +807,7 @@ def main():
 		makeLogo(logoIn, logoOut, alpha = 'dna', 
 			         colScheme = 'classic',
 			         annot = "'5,M,3'",
-			         xlab = '_'.join([targs[i], prots[i]]))
+			         xlab = prots[i])
 		
 		print "Lookup:"
 		print getConsensus(nmat)
@@ -834,7 +836,6 @@ def main():
 			print getConsensus(nmat)
 			print "Final Matrix:"
 			print nmat	
-			"""                 	
 
 if __name__ == '__main__':
 	main()

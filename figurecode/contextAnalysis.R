@@ -16,14 +16,27 @@ getJaccard <- function(v1, v2) {
   jaccard
 }
 
-makeSimPlot <- function(simFrame, plotFile, xlabel) {
+makeSimHist <- function(simFrame, plotFile, xlabel) {
 
     g <- ggplot(simFrame, aes(sim)) + 
-    geom_histogram() +
+    geom_histogram(fill = "royalblue") +
     xlab(xlabel) +
+    theme_bw() + 
     ylab("Number of Canonical Proteins")
 
     ggsave(plotFile, plot = g)
+}
+
+plotWeightVsSim <- function(df, plotFile, xlabel, ylabel) {
+  
+  g <- ggplot(df, aes(x = weight, y = sim)) +
+  geom_point(color = "royalblue", size = 1) +
+  xlab(xlabel) + 
+  scale_x_continuous(limits = c(0, 0.01)) + 
+  ylab(ylabel) +
+  theme_bw()
+
+  ggsave(plotFile, plot = g)
 }
   
 compareHighLowString <- function(dfList, fings, filts, simType, outDir) {
@@ -44,12 +57,14 @@ compareHighLowString <- function(dfList, fings, filts, simType, outDir) {
                               dfList[[highTag]]$prot)
       
       simVect <- vector()
+      weights <- vector()
       for (p in interProts) {
         v1Vals <- as.numeric(dfList[[lowTag]][dfList[[lowTag]]$prot == p,])
         v1 <- v1Vals[4:length(v1Vals)]
         v2Vals <- as.numeric(dfList[[highTag]][dfList[[highTag]]$prot == p,])
         v2 <- v2Vals[4:length(v2Vals)]
-        
+        weight <- min(v1Vals[3], v2Vals[3])
+
         # Cosine similarity
         if (simType == 'cosine') {
           sim <- getCosineSim(v1, v2)
@@ -76,15 +91,24 @@ compareHighLowString <- function(dfList, fings, filts, simType, outDir) {
           xlabel <- "Jaccard between high and low"
         }
 
+        weights <- c(weights, weight)
         simVect <- c(simVect, sim)
       }
       
-      simFrame <- data.frame(prot = interProts, sim = simVect)
+      #print(simVect)
+      simFrame <- data.frame(prot = interProts, sim = simVect,
+                             weight = weights)
       plotFile <- paste("intersectHighLow", simTag, f, 
                         filt, sep = '_')
       plotFile <- paste0(outDir, '/', plotFile, '.pdf')
 
-      makeSimPlot(simFrame, plotFile, xlabel)
+      makeSimHist(simFrame, plotFile, xlabel)
+
+      plotFile <- paste("intersectHighLow", simTag, 'vWeight', f, 
+                        filt, sep = '_')
+      plotFile <- paste0(outDir, '/', plotFile, '.pdf')
+      plotWeightVsSim(simFrame, plotFile, "Protein weight",
+                      xlabel)
     }
 }
 
@@ -151,7 +175,7 @@ compareF2vsF3 <- function(dfList, strins, filts, simType, outDir) {
                         filt, sep = '_')
       plotFile <- paste0(outDir, '/', plotFile, '.pdf')
 
-      makeSimPlot(simFrame, plotFile, xlabel)
+      makeSimHist(simFrame, plotFile, xlabel)
     }
 }
 
@@ -409,54 +433,41 @@ runWeightedFractionAnalysis <- function(varPos, refSet) {
 
   if (refSet == 'F2high') {
     fracFrame$dsetName <- factor(fracFrame$dsetName, 
-                                 levels = c("F2low", "F3high", "F3low"),
-                                 labels = c("F2 low", "F3 high", "F3 low"))
+                                 levels = c("F2low", "F3low", "F3high"),
+                                 labels = c("F2 low", "F3 low", "F3 high"))
     llabs <- c("F2 low", "F3 high", "F3 low")
-    ylabs <- paste0("Weight fraction of high stringency found in low stringency")
+    ylabs <- paste0("Weighted fraction of F2 high stringency found")
   } else if (refSet == 'F3high') {
     fracFrame$dsetName <- factor(fracFrame$dsetName, 
-                                 levels = c("F3low", "F2high", "F2low"),
-                                 labels = c("F3 low", "F2 high", "F2 low"))
+                                 levels = c("F3low", "F2low", "F2high"),
+                                 labels = c("F3 low", "F2 low", "F2 high"))
     llabs <- c("F3 low", "F2 high", "F2 low")
-    ylabs <- paste0("Weight fraction of high stringency found in low stringency")
+    ylabs <- paste0("Weighted fraction of F3 high stringency found")
   } else if (refSet == 'F2F3unionHigh') {
     fracFrame$dsetName <- factor(fracFrame$dsetName, 
                                  levels = c("F2F3unionLow"),
                                  labels = c("F2F3 Union Low"))
     llabs <- c("F2F3 Union Low")
-    ylabs <- paste0("Weight fraction of high stringency found in low stringency")
+    ylabs <- paste0("Weighted fraction of high stringency found in low stringency")
   }
 
-  cols <- c("indianred", "royalblue", "gray50")
-  #cols <- c("royalblue")
-  
-  # Set up to use text jittered
-  #fracFrame$nameJit <- jitter(as.numeric(fracFrame$dsetName), factor = 1)
+  #cols <- c("indianred", "royalblue", "gray50")
 
   # Make the plot
   g <- ggplot(fracFrame, aes(x = dsetName, y = frac)) +
-    scale_fill_manual("", breaks = dsetName,values = cols) + 
-    geom_boxplot(aes(outlier.size = 1)) +
-    #geom_point(aes(x = dsetName, color = dsetName),
-    #           size = 1.5) +
-    #geom_jitter(aes(color = dsetName), size = 1.5,
-    #            position = position_jitter(0.25)) +
-    #geom_text(aes(x = nameJit, label = as.character(targ),
-    #              color = dsetName),
-    #          size = 2.5) + 
+    #scale_fill_manual("", breaks = llabs, values = cols) + 
+    geom_boxplot(aes(outlier.size = 1), fill = "royalblue") +
     ylab(ylabs) +
     theme_bw() +
     theme(axis.title.x = element_blank(),
           axis.title.y = element_text(size=9),
-          axis.text.y = element_text(size=9))#,
-          #axis.text.x = element_blank(), 
-          #axis.ticks.x = element_blank()) 
-
+          axis.text.y = element_text(size=9))
 
   plotName <- paste(outDir, 
                     paste0(refSet, '_', 
                            varPos, 'pos_weightedFrac.pdf'),
                     sep = '/')
+  print(plotName)
   tableName <- paste(outDir, 
                     paste0(refSet, '_', 
                            varPos, 'pos_weightedFrac.txt'),
