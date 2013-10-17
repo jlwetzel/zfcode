@@ -614,10 +614,10 @@ main <- function() {
   #runF2vF3SimAnalysis('pcc')
   #runF2vF3SimAnalysis('cosine')
   #runF2vF3SimAnalysis('cosine_bin')
-  runWeightedFractionAnalysis(6, "F2F3unionHigh")
-  runWeightedFractionAnalysis(4, "F2F3unionHigh")
-  #makeTripletHeatmap("F3", "union", 
-  #                   'filt_10e-4_025_0_c', noParse = TRUE)
+  #runWeightedFractionAnalysis(6, "F2F3unionHigh")
+  #runWeightedFractionAnalysis(4, "F2F3unionHigh")
+  makeTripletHeatmap("F3", "union", 
+                     'filt_10e-4_025_0_c', noParse = TRUE)
 }
 
 main()

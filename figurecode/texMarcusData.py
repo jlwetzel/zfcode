@@ -75,8 +75,8 @@ def main():
 	style = 'top25'
 	useExact = True
 	mat = 'PAM30'
-	trainFing = 'F3'
-	trainStrin = 'low'
+	trainFing = 'F2'
+	trainStrin = 'union'
 	outDir = '../../figures/predictionLogos/'
 	inDirPrefix = '../../data/'
 
@@ -92,6 +92,7 @@ def main():
 			       	   'NN_top' + k + '_' + mat + '/','bls02RevExp/']
 
 	elif re.match(r'(.)*top[0-9][0-9]', style) != None and useExact:
+		print "Here"
 		k = style[-2:]
 		logoType = ['Exper.', 'Lookup', 'NNOnly.Top' + k + '.' + mat, \
 			'NN.Top' + k + '.' + mat]
