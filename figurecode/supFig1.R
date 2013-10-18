@@ -185,7 +185,7 @@ numTargsVsWeightSpearmans <- function(pathPref, fing, strin,
   	for (prot in df$prot)
   		count <- c(count, cts[[prot]])
 
-  	test <- cor.test(as.numeric(as.factor(df$prot)), count,
+  	test <- cor.test(df$freq, count,
   	                 method = "spearman")
   	trip <- c(trip, t)
   	rho <- c(rho, test$estimate)
@@ -197,7 +197,7 @@ numTargsVsWeightSpearmans <- function(pathPref, fing, strin,
 
 	g <- ggplot(spearFrame, aes(x = trip, y = rho)) +
 	geom_bar(stat = 'identity', fill = 'royalblue') + 
-	ylab("Spearman correlation (# of triplets bound vs. helix frequency") + 
+	ylab("Spearman correlation (# of triplets bound vs. helix frequency)") + 
 	xlab("DNA triplet") +
 	coord_flip() +
 	theme_bw() +

@@ -235,7 +235,7 @@ makeHeatPlot <- function(fname, dframe, xl, yl) {
     xlab(xl) +
     ylab(yl) +
     theme_bw()
-  ggsave(fname, plot = g)
+  ggsave(fname, plot = g, height = 5.5, width = 5.5)
 }
 
 runAllAnalysis(filtDirs, outDirs, filters)

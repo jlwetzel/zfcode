@@ -10,6 +10,7 @@ def lookupMarcusPWMs(inDir, outputDir, freqDict,
 	
 	# Make predcitions for each of the proteins that 
 	# Marcus made experimental PWMs for
+	# finger and strin are the for the experimental logos
 
 	# Create the prediction directory structure
 	predictionDir = outputDir+'predictions/'
@@ -51,7 +52,6 @@ def lookupMarcusPWMs(inDir, outputDir, freqDict,
 		
 		#if fname != "2702_AAC_EATSLRN_5mM.txt":
 		#	continue
-
 
 		if strin == 'low' and re.match(r'(.)*_5mM.txt', fname) == None:
 			continue
