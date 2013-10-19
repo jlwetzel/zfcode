@@ -130,13 +130,13 @@ def make3posPWM(outDir, label, pwm, targ, prot, finger):
 	logoIn = outDir + 'pwms3/' + label + '.txt'
 	logoOut = outDir + 'logos3/' + label + '.pdf'
 	makeLogo(logoIn, logoOut, alpha = 'dna',
-	         colScheme = 'classic', annot = "'5,M,3'",
-	         xlab = '_'.join([targ,prot]))
+	         colScheme = 'classic', annot = "'5,M,3'")
 
 def parseMemeFile(fpath):
 	# Returns a PWM of the width of the alignment in the
 	# MEME.txt file.
 
+	print fpath
 	try:
 		fin = open(fpath, 'r')
 	except IOError:
@@ -183,7 +183,10 @@ def parseMemeFile(fpath):
 		if line[1] == '-':
 			break
 		sp_line = line.strip().split()
-		count = np.log2(eval(sp_line[0].split('_')[1]))
+		if 'MNXX' not in fpath:
+			count = np.log2(eval(sp_line[0].split('_')[1]))
+		else:
+			count = 1
 		nucseq = sp_line[4]
 		for i, n in enumerate(nucseq):
 			pwm[i,nucs.index(n)] += count
@@ -324,6 +327,7 @@ def main():
 	bcfname = '../data/revExp/revExpBarcodes/all700Entries.txt'
 	targfname = '../data/revExp/revExpBarcodes/revExper_GAG_700s.txt'
 	targDict = getTargDict(targfname, finger)
+	#print targDict
 	makeallpwms(bcfname, targDict, finger)
 
 	"""
