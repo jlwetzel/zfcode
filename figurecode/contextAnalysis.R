@@ -367,8 +367,8 @@ runWeightedFractionAnalysis <- function(varPos, refSet) {
 
   # Read in the various datasets
   inPref <- '../../data/b1hData/antonProcessed'
-  strins <- c('unionHigh', 'unionLow')#c('low', 'high')
-  fings <- c('F2F3')#c('F2', 'F3')
+  strins <- c('low', 'high')#c('unionHigh', 'unionLow')
+  fings <- c('F2', 'F3')#c('F2F3')
   filt <- 'filt_10e-4_025_0_c'
   dsets <- list()
   for (f in fings)
@@ -459,11 +459,11 @@ runWeightedFractionAnalysis <- function(varPos, refSet) {
     geom_boxplot(aes(outlier.size = 1), fill = "royalblue") +
     ylab(ylabs) +
     theme_bw() +
-    theme(axis.title.x = element_blank(),
-          axis.title.y = element_text(size=9),
-          axis.text.y = element_text(size=9),
-          axis.text.x = element_blank(),
-          axis.ticks.x = element_blank())
+    theme(axis.title.x = element_blank())
+          #axis.title.y = element_text(size=9),
+          #axis.text.y = element_text(size=9))
+          #axis.text.x = element_blank(),
+          #axis.ticks.x = element_blank())
 
   plotName <- paste(outDir, 
                     paste0(refSet, '_', 
@@ -610,12 +610,12 @@ makeTripletHeatmap <- function(fing, strin, filt,
 }
 
 main <- function() {
-  runHighVsLowAnalysis('cosine')
+  #runHighVsLowAnalysis('cosine')
   #runF2vF3SimAnalysis('pcc')
   #runF2vF3SimAnalysis('cosine')
   #runF2vF3SimAnalysis('cosine_bin')
-  #runWeightedFractionAnalysis(6, "F2F3unionHigh")
-  #runWeightedFractionAnalysis(4, "F2F3unionHigh")
+  runWeightedFractionAnalysis(6, "F2high")
+  runWeightedFractionAnalysis(4, "F2high")
   #makeTripletHeatmap("F3", "union", 
   #                  'filt_10e-4_025_0_c', noParse = TRUE)
 }
