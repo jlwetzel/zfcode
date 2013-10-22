@@ -130,7 +130,9 @@ def make3posPWM(outDir, label, pwm, targ, prot, finger):
 	logoIn = outDir + 'pwms3/' + label + '.txt'
 	logoOut = outDir + 'logos3/' + label + '.pdf'
 	makeLogo(logoIn, logoOut, alpha = 'dna',
-	         colScheme = 'classic', annot = "'5,M,3'")
+	         format = 'pdf', 
+	         colScheme = 'classic', annot = "'5,M,3'",
+	         fineprint = '""')
 
 def parseMemeFile(fpath):
 	# Returns a PWM of the width of the alignment in the

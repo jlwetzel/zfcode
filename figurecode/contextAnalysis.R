@@ -505,18 +505,18 @@ parseWeightedJaccard <- function(dframe, triplets) {
         interProts <- intersect(names(f1), names(f2))
         unionProts <- union(names(f1), names(f2))
         interWeight <- 0.0
-      for (p in interProts)
-        interWeight <- interWeight + f1[p] + f2[p]
-      wjaccard <- interWeight/2
-      
-      # Correct for rounding errors
-      if (wjaccard > 1)
-        wjaccard = 1
-      
+        
+        for (p in interProts)
+          interWeight <- interWeight + f1[p] + f2[p]
+        wjaccard <- interWeight/(2 - interWeight)
+
+        # Correct for rounding errors
+        if (i == j)
+          wjaccard = NA
       } else {
         wjaccard <- 0
       }
-      
+
       # Add new entry to each vector for new dframe
       trip1 <- c(trip1, t1)
       trip2 <- c(trip2, t2)
@@ -557,7 +557,7 @@ makeTripletHeatmap <- function(fing, strin, filt,
                        header = TRUE)
     jacFrame <- parseWeightedJaccard(dframe, triplets)
     tableName <- paste(outDir, paste(fing, strin, 
-                                   'wJaccTrip.txt', sep = '_'),
+                                   'wJaccTrip_v2.txt', sep = '_'),
                         sep = '/')
     write.table(file = tableName, jacFrame, row.names=FALSE, 
                 quote=FALSE)
@@ -574,8 +574,8 @@ makeTripletHeatmap <- function(fing, strin, filt,
     #scale_fill_gradient2(breaks = br,
     #                     low = 'white', high = 'royalblue',
     #                     limits = c(0,1), guide = 'legend') +
-    scale_fill_gradient2("Weighted Jaccard", low = 'white', high = 'royalblue',
-                         limits = c(0,1))+#, guide = "legend") +
+    scale_fill_gradient2("Weighted Jaccard", low = 'white', high = 'royalblue')+#, 
+                         #limits = c(0,1))+#, guide = "legend") +
     geom_segment(aes(x = 0.5, xend = 0.5, y = 0.5, yend = 64.5)) + 
     geom_segment(aes(x = 16.5, xend = 16.5, y = 0.5, yend = 65 - 16.5)) + 
     geom_segment(aes(x = 32.5, xend = 32.5, y = 0.5, yend = 65 - 32.5)) + 
@@ -604,7 +604,7 @@ makeTripletHeatmap <- function(fing, strin, filt,
           axis.text.x = element_text(angle=90, vjust=0.5, size = 8))
 
   plotName <- paste(outDir, paste(fing, strin, 
-                                   'wJaccTrip.eps', sep = '_'),
+                                   'wJaccTrip_v2.eps', sep = '_'),
                         sep = '/')
   ggsave(plotName, plot = g, width = 7.75, height = 7.5)
 }
@@ -614,10 +614,10 @@ main <- function() {
   #runF2vF3SimAnalysis('pcc')
   #runF2vF3SimAnalysis('cosine')
   #runF2vF3SimAnalysis('cosine_bin')
-  runWeightedFractionAnalysis(6, "F2high")
-  runWeightedFractionAnalysis(4, "F2high")
-  #makeTripletHeatmap("F3", "union", 
-  #                  'filt_10e-4_025_0_c', noParse = TRUE)
+  #runWeightedFractionAnalysis(6, "F2high")
+  #runWeightedFractionAnalysis(4, "F2high")
+  makeTripletHeatmap("F3", "union", 
+                    'filt_10e-4_025_0_c', noParse = FALSE)
 }
 
 main()
