@@ -74,6 +74,7 @@ def get_GCG_pwm(pwm):
 	# pwm that begins 6 positions earlier than this.
 
 	# Find the start index of the GAG motif
+	#print pwm
 	G1Found = False
 	C1Found = False
 	GCGFound = False
@@ -83,33 +84,35 @@ def get_GCG_pwm(pwm):
 		if GCGFound:
 			break
 		argmax = np.argmax(pwm[i,:])
-		#print argmax
 		if G1Found and C1Found and argmax == nucs.index('G') and \
-			i + 1 == C1ind:
-			#print "Found GCG"
+			(i + 1) == C1ind:
 			GCGFound = True
 		elif G1Found and argmax == nucs.index('C') and \
-			i + 1 == G1ind:
-			#print "Found C1"
+			(i + 1) == G1ind:
 			C1Found = True
 			C1ind = i
 		elif argmax == nucs.index('G'):
-			#print "Found G1"
 			G1Found = True
 			G1ind = i
 	
+	#print G1Found
+	#print C1Found
+	#print GCGFound
+	#print G1ind
+	#print C1ind
+
 	if not GCGFound:
 		return None
 	
-	startInd = G1ind - 3
-	if startInd == None or startInd > 9 or startInd < 6:
+	endInd = G1ind + 1
+	startInd = endInd - 9
+	if startInd == None or startInd < 0 or endInd > 11:
 		return None
 	
 	# Copy the appropriate positions into the new PWM
-	offset = startInd - 5
-	trimmedPWM = np.zeros((startInd + 3, 4), float)
+	trimmedPWM = np.zeros((9, 4), float)
 	for i in range(len(trimmedPWM)):
-		trimmedPWM[i,:] = pwm[i+offset,:]
+		trimmedPWM[i,:] = pwm[i+startInd,:]
 
 	return trimmedPWM
 
@@ -214,7 +217,9 @@ def makeallpwms(listfile, targDict, finger):
 	keysNotFound = []       # of times a file was found, but 
 	                        # we don't have a mapping to the protein
 
-	for line in fin:
+	for i, line in enumerate(fin):
+		if i > 0:
+			pass#continue
 		sp_line = line.strip().split()
 		bc = bcKey[eval(sp_line[4][-1])] + '_' + sp_line[2]
 		dset = sp_line[0].split('-')[0]
@@ -324,6 +329,7 @@ def main():
 	getPatternbcs(allbcfile, bc100sfile, r'[0-9]?1[0-9]{2}')
 	"""
 
+	"""
 	# Make the F2 pwms
 	finger = 'F2'
 	bcfname = '../data/revExp/revExpBarcodes/all700Entries.txt'
@@ -331,16 +337,14 @@ def main():
 	targDict = getTargDict(targfname, finger)
 	#print targDict
 	makeallpwms(bcfname, targDict, finger)
-
 	"""
+
 	# Make the F3 pwms
 	finger = 'F3'
 	bcfname = '../data/revExp/revExpBarcodes/all100Entries.txt'
 	targfname = '../data/revExp/revExpBarcodes/revExper_GAG_100s.txt'
 	targDict = getTargDict(targfname, finger)
 	makeallpwms(bcfname, targDict, finger)
-	"""
-
 	
 
 if __name__ == '__main__':

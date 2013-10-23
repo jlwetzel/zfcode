@@ -111,6 +111,148 @@ def lookupMarcusPWMs(inDir, outputDir, freqDict,
 
 	fout.close()
 
+def lookupBarbasPWMs(inDir, outputDir, freqDict,
+                     finger, strin, filt, pred, useNN = True,
+                     skipExact = False, decompose = None,
+                     topk = None, freqDict2 = None):
+	# Create the prediction directory structure
+	predictionDir = outputDir+'predictions/'
+	pwmdir = predictionDir + 'pwms/'
+	logodir = predictionDir + 'logos/'
+	makeDir(predictionDir)
+	makeDir(pwmdir)
+	makeDir(logodir)
+
+	fout = open(predictionDir + 'compare.txt', 'w')
+	# Write header to results file
+	fout.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
+	           %('num', 'targ','prot','canonprot','c1pcc','c2pcc',
+	             'c3pcc', 'c1pcc.ic', 'c2pcc.ic', 'c3pcc.ic', 'p.c1cons',
+	             'p.c2cons', 'p.c3cons', 'e.c1cons', 'e.c2cons', 'e.c3cons',
+	             'pred.filt', 'finger', 'strin'))
+
+	# B1H forward experiments.  Need to update if start 
+	# using the 5 position ones
+	npos = 6
+	canonical = True
+	ind = getPosIndex(npos, canonical)
+
+	expDir = '../data/barbas/pwms/'
+	for fname in os.popen('ls ' + expDir):
+		# Get the info about this experiment
+		fname = fname.strip()
+		sp_fname = fname.split('_')
+		goal = sp_fname[0]
+		prot = sp_fname[1].split('.')[0]
+		canonProt = prot[0] + prot[2] + prot[3] + prot[6]
+		label = '_'.join([goal, prot])
+
+		if freqDict2 == None:
+			nucMat, neighborPerBase = lookupCanonZF(freqDict, canonProt, useNN, 
+		                                          skipExact, decompose, topk, 
+		                                          verbose = None)
+		else:
+			nucMat1, neighborPerBase = lookupCanonZF(freqDict, canonProt, useNN, 
+		                                          skipExact, decompose, topk, 
+		                                          verbose = None)
+			nucMat2, neighborPerBase = lookupCanonZF(freqDict2, canonProt, useNN, 
+		                                          skipExact, decompose, topk, 
+		                                          verbose = None)
+			nucMat = avgMats(nucMat1, nucMat2)
+
+
+		makeNucMatFile(pwmdir, label, nucMat)
+		logoIn = pwmdir + label + '.txt'
+		logoOut = logodir + label + '.pdf'
+		makeLogo(logoIn, logoOut, alpha = 'dna', 
+		         colScheme = 'classic',
+		         annot = "'5,M,3'",
+		         xlab = '""')
+		
+		# Compare this pwm to the reverse experiment
+		expMat = pwmfile2matrix(expDir + fname)
+		colPcc, colPcc_ic = comparePCC(nucMat, expMat)
+		predCons = getConsensus(nucMat)
+		expCons = getConsensus(expMat)
+
+		protNum = 'XXX'
+		# Write the comparison results to file
+		fout.write("%s\t%s\t%s\t%s\t" %(protNum, goal, prot, canonProt))
+		fout.write("%.4f\t"*6 %(colPcc[0], colPcc[1], colPcc[2], \
+		           				colPcc_ic[0], colPcc_ic[1], colPcc_ic[2]))
+		fout.write("%s\t"*6 %(predCons[0], predCons[1], predCons[2],
+		           			  expCons[0], expCons[1], expCons[2]))
+		fout.write("%s\t%s\t%s\n" %(pred+'.'+filt, finger, strin))
+
+	fout.close()
+
+def runBarbasAnalysis(style, decomp, weight_mat, order_mat, 
+                      trainFing, trainStrin, outDirPref,
+                      useExact = True):
+	
+	if re.match(r'(.)*top[0-9][0-9]', style) != None:
+		topk = eval( style[(len(style) - 2):] )
+	else:
+		topk = None
+	filt = 'filt_10e-4_025_0_c'
+	f = 'BARBAS'
+	s = 'BARBAS'
+	filtsLab = '10e-4_025_0_c'
+
+	# Get the dictionary of binding frequencies
+	canonical = True
+	varpos = 6
+	canInd = getPosIndex(varpos, canonical)
+
+	setWeightMatrices(weight_mat, order_mat)
+	label, outDirPrefXXXXX = getLabels(style, weight_mat, useExact)
+	makeDir(outDirPref)
+	makeDir(outDirPref + trainFing)
+	makeDir(outDirPref + trainFing + '/' + trainStrin)
+	makeDir(outDirPref + trainFing + '/' + trainStrin + '/'\
+		 + filt + '/')
+
+	decompDict = getDecompDict(decomp)
+
+	# Do the case of avaraging F2 and F3 predictions
+	outDir = outDirPref + trainFing + '/' + trainStrin + \
+		'/' + filt + '/'
+	if trainFing == 'F2F3' and trainStrin == 'avgUnions':
+		inDir1 = '../data/b1hData/antonProcessed/F2/union/' \
+			+  filt + '/'
+		inDir2 = '../data/b1hData/antonProcessed/F3/union/' \
+			+  filt + '/'
+		freqDict1 = computeFreqDict(inDir1, canInd)
+		freqDict2 = computeFreqDict(inDir2, canInd)
+		lookupBarbasPWMs(inDir1, outDir, freqDict1, f, s, filtsLab,
+	                 	label, useNN = True, skipExact = False,
+	                 	decompose = decompDict, topk = topk, 
+	                 	freqDict2 = freqDict2)
+		return
+
+	# Do all other cases
+	inDir = '../data/b1hData/antonProcessed/' \
+		+ trainFing + '/' + trainStrin + '/' +  filt + '/'
+	freqDict = computeFreqDict(inDir, canInd)
+
+	# Perform the actual prediction against the Marcus pwms
+	if style == 'lookonly':
+		lookupBarbasPWMs(inDir, outDir, freqDict, f, s, filtsLab,
+	    	             label, useNN = False,
+	        	         skipExact = False, decompose = None)
+	elif style == 'nnonly':
+		lookupBarbasPWMs(inDir, outDir, freqDict, f, s, filtsLab,
+	                 	label, useNN = True, skipExact = True,
+	                 	decompose = decompDict, topk = None)
+	elif re.match(r'(.)*top[0-9][0-9]', style) != None and useExact:
+		lookupBarbasPWMs(inDir, outDir, freqDict, f, s, filtsLab,
+	                 	label, useNN = True, skipExact = False,
+	                 	decompose = decompDict, topk = topk)	
+	elif re.match(r'(.)*top[0-9][0-9]', style) != None:
+		lookupBarbasPWMs(inDir, outDir, freqDict, f, s, filtsLabs,
+	                 	label, useNN = True, skipExact = True,
+	                 	decompose = decompDict, topk = topk)	
+
 def getLabels(style, weight_mat, useExact):
 	# Returrns a label and a directory prefix for the 
 	# given style, decomposition, and weight matrix
@@ -236,7 +378,7 @@ def runMarcusDataAnalysis(style, decomp, weight_mat, order_mat,
 		return
 
 	# PErform the lookup or nn strategy on various datasets
-	testFings = ['F2']
+	testFings = ['F3']
 	testStrins = ['low']
 	filts = ['filt_10e-4_025_0_c']
 	filtsLabs = ['10e-4_025_0_c']
@@ -250,6 +392,8 @@ def runMarcusDataAnalysis(style, decomp, weight_mat, order_mat,
 					topk = None
 				setWeightMatrices(weight_mat, order_mat)
 				label, outDirPref = getLabels(style, weight_mat, useExact)
+				if testFings == ['F3']:
+					outDirPref = outDirPref[:-1] + '_F3/' # Use for F3 analysis
 				makeDir(outDirPref)
 				makeDir(outDirPref + trainFing)
 				makeDir(outDirPref + trainFing + '/' + trainStrin)
@@ -289,7 +433,6 @@ def runMarcusDataAnalysis(style, decomp, weight_mat, order_mat,
 					lookupMarcusPWMs(inDir, outDir, freqDict, f, s, filtsLabs[i],
 				                 	label, useNN = True, skipExact = True,
 				                 	decompose = decompDict, topk = topk)	
-
 
 def norm_matrix(matrix): #normalize each column to 1 -- Written by Anton Persikov
     columns = len(matrix) #get number of columns
@@ -357,18 +500,19 @@ def predict_matrix_bls(protein): #predict matrix by BLS02 -- written by Anton Pe
 def main():
 
 	#styles = ['top10', 'top15', 'top20', 'top25', 'top30'] #For nearest neighbors
+	#styles = ['top25'] # For Barbas 
 	styles = ['lookonly']  #For direct lookup
 	decomps = ['singles'] * 5
 	weight_mats = ['PAM30']
 	order_mats = ['PAM30']
 	#useExacts = [True, False]  #For dnearest neighbors
-	useExacts = [True]  # For direct lookup
+	useExacts = [True]  # For direct lookup and Barbas
 	trainFings = ["F2", "F3"]#["F1", "F2", "F3"] 
 	trainStrins = ["union"]#["low", "high"]
 
 	# Run the direct lookup analysis
 
-	# Run the "topk" neighbors analysis
+	# Run the "topk" neighbors analysis for barbas or marcusData
 	for trainFing in trainFings:
 		for trainStrin in trainStrins:
 			for useExact in useExacts:
@@ -379,6 +523,12 @@ def main():
 							  trainFing, trainStrin, useExact)
 						runMarcusDataAnalysis(style, decomps[i], weight_mat, order_mats[j], 
 			                      		  	  trainFing, trainStrin, useExact)
+						#outDirPref = '../data/' + '_'.join(["BARBAS", style]) + '/'
+						#runBarbasAnalysis(style, decomps[i], weight_mat, order_mats[j], 
+			                      	#trainFing, trainStrin, outDirPref, useExact)
+	#runBarbasAnalysis('top25', 'singles', 'PAM30', 'PAM30', 
+	#		              'F2F3', 'avgUnions', '../data/BARBAS_avgF2F3_Top25', 
+	#		              useExact = True)
 
 if __name__ == '__main__':
 	main()

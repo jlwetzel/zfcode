@@ -7,6 +7,18 @@ from fixTables import normalizeFreq
 from entropy import *
 #from gatherBindStats import getProtDict
 
+def avgMats(mat1, mat2):
+    # Takes two matrices, mat1 and mat2, of the same 
+    # dimensions and computes the average of the two 
+    # matrices for each row.
+
+    avgMat = np.zeros(shape = (len(mat1),len(mat1[1,:])),
+                      dtype = "float")
+    for i in range(len(mat1)):
+        avgMat[i,:] = (mat1[i,:] + mat2[i,:])/2
+        avgMat[i,:] = avgMat[i,:]/np.sum(avgMat[i,:])
+    return avgMat
+
 def getSubDict(fname, expo):
 	# Return a substitution dictionary indicated
 	# by the given file path.
