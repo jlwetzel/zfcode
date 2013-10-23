@@ -73,6 +73,7 @@ def makeTexTable(texFile, logoType, logoTypeDir):
 def main():
 	
 	style = 'top25'
+	predFing = 'F2'
 	useExact = True
 	mat = 'PAM30'
 	trainFing = 'F2'
@@ -106,15 +107,32 @@ def main():
 		logoTypeDir = ['revExp/F2_GAG/logos3/', 'lookupTable/', 
 			       	   'NNonly_top' + k + '/','NN_top' + k + '_' + mat + '/']
 
+	if predFing == 'F3':
+		x = logoTypeDir[0].replace('F2_GAG', 'F3_GCG')
+		y = [i[:-1] + '_F3/' for i in logoTypeDir[1:]]
+		logoTypeDir = [x] + y
+
 	#filters = ['cut3bc_0_5', 'cut10bc_0_5', 'cut10bc_0', 'cut10bc_025', 'cut3bc_025']
 	filters = ['filt_10e-4_025_0_c']
 	for f in filters:
 		if useExact:
-			texFile = open(outDir + '_'.join([trainFing, trainStrin, style, f, 'useExact']) \
-		         	       + '.tex', 'w')
+			if predFing == 'F3':
+				texFile = open(outDir + '_'.join([trainFing, trainStrin, style, \
+				               f, 'useExact', predFing]) \
+												+ '.tex', 'w')
+			else:
+				texFile = open(outDir + '_'.join([trainFing, trainStrin, style, \
+				               f, 'useExact']) \
+												+ '.tex', 'w')
 		else:
-			texFile = open(outDir + '_'.join([trainFing, trainStrin, style, f]) \
+			if predFing == 'F3':
+				texFile = open(outDir + '_'.join([trainFing, trainStrin, \
+				               style, f, predFing]) + '.tex', 'w')
+			else:
+				texFile = open(outDir + '_'.join([trainFing, trainStrin, style, f]) \
 		    	           + '.tex', 'w')
+
+
 		makeTexPreamble(texFile)
 		logoTypeDir2 = logoTypeDir[:]
 		for i, l in enumerate(logoTypeDir):
