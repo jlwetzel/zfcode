@@ -1,6 +1,8 @@
 import numpy as np
 from pwm import makeLogo
 import re
+import os
+from pwm import pwmfile2matrix, infoEntr
 
 nucs = ['A', 'C', 'G', 'T']
 
@@ -319,7 +321,134 @@ def getPatternbcs(inFile, outFile, bcRegex):
 	fout.close()
 	fin.close()
 
+def get4posF2F3RevExpInter():
+	# Returns a list of fingers that are in the 
+	# intersection for F2 and F3 when considering
+	# only the 4 canonical positions.
+	pass
+
+def makeDir(dname):
+	try:
+		os.mkdir(dname)
+	except OSError:
+		pass
+
+def getGoodLogoFileNames(dpath, colmin = 0.2, colAvg = 0.75):
+	# Returns a list the list of files from a reverse 
+	# experiment that correspond to "good" logos by some
+	# measure of logo quality.  colMin is the theshold for 
+	# minimum information content of each column.  colAvg
+	# is the threshold for the average across the 3 columns.
+	# dpath should correspond to a directory containing 
+	# transfac style pwms
+
+	handle = os.popen("ls %s" %dpath)
+	keepList = []
+
+	for fname in handle:
+		fname = fname.strip()
+		if '5mM' not in fname:
+			continue
+		nucMat = pwmfile2matrix(dpath + fname)
+
+		keep = True
+		ics = []
+		for i in range(len(nucMat)):
+			ic = 2 - infoEntr(nucMat[i,:])
+			if ic < colmin:
+				keep = False
+			ics.append(ic)
+
+		if keep and np.array(ics).mean() >= colAvg:
+			keepList.append(dpath + fname)
+
+	return keepList
+
+def getcanHelixToFnameMap(names, canInd):
+
+	# Place all files that map to the same 
+	# canonical helix in a list keyed by the 
+	# canonical helix
+	hDict = {}
+	for fname in names:
+		prot = fname.split('/')[-1].split('_')[2]
+		canHelix = ''
+		for i in canInd:
+			canHelix += prot[i]
+		if hDict.has_key(canHelix):
+			hDict[canHelix].append(fname)
+		else:
+			hDict[canHelix] = [fname]
+	return hDict
+
+def makeOlapPWMdir(h1, h2, sharedKeys, newDir):
+
+	makeDir(newDir)
+	pwmDir = newDir + 'pwms3/'
+	logoDir = newDir + 'logos3/'
+	makeDir(pwmDir)
+	makeDir(logoDir)
+	for k in sharedKeys:
+		for fpath in h1[k]:
+			fname = fpath.split('/')[-1]
+			os.system("cp %s %s" \
+			          %(fpath, pwmDir + k + "_F2_" + fname))
+			fstem = '/'.join(fpath.split('/')[:-2]) + '/'
+			pdfname = fname.split('.')[0] + '.pdf'
+			os.system("cp %s %s" \
+			          %(fstem + 'logos3/' + pdfname, 
+			            logoDir + k + "_F2_" + pdfname))
+		for fpath in h2[k]:
+			fname = fpath.split('/')[-1]
+			os.system("cp %s %s" \
+		          	%(fpath, pwmDir + k + "_F3_" + fname))
+			fstem = '/'.join(fpath.split('/')[:-2]) + '/'
+			pdfname = fname.split('.')[0] + '.pdf'
+			os.system("cp %s %s" \
+			          %(fstem + 'logos3/' + pdfname, 
+			            logoDir + k + "_F3_"+  pdfname))
+
+
+def getF2F3canonHelixOlapFnames(names1, names2, canInd):
+	# Get the list of finlnames for all designed 
+	# helices that overlap in the canonical positions
+	# (-1, 2, 3, 6)
+
+	h1 = getcanHelixToFnameMap(names1, canInd)
+	h2 = getcanHelixToFnameMap(names2, canInd)
+	#print len(names1), len(names2)
+	#print len(h1.keys()), len(h2.keys())
+	sharedKeys = []
+	for k in h1.keys():
+		if k in h2.keys():
+			sharedKeys.append(k)
+	#print len(sharedKeys)
+	#print sharedKeys
+
+	return sharedKeys, h1, h2
+
+
 def main():
+
+	# Check out how many of the logos look "good"
+	F2path = '../data/revExp/F2_GAG/pwms3/'
+	F3path = '../data/revExp/F3_GCG/pwms3/'
+	goodF2s = getGoodLogoFileNames(F2path, 
+	                               colmin = 0.2, colAvg = 0.75)
+	goodF3s = getGoodLogoFileNames(F3path,
+	                               colmin = 0.2, colAvg = 0.75)
+	#print len(goodF2s)
+	#print len(goodF3s)
+	#for fname in goodF3s:
+	#	print fname.split('/')[-1]
+
+	sharedKeys, h1, h2 = getF2F3canonHelixOlapFnames(goodF2s, 
+	                                                 goodF3s,
+	                                     canInd = [0,2,3,6])
+	newDir = "../data/revExp/F2F3sharedHelix_020_075/"
+	makeOlapPWMdir(h1, h2, sharedKeys, newDir)
+
+
 	"""
 	# Make the barcode files for F2 and F3 experiments
 	allbcfile = '../data/revExp/revExpBarcodes/allBarcodes.txt'
@@ -339,13 +468,15 @@ def main():
 	makeallpwms(bcfname, targDict, finger)
 	"""
 
+	"""
 	# Make the F3 pwms
 	finger = 'F3'
 	bcfname = '../data/revExp/revExpBarcodes/all100Entries.txt'
 	targfname = '../data/revExp/revExpBarcodes/revExper_GAG_100s.txt'
 	targDict = getTargDict(targfname, finger)
 	makeallpwms(bcfname, targDict, finger)
-	
+	"""
+
 
 if __name__ == '__main__':
 	main()
