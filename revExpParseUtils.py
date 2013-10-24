@@ -430,6 +430,7 @@ def getF2F3canonHelixOlapFnames(names1, names2, canInd):
 
 def main():
 
+	"""
 	# Check out how many of the logos look "good"
 	F2path = '../data/revExp/F2_GAG/pwms3/'
 	F3path = '../data/revExp/F3_GCG/pwms3/'
@@ -447,10 +448,11 @@ def main():
 	                                     canInd = [0,2,3,6])
 	newDir = "../data/revExp/F2F3sharedHelix_020_075/"
 	makeOlapPWMdir(h1, h2, sharedKeys, newDir)
-
-
 	"""
+
+	"""	
 	# Make the barcode files for F2 and F3 experiments
+	print "Hello"
 	allbcfile = '../data/revExp/revExpBarcodes/allBarcodes.txt'
 	bc700sfile = '../data/revExp/revExpBarcodes/all700Entries.txt'
 	bc100sfile = '../data/revExp/revExpBarcodes/all100Entries.txt'
@@ -468,14 +470,13 @@ def main():
 	makeallpwms(bcfname, targDict, finger)
 	"""
 
-	"""
 	# Make the F3 pwms
 	finger = 'F3'
 	bcfname = '../data/revExp/revExpBarcodes/all100Entries.txt'
 	targfname = '../data/revExp/revExpBarcodes/revExper_GAG_100s.txt'
 	targDict = getTargDict(targfname, finger)
 	makeallpwms(bcfname, targDict, finger)
-	"""
+	
 
 
 if __name__ == '__main__':
