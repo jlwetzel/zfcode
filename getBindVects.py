@@ -125,12 +125,15 @@ def makeBindVectFiles(bindPref, fings, strins, filts, canInd, allTargs):
 
 def main():
 	bindPref = '../data/b1hData/antonProcessed/'
-	fings = ["F2F3"]#["F1", "F2", "F3"]
+	
+	fings = ["F1", "F2", "F3"]
+	strins = ["high", "low", "inter", "union"]
+	#fings = ["F2F3"]
 	#strins = ["inter", "union"]
-	strins = ["intersectIntersections", "intersectUnions", \
-		"intersectIntersections_all", "intersectUnions_all", \
-		"unionIntersections", "unionUnions"]
-	filts = ['filt_10e-4_025_0_c']
+	#strins = ["intersectIntersections", "intersectUnions", \
+	#	"intersectIntersections_all", "intersectUnions_all", \
+	#	"unionIntersections", "unionUnions"]
+	filts = ['filt_10e-4_025_1_c']
 	canInd = [0,2,3,5]
 
 	# Make a list of all triplets

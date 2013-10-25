@@ -427,9 +427,64 @@ def getF2F3canonHelixOlapFnames(names1, names2, canInd):
 
 	return sharedKeys, h1, h2
 
+def makePWMbyPosition(finger, expNum, startPos):
+	# Make a 3 positions PWM from the MEME file given 
+	# a starting position in the alignment
+
+	##### NOTE ... need to fix because there can be multiple
+	#####          lines for one barcode (high vs low stringency)
+
+	bcKey = {1: 'TC', 2: 'AA', 3: 'GG'}
+
+	# Get the right files to look stuff up
+	if finger == "F2":
+		bcfile = '../data/revExp/revExpBarcodes/all700Entries.txt'
+		expfile = '../data/revExp/revExpBarcodes/revExper_GAG_700s.txt'
+	elif finger == "F3":
+		bcfile = '../data/revExp/revExpBarcodes/all100Entries.txt'
+		expfile = '../data/revExp/revExpBarcodes/'
+
+	# Look stuff up
+	bcline = os.popen('grep "\\-%s" %s' %(expNum, bcfile)).readline()
+	expline = os.popen('grep "^%s" %s' %(expNum, expfile)).readline()
+	sp_bcline = bcline.split()
+	sp_expline = expline.split()
+	mn = sp_bcline[0].split('---')[0]
+	tag = bcKey[eval(sp_bcline[-1][-1])] + '_' + \
+		sp_bcline[-3]
+	memepath = '../data/revExp/revExpAllData/%s/%s/meme.txt' \
+		%(mn, tag)
+	strin = sp_bcline[1]
+	if finger == "F2":
+		targ = sp_expline[4].split('-')[1]
+		helix = sp_expline[2]
+	elif finger == "F3":
+		targ = sp_expline[4].split('-')[0]
+		helix = sp_expline[3]
+
+	# Parse the meme file
+	pwm = parseMemeFile(memepath)[0]
+
+	# Trim the pwm to 3 positions
+	pwm3 = np.zeros((3,4), dtype = 'float')
+	for i in range(len(pwm3)):
+		print i
+		print i + startPos
+		pwm3[i,:] = pwm[(i + startPos - 1),:]
+
+	# Write pwm to file and make logo
+	label = '_'.join([expNum, targ, helix, strin])
+	makeNucMatFile('./', label, pwm3)
+	logoIn = label + '.txt'
+	logoOut = label + '.pdf'
+	makeLogo(logoIn, logoOut, alpha = 'dna',
+	         format = 'pdf', 
+	         colScheme = 'classic', annot = "'5,M,3'",
+	         fineprint = '""')
 
 def main():
 
+	makePWMbyPosition('F2', '750', 6)
 	"""
 	# Check out how many of the logos look "good"
 	F2path = '../data/revExp/F2_GAG/pwms3/'
@@ -470,12 +525,14 @@ def main():
 	makeallpwms(bcfname, targDict, finger)
 	"""
 
+	"""
 	# Make the F3 pwms
 	finger = 'F3'
 	bcfname = '../data/revExp/revExpBarcodes/all100Entries.txt'
 	targfname = '../data/revExp/revExpBarcodes/revExper_GAG_100s.txt'
 	targDict = getTargDict(targfname, finger)
 	makeallpwms(bcfname, targDict, finger)
+	"""
 	
 
 

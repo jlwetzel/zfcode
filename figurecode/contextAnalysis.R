@@ -95,9 +95,21 @@ compareHighLowString <- function(dfList, fings, filts, simType, outDir) {
         simVect <- c(simVect, sim)
       }
       
-      #print(simVect)
       simFrame <- data.frame(prot = interProts, sim = simVect,
                              weight = weights)
+
+      #maxWeight <- max(subset(simFrame, sim <= 0.01)$weight)
+      #print(nrow(subset(simFrame, sim <= 0.05 & weight <= maxWeight)))
+      #print(paste(maxWeight))
+      #print(nrow(subset(simFrame,
+      #      weight <= maxWeight & sim >= 0.95)))
+      #print(nrow(simFrame))
+
+      tabFile <- paste("intersectHighLow", simTag, f, 
+                        filt, sep = '_')
+      tabFile <- paste0(outDir, '/', tabFile, '.txt')
+      write.table(file = tabFile, simFrame)
+
       plotFile <- paste("intersectHighLow", simTag, f, 
                         filt, sep = '_')
       plotFile <- paste0(outDir, '/', plotFile, '.eps')
@@ -112,71 +124,142 @@ compareHighLowString <- function(dfList, fings, filts, simType, outDir) {
     }
 }
 
-compareF2vsF3 <- function(dfList, strins, filts, simType, outDir) {
+compareF2vsF3 <- function(dfList, strins, filts, simType, outDir,
+                          sub = FALSE) {
   # Compare F2 vs F3 intersecting proteins
   # binding preferences by outputting a histogram for each 
   # of the strin/filt combinations using simType metric
   # compare the binding vectors
 
-  for (s in strins)
-    for (filt in filts) {
-      F2Tag <- paste("F2",s, filt, sep = '_')
-      F3Tag <- paste("F3",s, filt, sep = '_')
-      
-      print(F2Tag)
-      #print(head(dfList[[F2Tag]]))
-      print(F3Tag)
-      #print(head(dfList[[F3Tag]]))
-      # Look at histogram of similarity for intersection of 
-      # high vs low stringency
-      interProts <- intersect(dfList[[F2Tag]]$prot,
-                              dfList[[F3Tag]]$prot)
-      print(interProts)
-      print(length(interProts))
-      
-      simVect <- vector()
-      for (p in interProts) {
-        v1Vals <- as.numeric(dfList[[F2Tag]][dfList[[F2Tag]]$prot == p,])
-        v1 <- v1Vals[4:length(v1Vals)]
-        v2Vals <- as.numeric(dfList[[F3Tag]][dfList[[F3Tag]]$prot == p,])
-        v2 <- v2Vals[4:length(v2Vals)]
-        
-        # Cosine similarity
-        if (simType == 'cosine') {
-          sim <- getCosineSim(v1, v2)
-          simTag <- 'CosineSim'
-          xlabel <- "Cosine similarity between F2 and F3"
-        }
-        else if (simType == 'cosine_bin'){
-          v1 <- as.numeric(as.logical(v1))
-          v2 <- as.numeric(as.logical(v2))
-          sim <- getCosineSim(v1, v2)
-          simTag <- 'CosineSim_binary'
-          xlabel <- "Cosine similarity between F2 and F3"
-        }
-        else if (simType == 'pcc') {
-          sim <- cor(v1, v2)
-          simTag <- 'PCC'
-          xlabel <- "PCC between F2 and F3"
-        }
-        else if (simType == 'jaccard'){
-          set1 <- which(as.logical(v1))
-          set2 <- which(as.logical(v2))
-          sim <- getJaccard(v1, v2)
-          simTag <- 'Jaccard'
-          xlabel <- "Jaccard between F2 and F3"
-        }
+  print(strins)
+  if (sub) {
+    F2Tag <- paste("F2",'inter', filts[1], sep = '_')
+    F3Tag <- paste("F3",'inter', filts[1], sep = '_')
+    F2frame <- read.table(paste0('../../figures/contextAnalysis/',
+                              'highVsLow/intersectHighLow_',
+                              'CosineSim_F2_filt_10e-4_025_0_c.txt'),
+                              header = TRUE)
+    F3frame <- read.table(paste0('../../figures/contextAnalysis/',
+                          'highVsLow/intersectHighLow_',
+                          'CosineSim_F3_filt_10e-4_025_0_c.txt'),
+                          header = TRUE)
+    F2prots <- subset(F2frame, sim >= 0.25)$prot
+    F3prots <- subset(F3frame, sim >= 0.25)$prot
+    interProts <- intersect(intersect(F2prots, F3prots),
+                            intersect(dfList[[F2Tag]]$prot,
+                                      dfList[[F3Tag]]$prot))
 
-        simVect <- c(simVect, sim)
+    simVect <- vector()
+    weights <- vector()
+    for (p in interProts) {
+      v1Vals <- as.numeric(dfList[[F2Tag]][dfList[[F2Tag]]$prot == p,])
+      v1 <- v1Vals[4:length(v1Vals)]
+      v2Vals <- as.numeric(dfList[[F3Tag]][dfList[[F3Tag]]$prot == p,])
+      v2 <- v2Vals[4:length(v2Vals)]
+      weight <- min(v1Vals[3], v2Vals[3])
+      
+      # Cosine similarity
+      if (simType == 'cosine') {
+        sim <- getCosineSim(v1, v2)
+        simTag <- 'CosineSim'
+        xlabel <- "Cosine similarity between F2 and F3"
       }
-      
-      simFrame <- data.frame(prot = interProts, sim = simVect)
-      plotFile <- paste("F2vsF3", simTag, s, 
-                        filt, sep = '_')
-      plotFile <- paste0(outDir, '/', plotFile, '.eps')
+      else if (simType == 'cosine_bin'){
+        v1 <- as.numeric(as.logical(v1))
+        v2 <- as.numeric(as.logical(v2))
+        sim <- getCosineSim(v1, v2)
+        simTag <- 'CosineSim_binary'
+        xlabel <- "Cosine similarity between F2 and F3"
+      }
+      else if (simType == 'pcc') {
+        sim <- cor(v1, v2)
+        simTag <- 'PCC'
+        xlabel <- "PCC between F2 and F3"
+      }
+      else if (simType == 'jaccard'){
+        set1 <- which(as.logical(v1))
+        set2 <- which(as.logical(v2))
+        sim <- getJaccard(v1, v2)
+        simTag <- 'Jaccard'
+        xlabel <- "Jaccard between F2 and F3"
+      }
 
-      makeSimHist(simFrame, plotFile, xlabel)
+      simVect <- c(simVect, sim)
+      weights <- c(weights, weight)
     }
+
+    simFrame <- data.frame(prot = interProts, sim = simVect,
+                           weight = weights)
+    print(nrow(simFrame))
+    print(paste("F2vsF3_sub_", simTag, filts[1], sep='_'))
+    plotFile <- paste("F2vsF3_sub_", simTag, filts[1], sep = '_')
+    plotFile <- paste0(outDir, '/', plotFile, '.eps')
+    makeSimHist(simFrame, plotFile, xlabel)
+
+  } else {
+    for (s in strins)
+      for (filt in filts) {
+        F2Tag <- paste("F2",s, filt, sep = '_')
+        F3Tag <- paste("F3",s, filt, sep = '_')
+        interProts <- intersect(dfList[[F2Tag]]$prot,
+                                dfList[[F3Tag]]$prot)
+        #print(interProts)
+        #print(length(interProts))
+
+        simVect <- vector()
+        weights <- vector()
+        for (p in interProts) {
+          v1Vals <- as.numeric(dfList[[F2Tag]][dfList[[F2Tag]]$prot == p,])
+          v1 <- v1Vals[4:length(v1Vals)]
+          v2Vals <- as.numeric(dfList[[F3Tag]][dfList[[F3Tag]]$prot == p,])
+          v2 <- v2Vals[4:length(v2Vals)]
+          weight <- min(v1Vals[3], v2Vals[3])
+          
+          # Cosine similarity
+          if (simType == 'cosine') {
+            sim <- getCosineSim(v1, v2)
+            simTag <- 'CosineSim'
+            xlabel <- "Cosine similarity between F2 and F3"
+          }
+          else if (simType == 'cosine_bin'){
+            v1 <- as.numeric(as.logical(v1))
+            v2 <- as.numeric(as.logical(v2))
+            sim <- getCosineSim(v1, v2)
+            simTag <- 'CosineSim_binary'
+            xlabel <- "Cosine similarity between F2 and F3"
+          }
+          else if (simType == 'pcc') {
+            sim <- cor(v1, v2)
+            simTag <- 'PCC'
+            xlabel <- "PCC between F2 and F3"
+          }
+          else if (simType == 'jaccard'){
+            set1 <- which(as.logical(v1))
+            set2 <- which(as.logical(v2))
+            sim <- getJaccard(v1, v2)
+            simTag <- 'Jaccard'
+            xlabel <- "Jaccard between F2 and F3"
+          }
+
+          simVect <- c(simVect, sim)
+          weights <- c(weights, weight)
+        }
+        
+        print(paste("F2vsF3", simTag, s, filt, sep='_'))
+        simFrame <- data.frame(prot = interProts, sim = simVect,
+                               weight = weights)
+        print(nrow(simFrame))
+        plotFile <- paste("F2vsF3", simTag, s, 
+                          filt, sep = '_')
+        plotFile <- paste0(outDir, '/', plotFile, '.eps')
+        makeSimHist(simFrame, plotFile, xlabel)
+        plotFile <- paste("F2vF3", simTag, 'vWeight', s, 
+                          filt, sep = '_')
+        plotFile <- paste0(outDir, '/', plotFile, '.eps')
+        plotWeightVsSim(simFrame, plotFile, "Protein weight",
+                        xlabel)
+      }
+  }
 }
 
 runHighVsLowAnalysis <- function(simType) {
@@ -185,9 +268,9 @@ runHighVsLowAnalysis <- function(simType) {
 
   # Create the list of directories
 
-  fings <- c('F1', 'F2', 'F3')
+  fings <- c('F2', 'F3')
   strins <- c('low', 'high')
-  filts <- c('filt_10e-4_025_0_c')
+  filts <- c('filt_10e-4_025_1_c')
   inPref <- '../../data/b1hData/antonProcessed'
   outDir <- '../../figures/contextAnalysis/highVsLow'
   inFiles <- vector() 
@@ -210,7 +293,7 @@ runHighVsLowAnalysis <- function(simType) {
   compareHighLowString(dfList, fings, filts, simType, outDir)
 }
 
-runF2vF3SimAnalysis <- function(simType) {
+runF2vF3SimAnalysis <- function(simType, sub = FALSE) {
   # Perform a similarity analysis bewteen F2 and F3 
   # for the given combined stringency/filter ...
   # Create a histogram of similarity scores between 
@@ -241,7 +324,8 @@ runF2vF3SimAnalysis <- function(simType) {
                                        header = TRUE)
   }
   print(names(dfList))
-  compareF2vsF3(dfList, strins, filts, simType, outDir)
+  print("Here")
+  compareF2vsF3(dfList, strins, filts, simType, outDir, sub)
 }
 
 runF2vF3DiffAnalysis1 <- function() {
@@ -610,14 +694,14 @@ makeTripletHeatmap <- function(fing, strin, filt,
 }
 
 main <- function() {
-  #runHighVsLowAnalysis('cosine')
+  runHighVsLowAnalysis('cosine')
   #runF2vF3SimAnalysis('pcc')
-  #runF2vF3SimAnalysis('cosine')
+  #runF2vF3SimAnalysis('cosine', sub = TRUE)
   #runF2vF3SimAnalysis('cosine_bin')
   #runWeightedFractionAnalysis(6, "F2high")
   #runWeightedFractionAnalysis(4, "F2high")
-  makeTripletHeatmap("F3", "union", 
-                    'filt_10e-4_025_0_c', noParse = FALSE)
+  #makeTripletHeatmap("F3", "union", 
+  #                  'filt_10e-4_025_0_c', noParse = FALSE)
 }
 
 main()

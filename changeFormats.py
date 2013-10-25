@@ -189,10 +189,11 @@ def main():
 	pathPref = '../data/b1hData/antonProcessed/'
 	#fings = ["F1", "F2", "F3"]
 	fings = ["F2F3"]
-	#strins = ["high", "low", "union", "inter"]
-	strins = ["intersectIntersections", "unionIntersections", "intersectUnions", "unionUnions", \
-		"unionLow", "unionHigh"]
-	filts = ["filt_10e-4_025_0_c"]
+	strins = ["high", "low", "union", "inter"]
+	strins = ["unionUnions"]
+	#strins = ["intersectIntersections", "unionIntersections", "intersectUnions", "unionUnions", \
+	#	"unionLow", "unionHigh"]
+	filts = ["filt_10e-4_025_1_c"]
 	for f in fings:
 		for s in strins:
 			for filt in filts:

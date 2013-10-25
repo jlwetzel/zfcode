@@ -713,8 +713,8 @@ def main():
     print addUpCounts(hsapZFDict, hsapZFSet)
 
     """
-    protDirs = ['filt_10e-4_05_0', 'filt_10e-4_025_0_c', 'filt_10e-4_0_5']
-
+    #protDirs = ['filt_10e-4_05_0', 'filt_10e-4_025_0_c', 'filt_10e-4_0_5']
+    protDirs = ['filt_10e-4_025_1_c']
     for protDir in protDirs:
         computeBindingDiversity(protDir)
         

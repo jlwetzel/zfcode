@@ -4,11 +4,13 @@ from jellyfish import hamming_distance
 from fixTables import normalizeFreq
 from gatherBindStats import getProtSet
 
-def hasSupport(seq, keepSeqs, supportCutoff, canInd):
+def hasSupport(seq, keepSeqs, codedOneWay,
+               supportCutoff, canInd):
 	# Returns True if seq is at hamming 
 	# distance of at most one from at least <supportCutoff> 
 	# other (non-identical) seqs in keepSeqs when 
 	# looking in canonical positions (-1,2,3,6)
+	# and which has more than one possible coding variant
 
 	if supportCutoff == 0:
 		return True
@@ -18,18 +20,20 @@ def hasSupport(seq, keepSeqs, supportCutoff, canInd):
 		canSeq1 += seq[j]
 
 	supportFound = 0
-	for s in keepSeqs:
+	for i, s in enumerate(keepSeqs):
 
 		# Make sure this is not the exact same sequence
 		if seq == s:
 			continue
 
-		# If find a canonical version within ham dist 1
+		# If find enough canonical prots within ham dist 1
+		# that each have more than one possible coding variant
 		# then return True
 		canSeq2 = ''
 		for j in canInd:
 			canSeq2 += s[j]
-		if hamming_distance(canSeq1, canSeq2) <= 1:
+		if hamming_distance(canSeq1, canSeq2) <= 1 \
+			and not codedOneWay[i]:
 			supportFound += 1
 			if supportFound == supportCutoff:
 				return True
@@ -54,6 +58,7 @@ def filterEntropySupport(oldFile, newFile, freqCutoff, entCutoff,
 	print "Processing %s" %oldFile
 	fin = open(oldFile, 'r')
 	keepLines = []
+	codedOneWay = []
 	for line in fin:
 		sp_line = line.strip().split()
 		#entropy = eval(sp_line[5])  #For my format
@@ -64,6 +69,10 @@ def filterEntropySupport(oldFile, newFile, freqCutoff, entCutoff,
 		freq = eval(sp_line[1])      #Anton's format
 		if freq >= freqCutoff and (entropy >= entCutoff or numPoss == 1):
 			keepLines.append(line)
+			if numPoss == 1:
+				codedOneWay.append(True)
+			else:
+				codedOneWay.append(False)
 	fin.close()
 
 	# Only keep seqs from keepLines that are supported 
@@ -71,17 +80,18 @@ def filterEntropySupport(oldFile, newFile, freqCutoff, entCutoff,
 	fout = open(newFile, 'w')
 	keepSeqs = [i.strip().split()[0] for i in keepLines]
 	for i, seq in enumerate(keepSeqs):
-		if hasSupport(seq, keepSeqs, supportCutoff, canInd):
+		if hasSupport(seq, keepSeqs, codedOneWay,
+		              supportCutoff, canInd):
 			fout.write(keepLines[i])	
 	fout.close()
 
 def main():
 	
 	varpos = '6varpos'
-	fings = ['F1', 'F2', 'F3']
+	fings = ['F1']#['F2', 'F3']
 	strins = ['low', 'high']
 	entCutoff = 0.25
-	supportCutoff = 0
+	supportCutoff = 1
 	freqCutoff = 0.0001
 	oldProts = 'unfiltered2'
 
@@ -89,14 +99,6 @@ def main():
 		for s in strins:
 			oldDir = '../data/b1hData/antonProcessed/' + \
 				'/'.join([f, s, oldProts]) + '/'
-
-			# Make a new directory for the filtered proteins
-			
-			# For my data
-			#newDir = '/'.join(oldDir.split('/')[:-2]) + \
-			#	'/' + oldProts + '_' + \
-			#	(str(entCutoff)).replace('.', '') + \
-			#	'_' + str(supportCutoff) + '/'
 			
 			# For Anton's data
 			newDir = '/'.join(oldDir.split('/')[:-2]) + \
