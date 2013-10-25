@@ -333,7 +333,8 @@ def makeDir(dname):
 	except OSError:
 		pass
 
-def getGoodLogoFileNames(dpath, colmin = 0.2, colAvg = 0.75):
+def getGoodLogoFileNames(dpath, colmin = 0.2, colAvg = 0.75,
+                         badColsAllowed = 0):
 	# Returns a list the list of files from a reverse 
 	# experiment that correspond to "good" logos by some
 	# measure of logo quality.  colMin is the theshold for 
@@ -351,18 +352,42 @@ def getGoodLogoFileNames(dpath, colmin = 0.2, colAvg = 0.75):
 			continue
 		nucMat = pwmfile2matrix(dpath + fname)
 
+		numBadSoFar = 0
 		keep = True
 		ics = []
 		for i in range(len(nucMat)):
 			ic = 2 - infoEntr(nucMat[i,:])
 			if ic < colmin:
-				keep = False
+				numBadSoFar += 1
+				if numBadSoFar > badColsAllowed:
+					keep = False
 			ics.append(ic)
 
 		if keep and np.array(ics).mean() >= colAvg:
 			keepList.append(dpath + fname)
 
 	return keepList
+
+def cpLogoSubset(goodLogos, newpath):
+		# Copy the good logos to a new directory with the 
+		# same general structure as the old one
+
+		# Make new directories
+		makeDir(newpath)
+		pwmDir = newpath + 'pwms3/'
+		logoDir = newpath + 'logos3/'
+		makeDir(pwmDir)
+		makeDir(logoDir)
+
+		for fpath in goodLogos:
+			fname = fpath.split('/')[-1]
+			pwmPath = pwmDir + fname
+			oldlogoPath = '/'.join(['/'.join(fpath.split('/')[:-2]), 
+			     										'logos3',
+			                       	fname.split('.')[0] + '.pdf'])
+			newlogoPath = logoDir + fname.split('.')[0] + '.pdf'
+			os.system("cp %s %s" %(fpath, pwmPath))
+			os.system("cp %s %s" %(oldlogoPath, newlogoPath))
 
 def getcanHelixToFnameMap(names, canInd):
 
@@ -484,26 +509,34 @@ def makePWMbyPosition(finger, expNum, startPos):
 
 def main():
 
-	makePWMbyPosition('F2', '750', 6)
-	"""
+	#makePWMbyPosition('F2', '750', 6)
+	
 	# Check out how many of the logos look "good"
+	colmin = 0.3
+	colAvg = 0.6
+	badColsAllowed = 1
 	F2path = '../data/revExp/F2_GAG/pwms3/'
 	F3path = '../data/revExp/F3_GCG/pwms3/'
-	goodF2s = getGoodLogoFileNames(F2path, 
-	                               colmin = 0.2, colAvg = 0.75)
-	goodF3s = getGoodLogoFileNames(F3path,
-	                               colmin = 0.2, colAvg = 0.75)
+	#goodF2s = getGoodLogoFileNames(F2path, colmin, 
+	#                               colAvg,badColsAllowed)
+	goodF3s = getGoodLogoFileNames(F3path, colmin,
+	                               colAvg, badColsAllowed)
+	newF3Path = '_'.join(['/'.join(F3path.split('/')[:-2]), 
+	                     str(int(colmin*100)) + 'min',
+	                     str(int(colAvg*100)) + 'avg',
+	                     str(badColsAllowed) + 'bad']) + '/'
+	cpLogoSubset(goodF3s, newF3Path)
 	#print len(goodF2s)
 	#print len(goodF3s)
 	#for fname in goodF3s:
 	#	print fname.split('/')[-1]
 
-	sharedKeys, h1, h2 = getF2F3canonHelixOlapFnames(goodF2s, 
-	                                                 goodF3s,
-	                                     canInd = [0,2,3,6])
-	newDir = "../data/revExp/F2F3sharedHelix_020_075/"
-	makeOlapPWMdir(h1, h2, sharedKeys, newDir)
-	"""
+	#haredKeys, h1, h2 = getF2F3canonHelixOlapFnames(goodF2s, 
+	#                                                 goodF3s,
+	#                                     canInd = [0,2,3,6])
+	#newDir = "../data/revExp/F2F3sharedHelix_020_075/"
+	#makeOlapPWMdir(h1, h2, sharedKeys, newDir)
+	
 
 	"""	
 	# Make the barcode files for F2 and F3 experiments
