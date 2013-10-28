@@ -120,22 +120,24 @@ def getHelixDict(dpath, useWeights = False):
 					helixDict[helix] += weight
 					totWeight += weight
 				else:
-					helixDict[helix] += 1
-					totWeight += 1
+					pass
 			else:
 				if useWeights:
 					helixDict[helix] = weight
 					totWeight += weight
 				else:
 					helixDict[helix] = 1
-					totWeight += 1
 		fin.close()
 
 	# Normalize weights to a distribution
 	for k in helixDict.keys():
-		helixDict[k] = helixDict[k]/totWeight
+		if useWeights:
+			helixDict[k] = helixDict[k]/totWeight
+		else:
+			helixDict[k] = helixDict[k]/float(len(helixDict))
 
 	return helixDict
+	
 
 
 def getHD1BGFreqs(dpath, useWeights = False):
@@ -151,13 +153,12 @@ def getHD1BGFreqs(dpath, useWeights = False):
 
 	helixDict = getHelixDict(dpath, useWeights)
 	
-
 	pMap = {0: -1, 1: 2, 2: 3, 3: 6}
 	freqDict = {-1: 0, 2: 0, 3: 0, 6: 0}
 	totWeight = 0.0
 	for a, k1 in enumerate(helixDict.keys()):
 		for b, k2 in enumerate(helixDict.keys()):
-			if b <= a:
+			if b < a:
 				continue
 			if hamming_distance(k1, k2) == 1:
 				for i, p1 in enumerate(k1):
@@ -173,11 +174,16 @@ def getHD1BGFreqs(dpath, useWeights = False):
 	return freqDict
 
 def makeTripDictTables(outPath, fing, strin, filt, 
-                       tripPairDict):
+                       tripPairDict, useWeights):
 	
+	if useWeights:
+		wtag = 'weights'
+	else:
+		wtag = "noWeights"
+
 	for pos in [-1, 2, 3, 6]:
 		fout = open(outPath + '_'.join([fing, strin,
-		            filt, 'a' + str(pos)]), 'w')
+		            filt, wtag, 'a' + str(pos)]), 'w')
 		header = "%s\t%s\t%s\t%s\t%s\n" %('t1', 't2', 'score',
 		                                  'HD1pos', 'HD1allpos')
 		fout.write(header)
@@ -193,7 +199,7 @@ def main():
 	fing = 'F2'
 	strin = 'union'
 	filt = 'filt_10e-4_025_0_c'
-	useWeights = True
+	useWeights = False
 	outPath = '../figures/positionVariation/'
 	dpath = '../data/b1hData/antonProcessed/'
 	dpath = '/'.join([dpath, fing, strin, filt])+'/'
@@ -206,6 +212,7 @@ def main():
 				triplets.append(b1+b2+b3)
 
 	bgFreqs = getHD1BGFreqs(dpath, useWeights = useWeights)
+	print bgFreqs
 	tripDict = getAllTripletHelices(dpath, triplets, 
 	                                useWeights = useWeights)
 	#print(len(tripDict.keys()))
@@ -213,7 +220,8 @@ def main():
 	#	print k, len(tripDict[k])
 	
 	tripPairDict = getTripletPairEnrichment(tripDict, bgFreqs)
-	makeTripDictTables(outPath, fing, strin, filt, tripPairDict)
+	makeTripDictTables(outPath, fing, strin, filt, tripPairDict,
+	                   useWeights = useWeights)
 
 	#print bgFreqs
 	#print sorted(tripPairDict.keys())
