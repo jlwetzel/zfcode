@@ -25,7 +25,10 @@ def getTripletPairEnrichment(tripDict, bgFreqs):
 	pMap = {0: -1, 1: 2, 2: 3, 3: 6}
 	for i, t1 in enumerate(tripDict.keys()):
 		#print i
-		for t2 in tripDict.keys()[i+1:]:
+		#for t2 in tripDict.keys()[i+1:]:
+		for t2 in tripDict.keys():
+			if t1 == t2:
+				continue
 
 			freqDict = {-1: [0, 0], 2: [0, 0], 
 									 3: [0, 0], 6: [0, 0], 'numHD1Pairs': 0}
@@ -59,7 +62,7 @@ def getTripletPairEnrichment(tripDict, bgFreqs):
 				except ValueError:
 					#print "No %d edges for %s %s (%d, %d)" \
 					#	%(k, t1, t2, len(tripDict[t1]), len(tripDict[t2]))
-					freqDict[k][0] = -100
+					freqDict[k][0] = -1
 
 			tripPairDict[(t1, t2)] = freqDict
 
@@ -183,7 +186,7 @@ def makeTripDictTables(outPath, fing, strin, filt,
 
 	for pos in [-1, 2, 3, 6]:
 		fout = open(outPath + '_'.join([fing, strin,
-		            filt, wtag, 'a' + str(pos)]), 'w')
+		            filt, wtag, 'a' + str(pos)]) + '.txt', 'w')
 		header = "%s\t%s\t%s\t%s\t%s\n" %('t1', 't2', 'score',
 		                                  'HD1pos', 'HD1allpos')
 		fout.write(header)
