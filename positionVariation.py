@@ -4,10 +4,10 @@ import math
 from jellyfish import hamming_distance
 
 def getTripletPairEnrichment(tripDict, bgFreqs):
-	# For each pair of triplets, compare the frequency
-	# of variation in position -1, 2, 3, and 6 for all 
-	# helices HD-1 from each other against
-	# the background variation for these same positions.
+	# For each pair of triplets, compare the weight 
+	# of observed HD-1 variations in postions 1, 2,
+	# 3 or 6 to the weight of expected variations.
+	#
 	# tripDict is a dictionary of dictionaries, 
 	# mapping triplets to dicts which in turn map 
 	# helices to their per-triplet frequencies.
@@ -18,58 +18,62 @@ def getTripletPairEnrichment(tripDict, bgFreqs):
 	# the outer dictionary mapping tuple-pairs of triplets
 	# to dictionaries which map positions (-1,2,3, or 6) to
 	# enrichment scores:  e.g.:
-	# lg( (freq of -1 variation for triplet-pair AAA,TTT)/
-	#     (freq of -1 variation across the dataset) )
+	# lg( (obs. weight of -1 variation for triplet-pair AAA,TTT)/
+	#     (exp. weight of -1 variation for triplet-pair AAA,TTT) )
 
 	tripPairDict = {}
 	pMap = {0: -1, 1: 2, 2: 3, 3: 6}
-	for i, t1 in enumerate(tripDict.keys()):
-		#print i
-		#for t2 in tripDict.keys()[i+1:]:
-		for t2 in tripDict.keys():
-			if t1 == t2:
-				continue
+	for a, t1 in enumerate(sorted(tripDict.keys())):
+		for b, t2 in enumerate(sorted(tripDict.keys())):
 
-			freqDict = {-1: [0, 0], 2: [0, 0], 
-									 3: [0, 0], 6: [0, 0], 'numHD1Pairs': 0}
+			# Get weight of observed variations, total 
+			# weight for all pairs, and minimum weight 
+			# of any possible pair
+			obsPosWeights = {-1: 0, 2: 0, 3: 0, 6: 0}
 			totWeight = 0.0
-			numHD1Pairs = 0
+			minWeight = 1.5
 			for h1 in tripDict[t1]:
 				for h2 in tripDict[t2]:
+					hPairWeight = tripDict[t1][h1] * tripDict[t2][h2]
 					if hamming_distance(h1, h2) == 1:
 						for i, p1 in enumerate(h1):
 							if p1 != h2[i]:
-								freqDict['numHD1Pairs'] += 1
-								freqDict[pMap[i]][1] += 1
-								freqDict[pMap[i]][0] += tripDict[t1][h1] + tripDict[t2][h2]
-								totWeight += tripDict[t1][h1] + tripDict[t2][h2]
+								obsPosWeights[pMap[i]] += hPairWeight
 								break
+					if hPairWeight < minWeight:
+						minWeight = hPairWeight
+					totWeight += hPairWeight
 			
-			# Normalize weights to frequencies and compute
-			# the log ratios
-			for k in sorted(freqDict.keys())[:-1]:
-				try:
-					freqDict[k][0] = freqDict[k][0]/totWeight
-				except ZeroDivisionError:
-					#print "No edges for %s %s (%d, %d)" \
-					#	%(t1, t2, len(tripDict[t1]), len(tripDict[t2]))
-					for k in sorted(freqDict.keys())[:-1]:
-						print k, freqDict[k]
-						freqDict[k][0] = 0
-					break
-				try:
-					freqDict[k][0] = math.log(freqDict[k][0]/bgFreqs[k], 2)
-				except ValueError:
-					#print "No %d edges for %s %s (%d, %d)" \
-					#	%(k, t1, t2, len(tripDict[t1]), len(tripDict[t2]))
-					freqDict[k][0] = -1
+			# Do "plus 1" smoothing , where +1 is actually 
+			# equal to the smallest possible weight edge
+			num0Freqs = 0
+			for k in obsPosWeights.keys():
+				if obsPosWeights[k] == 0:
+					num0Freqs += 1
+			if num0Freqs > 0:
+				for k in obsPosWeights.keys():
+					obsPosWeights[k] += minWeight
+					totWeight += minWeight
 
-			tripPairDict[(t1, t2)] = freqDict
+			# Get weight of the expected variations
+			expPosWeights = {}
+			for k in obsPosWeights.keys():
+				expPosWeights[k] = bgFreqs[k]*totWeight
+
+			# Compare observed to expected
+			tripPairDict[(t1,t2)] = {}
+			for k in obsPosWeights.keys():
+				tripPairDict[(t1,t2)][k] = \
+					math.log((obsPosWeights[k]/expPosWeights[k]), 2)
+
+			if b < a:
+				for k in obsPosWeights.keys():
+					tripPairDict[(t1,t2)][k] = 0
 
 	return tripPairDict
 
 def getTripletHelices(dpath, trip, 
-                      useWeights = False):
+                      helixWeights):
 	# Map each helix to frequency across a triplet
 
 	helixDict = {}
@@ -79,15 +83,11 @@ def getTripletHelices(dpath, trip,
 		sp_line = line.strip().split()
 		helix = sp_line[0]
 		weight = eval(sp_line[1])
-		if useWeights:
-			helixDict[helix] = weight
-		else:
-			helixDict[helix] = 1
+		helixDict[helix] = weight/(helixWeights[helix])
 	fin.close()
 	return helixDict
 
-def getAllTripletHelices(dpath, triplets, 
-                         useWeights = False):
+def getAllTripletHelices(dpath, triplets, helixWeights):
 	# Returns a dictionary of dictionaries, the outer
 	# dictionary mapping each triplet to a helix
 	# dictionary, which maps helices for that 
@@ -95,18 +95,15 @@ def getAllTripletHelices(dpath, triplets,
 
 	tripDict = {}
 	for trip in triplets:
-		#print trip
 		tripDict[trip] = getTripletHelices(dpath, trip,
-		                                   useWeights)
-		#print(len(tripDict[trip]))
-	#print(len(tripDict))
-	return tripDict
+		                                   helixWeights)
+	return tripDict	
 
-def getHelixDict(dpath, useWeights = False):
-	# map each helix to frequency across dataset
+def getHelixDict(dpath):
+	# Get the set of helices in across the entie datset
+	# along with their dataset-wide weights
 
 	helixDict = {}
-	totWeight = 0.0
 	handle = os.popen('ls %s' %dpath)
 	for fname in handle:
 		fname = fname.strip()
@@ -119,82 +116,51 @@ def getHelixDict(dpath, useWeights = False):
 			helix = sp_line[0]
 			weight = eval(sp_line[1])
 			if helixDict.has_key(helix):
-				if useWeights:
-					helixDict[helix] += weight
-					totWeight += weight
-				else:
-					pass
+				helixDict[helix] += weight
 			else:
-				if useWeights:
-					helixDict[helix] = weight
-					totWeight += weight
-				else:
-					helixDict[helix] = 1
+				helixDict[helix] = weight
 		fin.close()
 
-	# Normalize weights to a distribution
-	for k in helixDict.keys():
-		if useWeights:
-			helixDict[k] = helixDict[k]/totWeight
-		else:
-			helixDict[k] = helixDict[k]/float(len(helixDict))
-
 	return helixDict
-	
 
+def getHD1BGProbs(dpath):
+	# Estimate the probability that a pair of helices
+	# have hamming distance 1 and differ in the -1, 2, 
+	# 3, or 6 positions by taking finding the frequency
+	# with which this happens in our dataset
 
-def getHD1BGFreqs(dpath, useWeights = False):
-	# Find the background percent of substituitions
-	# that occur in position -1, 2, 3, and 6 among 
-	# all canonical helices that are exactly hamming 
-	# distance 1 apart across the entire dataset.  
-	# If useWeights, then dataset-wide frquencies 
-	# for each helix-pair when computing these bg frequencies.
-	#
-	# Return type is a dictionary mapping helix postion
-	# to frequency
+	helixDict = getHelixDict(dpath)
+	helixList = helixDict.keys()
 
-	helixDict = getHelixDict(dpath, useWeights)
-	
 	pMap = {0: -1, 1: 2, 2: 3, 3: 6}
-	freqDict = {-1: 0, 2: 0, 3: 0, 6: 0}
-	totWeight = 0.0
-	for a, k1 in enumerate(helixDict.keys()):
-		for b, k2 in enumerate(helixDict.keys()):
-			if b < a:
-				continue
+	hd1Counts = {-1: 0, 2: 0, 3: 0, 6: 0}
+	hd1Freqs = {-1: 0, 2: 0, 3: 0, 6: 0}
+	for a, k1 in enumerate(helixList):
+		for k2 in helixList[a+1:]:
 			if hamming_distance(k1, k2) == 1:
 				for i, p1 in enumerate(k1):
 					if p1 != k2[i]:
-						freqDict[pMap[i]] += helixDict[k1] + helixDict[k2]
-						totWeight += helixDict[k1] + helixDict[k2]
+						hd1Counts[pMap[i]] += 1
 						break
 
 	# Normalize the bg frequencies
-	for k in freqDict.keys():
-		freqDict[k] = freqDict[k]/totWeight
+	numPosEdges = (len(helixList) * (len(helixList) - 1))/2
+	for k in hd1Counts.keys():
+		hd1Freqs[k] = float(hd1Counts[k])/numPosEdges
 
-	return freqDict
+	return hd1Freqs, helixDict
 
 def makeTripDictTables(outPath, fing, strin, filt, 
-                       tripPairDict, useWeights):
-	
-	if useWeights:
-		wtag = 'weights'
-	else:
-		wtag = "noWeights"
+                       tripPairDict):
 
 	for pos in [-1, 2, 3, 6]:
 		fout = open(outPath + '_'.join([fing, strin,
-		            filt, wtag, 'a' + str(pos)]) + '.txt', 'w')
-		header = "%s\t%s\t%s\t%s\t%s\n" %('t1', 't2', 'score',
-		                                  'HD1pos', 'HD1allpos')
+		            filt, 'a' + str(pos)]) + '.txt', 'w')
+		header = "%s\t%s\t%s\n" %('t1', 't2', 'score')
 		fout.write(header)
 		for (t1, t2) in sorted(tripPairDict.keys()):
-			outStr = "%s\t%s\t%f\t%d\t%d\n" %(t1, t2,
-			                          tripPairDict[(t1,t2)][pos][0],
-			                          tripPairDict[(t1,t2)][pos][1],
-			                          tripPairDict[(t1,t2)]['numHD1Pairs'])
+			outStr = "%s\t%s\t%f\n" %(t1, t2,
+			                          tripPairDict[(t1,t2)][pos])
 			fout.write(outStr)
 		fout.close()
 
@@ -202,7 +168,6 @@ def main():
 	fing = 'F2'
 	strin = 'union'
 	filt = 'filt_10e-4_025_0_c'
-	useWeights = False
 	outPath = '../figures/positionVariation/'
 	dpath = '../data/b1hData/antonProcessed/'
 	dpath = '/'.join([dpath, fing, strin, filt])+'/'
@@ -214,26 +179,12 @@ def main():
 			for b3 in bases:
 				triplets.append(b1+b2+b3)
 
-	bgFreqs = getHD1BGFreqs(dpath, useWeights = useWeights)
-	print bgFreqs
-	tripDict = getAllTripletHelices(dpath, triplets, 
-	                                useWeights = useWeights)
-	#print(len(tripDict.keys()))
-	#for k in sorted(tripDict.keys()):
-	#	print k, len(tripDict[k])
-	
-	tripPairDict = getTripletPairEnrichment(tripDict, bgFreqs)
-	makeTripDictTables(outPath, fing, strin, filt, tripPairDict,
-	                   useWeights = useWeights)
-
-	#print bgFreqs
-	#print sorted(tripPairDict.keys())
-	#print len(tripPairDict)
-	#for pair in tripPairDict.keys():
-	#	summa = 0.0
-	#	for k in tripPairDict[pair]:
-	#		summa += tripPairDict[pair][k]
-	#	print len(tripPairDict[pair]), summa
+	bgProbs, helixWeights = getHD1BGProbs(dpath)
+	print bgProbs
+	tripDict = getAllTripletHelices(dpath, triplets,
+	                                helixWeights)
+	tripPairDict = getTripletPairEnrichment(tripDict, bgProbs)
+	makeTripDictTables(outPath, fing, strin, filt, tripPairDict)
 
 
 if __name__ == '__main__':
