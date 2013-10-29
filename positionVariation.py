@@ -3,7 +3,8 @@ import re
 import math
 from jellyfish import hamming_distance
 
-def getTripletPairEnrichment(tripDict, bgFreqs):
+def getTripletPairEnrichment(tripDict, bgFreqs,
+                             weightObs = False):
 	# For each pair of triplets, compare the weight 
 	# of observed HD-1 variations in postions 1, 2,
 	# 3 or 6 to the weight of expected variations.
@@ -22,9 +23,18 @@ def getTripletPairEnrichment(tripDict, bgFreqs):
 	#     (exp. weight of -1 variation for triplet-pair AAA,TTT) )
 
 	tripPairDict = {}
+	obsDict = {}
+	expDict = {}
 	pMap = {0: -1, 1: 2, 2: 3, 3: 6}
 	for a, t1 in enumerate(sorted(tripDict.keys())):
 		for b, t2 in enumerate(sorted(tripDict.keys())):
+
+			# Don't calculate above diagonal
+			if b < a:
+				tripPairDict[(t1,t2)] = {-1: 0, 2: 0, 3: 0, 6: 0}
+				obsDict[(t1,t2)] = {-1: -1, 2: -1, 3: -1, 6: -1}
+				expDict[(t1,t2)] = {-1: -1, 2: -1, 3: -1, 6: -1}
+				continue
 
 			# Get weight of observed variations, total 
 			# weight for all pairs, and minimum weight 
@@ -38,39 +48,42 @@ def getTripletPairEnrichment(tripDict, bgFreqs):
 					if hamming_distance(h1, h2) == 1:
 						for i, p1 in enumerate(h1):
 							if p1 != h2[i]:
-								obsPosWeights[pMap[i]] += hPairWeight
+								if weightObs:
+									obsPosWeights[pMap[i]] += hPairWeight
+								else:
+									obsPosWeights[pMap[i]] += 1
 								break
-					if hPairWeight < minWeight:
+					if weightObs and (hPairWeight < minWeight):
 						minWeight = hPairWeight
 					totWeight += hPairWeight
 			
-			# Do "plus 1" smoothing , where +1 is actually 
-			# equal to the smallest possible weight edge
+			# Do "plus 1" smoothing
 			num0Freqs = 0
 			for k in obsPosWeights.keys():
 				if obsPosWeights[k] == 0:
 					num0Freqs += 1
 			if num0Freqs > 0:
 				for k in obsPosWeights.keys():
-					obsPosWeights[k] += minWeight
-					totWeight += minWeight
+					if weightObs:
+						obsPosWeights[k] += minWeight
+					else:
+						obsPosWeights[k] += 1
 
-			# Get weight of the expected variations
-			expPosWeights = {}
+			# Get number of the expected variations of each type
+			expDict[(t1,t2)] = {}
 			for k in obsPosWeights.keys():
-				expPosWeights[k] = bgFreqs[k]*totWeight
+				expDict[(t1,t2)][k] = bgFreqs[k]*totWeight
 
 			# Compare observed to expected
 			tripPairDict[(t1,t2)] = {}
 			for k in obsPosWeights.keys():
 				tripPairDict[(t1,t2)][k] = \
-					math.log((obsPosWeights[k]/expPosWeights[k]), 2)
+					math.log((obsPosWeights[k]/ \
+					         expDict[(t1,t2)][k]), 2)
 
-			if b < a:
-				for k in obsPosWeights.keys():
-					tripPairDict[(t1,t2)][k] = 0
+			obsDict[(t1,t2)] = obsPosWeights
 
-	return tripPairDict
+	return tripPairDict, obsDict, expDict
 
 def getTripletHelices(dpath, trip, 
                       helixWeights):
@@ -151,16 +164,24 @@ def getHD1BGProbs(dpath):
 	return hd1Freqs, helixDict
 
 def makeTripDictTables(outPath, fing, strin, filt, 
-                       tripPairDict):
+                       tripPairDict, obsDict, expDict,
+                       weightObs = False):
+
+	if weightObs:
+		wtag = "weightObs"
+	else:
+		wtag = "noWeightObs"
 
 	for pos in [-1, 2, 3, 6]:
 		fout = open(outPath + '_'.join([fing, strin,
-		            filt, 'a' + str(pos)]) + '.txt', 'w')
-		header = "%s\t%s\t%s\n" %('t1', 't2', 'score')
+		            filt, wtag, 'a' + str(pos)]) + '.txt', 'w')
+		header = "%s\t%s\t%s\t%s\t%s\n" %('t1', 't2', 'score',
+		                                  'obs', 'exp')
 		fout.write(header)
 		for (t1, t2) in sorted(tripPairDict.keys()):
-			outStr = "%s\t%s\t%f\n" %(t1, t2,
-			                          tripPairDict[(t1,t2)][pos])
+			outStr = "%s\t%s\t%f\t%f\t%f\n" \
+				%(t1, t2, tripPairDict[(t1,t2)][pos], \
+				  obsDict[(t1,t2)][pos],expDict[(t1,t2)][pos])
 			fout.write(outStr)
 		fout.close()
 
@@ -171,6 +192,7 @@ def main():
 	outPath = '../figures/positionVariation/'
 	dpath = '../data/b1hData/antonProcessed/'
 	dpath = '/'.join([dpath, fing, strin, filt])+'/'
+	weightObs = True
 	
 	bases = ['A', 'C', 'G', 'T']
 	triplets = []
@@ -183,8 +205,12 @@ def main():
 	print bgProbs
 	tripDict = getAllTripletHelices(dpath, triplets,
 	                                helixWeights)
-	tripPairDict = getTripletPairEnrichment(tripDict, bgProbs)
-	makeTripDictTables(outPath, fing, strin, filt, tripPairDict)
+	tripPairDict, obsDict, expDict = \
+		getTripletPairEnrichment(tripDict, bgProbs, 
+		                         weightObs = weightObs)
+	makeTripDictTables(outPath, fing, strin, filt, 
+	                   tripPairDict, obsDict, expDict,
+	                   weightObs = weightObs)
 
 
 if __name__ == '__main__':

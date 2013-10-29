@@ -12,9 +12,10 @@ prefix <- '../../figures/positionVariation/'
 fing <- 'F2'
 strin <- 'union'
 filt <- 'filt_10e-4_025_0_c'
+wtag <- 'WeightObs'
 pos <- c('a-1', 'a2', 'a3', 'a6')
 
-tabLab <- paste0(prefix, paste(fing, strin, filt, sep = '_'))
+tabLab <- paste0(prefix, paste(fing, strin, filt, wtag, sep = '_'))
 tabLabs <- vector()
 for (p in pos) {
 	tLab <- paste(paste(tabLab, p, sep = '_'))
@@ -26,12 +27,27 @@ for (tl in tabLabs){
 	data <- read.table(tFile, header = TRUE)
 	print(head(data))
 	data$t2 <- factor(data$t2, levels = rev(triplets))
-	g <- ggplot(data, aes(x = t1, y = t2)) +
-		geom_tile(aes(fill = score)) +
-		scale_fill_gradient2(limits = c(-max(data$score), max(data$score)), 
-		                     midpoint=0, 
-		                     low = "red", mid="white", 
-		                     high = "green") + 
+  score2 <- vector()
+  for (i in 1:nrow(data)){
+    if (abs(data$score[i] - 0.0001)>= 0){
+      s <- data$score[i]
+    } else {
+      s <- NA
+    }
+    score2 <- c(score2, s)
+  }
+  data$score2 <- score2
+  print(data$score2)
+
+  g <- ggplot(data, aes(x = t1, y = t2)) +
+		#geom_tile(aes(fill = score)) +
+    geom_tile(aes(fill = score2)) +
+    #scale_fill_gradient2(limits = c(2, max(data$score)), 
+    #                     midpoint=0, 
+    #                     low = "indianred", mid="white", 
+    #                     high = "royalblue") + 
+    scale_fill_gradient(limits = c(1, max(data$score, na.rm = TRUE)),
+                        low = "white", high = "royalblue") +
 
 		geom_segment(aes(x = 0.5, xend = 0.5, y = 0.5, yend = 64.5)) + 
     geom_segment(aes(x = 16.5, xend = 16.5, y = 0.5, yend = 65 - 16.5)) + 
