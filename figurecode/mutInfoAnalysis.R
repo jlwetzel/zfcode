@@ -229,13 +229,15 @@ makeHeatPlot <- function(fname, dframe, xl, yl) {
   br <- seq(0,1, 0.05)
   g <- ggplot(dframe, aes(hpos, bpos)) + 
     geom_tile(aes(fill = score)) +
-    scale_fill_gradient2(breaks = br,
+    scale_fill_gradient2("", breaks = br,
                          low = 'white', high = 'royalblue',
                          limits = c(0,0.4), guide = 'legend') +
     xlab(xl) +
     ylab(yl) +
-    theme_bw()
-  ggsave(fname, plot = g, height = 5.5, width = 5.5)
+    theme_bw() +
+    theme(legend.key.size = unit(0.4, "cm"),
+          legend.title = element_blank())
+  ggsave(fname, plot = g, height = 2.7, width = 5.5)
 }
 
 runAllAnalysis(filtDirs, outDirs, filters)
