@@ -26,7 +26,7 @@ def lookupMarcusPWMs(inDir, outputDir, freqDict,
 	if finger == 'F2':
 		expDir = '../data/revExp/F2_GAG/pwms3/'
 	elif finger == 'F3':
-		expDir = '../data/revExp/F3_GCG_30min_60avg_1bad/pwms3/'
+		expDir = '../data/revExp/F3_GCG_30min_60avg_1bad_1good/pwms3/'
 	#print predictionDir
 	fout = open(predictionDir + 'compare.txt', 'w')
 	# Write header to results file
@@ -500,13 +500,13 @@ def predict_matrix_bls(protein): #predict matrix by BLS02 -- written by Anton Pe
 def main():
 
 	#styles = ['top10', 'top15', 'top20', 'top25', 'top30'] #For nearest neighbors
-	#styles = ['top25'] #For Barbas / F3
-	styles = ['lookonly']  #For direct lookup
+	styles = ['top25'] #For Barbas / F3
+	#styles = ['lookonly']  #For direct lookup
 	decomps = ['singles'] * 5
 	weight_mats = ['PAM30']
 	order_mats = ['PAM30']
-	#useExacts = [True, False]  #For dnearest neighbors
-	useExacts = [True]  # For direct lookup and Barbas
+	useExacts = [True, False]  #For dnearest neighbors
+	#useExacts = [True]  # For direct lookup and Barbas
 	trainFings = ["F2", "F3"]#["F1", "F2", "F3"] 
 	trainStrins = ["union"]#["low", "high"]
 

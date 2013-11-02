@@ -1,8 +1,8 @@
 import numpy as np
-from pwm import makeLogo
 import re
 import os
-from pwm import pwmfile2matrix, infoEntr
+from pwm import pwmfile2matrix, infoEntr, makeNucMatFile, makeLogo
+from lookupTable2 import *
 
 nucs = ['A', 'C', 'G', 'T']
 
@@ -331,10 +331,11 @@ def makeDir(dname):
 	try:
 		os.mkdir(dname)
 	except OSError:
+		print "Couldn't make directory: %s" %dname
 		pass
 
-def getGoodLogoFileNames(dpath, colmin = 0.2, colAvg = 0.75,
-                         badColsAllowed = 0):
+def getGoodLogoFileNames(dpath, colmin = 0.3, colAvg = 0.6,
+                         badColsAllowed = 1, goodColsReq = 1):
 	# Returns a list the list of files from a reverse 
 	# experiment that correspond to "good" logos by some
 	# measure of logo quality.  colMin is the theshold for 
@@ -345,6 +346,8 @@ def getGoodLogoFileNames(dpath, colmin = 0.2, colAvg = 0.75,
 
 	handle = os.popen("ls %s" %dpath)
 	keepList = []
+	minGoodCol = 1.0
+
 
 	for fname in handle:
 		fname = fname.strip()
@@ -352,6 +355,7 @@ def getGoodLogoFileNames(dpath, colmin = 0.2, colAvg = 0.75,
 			continue
 		nucMat = pwmfile2matrix(dpath + fname)
 
+		numGoodFound = 0
 		numBadSoFar = 0
 		keep = True
 		ics = []
@@ -361,7 +365,12 @@ def getGoodLogoFileNames(dpath, colmin = 0.2, colAvg = 0.75,
 				numBadSoFar += 1
 				if numBadSoFar > badColsAllowed:
 					keep = False
+			if ic >= minGoodCol:
+				numGoodFound += 1
 			ics.append(ic)
+
+		if numGoodFound < goodColsReq:
+			keep = False
 
 		if keep and np.array(ics).mean() >= colAvg:
 			keepList.append(dpath + fname)
@@ -413,7 +422,10 @@ def makeOlapPWMdir(h1, h2, sharedKeys, newDir):
 	logoDir = newDir + 'logos3/'
 	makeDir(pwmDir)
 	makeDir(logoDir)
+	print logoDir
+	keyFile = open(newDir + 'sharedCanonicaHelices.txt', 'w')
 	for k in sharedKeys:
+		keyFile.write("%s\n" %k)
 		for fpath in h1[k]:
 			fname = fpath.split('/')[-1]
 			os.system("cp %s %s" \
@@ -432,6 +444,7 @@ def makeOlapPWMdir(h1, h2, sharedKeys, newDir):
 			os.system("cp %s %s" \
 			          %(fstem + 'logos3/' + pdfname, 
 			            logoDir + k + "_F3_"+  pdfname))
+	keyFile.close()
 
 
 def getF2F3canonHelixOlapFnames(names1, names2, canInd):
@@ -507,35 +520,91 @@ def makePWMbyPosition(finger, expNum, startPos):
 	         colScheme = 'classic', annot = "'5,M,3'",
 	         fineprint = '""')
 
+def lookupF2F3OlapHelices(sharedKeys, newDir):
+	#  Perform the lookup prediction for each of the
+	#  shared F2F3 canonical helices.
+
+	inDirF2 = '../data/b1hData/antonProcessed/F2/union/filt_10e-4_025_0_c/'
+	inDirF3 = '../data/b1hData/antonProcessed/F3/union/filt_10e-4_025_0_c/'
+	canonical = True
+	varpos = 6
+	canInd = getPosIndex(varpos, canonical)
+	freqDictF2 = computeFreqDict(inDirF2, canInd)
+	freqDictF3 = computeFreqDict(inDirF3, canInd)
+
+	predDir = newDir + 'predicted/'
+	predLogoDir = predDir + 'logos3/'
+	predPwmDir = predDir + 'pwms3/'
+	makeDir(predDir)
+	makeDir(predLogoDir)
+	makeDir(predPwmDir)
+
+	F3Failed = ['SGSN','DSYT','LKTD']
+	F2Failed = ['DRCR', 'CKAA', 'FMQR']
+	F3CantFind = ['SGSN']
+	#print sharedKeys
+	sharedKeys += (F3Failed + F2Failed + F3CantFind)
+	for k in sorted(sharedKeys):
+		F2Mat, blah = lookupCanonZF(freqDictF2, k, useNN = False, 
+		                      skipExact = False, decompose = None, 
+		                      topk = None, verbose = None)
+		F3Mat, blah = lookupCanonZF(freqDictF3, k, useNN = False, 
+		                      skipExact = False, decompose = None, 
+		                      topk = None, verbose = None)
+
+		print F2Mat
+		print F3Mat
+
+		label = k + '_F2'
+		makeNucMatFile(predPwmDir, label, F2Mat)
+		logoIn = predPwmDir + label + '.txt'
+		logoOut = predLogoDir + label + '.pdf'
+		makeLogo(logoIn, logoOut, alpha = 'dna', 
+		         colScheme = 'classic',
+		         annot = "'5,M,3'", fineprint = "''")
+		label = k + '_F3'
+		makeNucMatFile(predPwmDir, label, F3Mat)
+		logoIn = predPwmDir + label + '.txt'
+		logoOut = predLogoDir + label + '.pdf'
+		print logoOut
+		makeLogo(logoIn, logoOut, alpha = 'dna', 
+		         colScheme = 'classic',
+		         annot = "'5,M,3'", fineprint = "''")
+
+
 def main():
 
+	# Specify the start of a 3 bp logo by eye
 	#makePWMbyPosition('F2', '750', 6)
 	
-	# Check out how many of the logos look "good"
+	# Check out how many of the logos look "good" for F3
+	# and make a directory for thhe F2 and F3 overlaps
 	colmin = 0.3
 	colAvg = 0.6
 	badColsAllowed = 1
+	goodColsReq = 1
 	F2path = '../data/revExp/F2_GAG/pwms3/'
 	F3path = '../data/revExp/F3_GCG/pwms3/'
-	#goodF2s = getGoodLogoFileNames(F2path, colmin, 
-	#                               colAvg,badColsAllowed)
+	goodF2s = getGoodLogoFileNames(F2path, 0, 
+	                               0,3)
 	goodF3s = getGoodLogoFileNames(F3path, colmin,
-	                               colAvg, badColsAllowed)
+	                               colAvg, badColsAllowed,
+	                               goodColsReq)
 	newF3Path = '_'.join(['/'.join(F3path.split('/')[:-2]), 
 	                     str(int(colmin*100)) + 'min',
 	                     str(int(colAvg*100)) + 'avg',
-	                     str(badColsAllowed) + 'bad']) + '/'
+	                     str(badColsAllowed) + 'bad',
+	                     str(goodColsReq) + 'good']) + '/'
 	cpLogoSubset(goodF3s, newF3Path)
-	#print len(goodF2s)
-	#print len(goodF3s)
-	#for fname in goodF3s:
-	#	print fname.split('/')[-1]
-
-	#haredKeys, h1, h2 = getF2F3canonHelixOlapFnames(goodF2s, 
-	#                                                 goodF3s,
-	#                                     canInd = [0,2,3,6])
-	#newDir = "../data/revExp/F2F3sharedHelix_020_075/"
-	#makeOlapPWMdir(h1, h2, sharedKeys, newDir)
+	print len(goodF2s)
+	print len(goodF3s)
+	sharedKeys, h1, h2 = getF2F3canonHelixOlapFnames(goodF2s, 
+	                                                 goodF3s,
+	                                     canInd = [0,2,3,6])
+	print len(sharedKeys)
+	newDir = "../data/revExp/F2F3sharedHelix_30_60_1_1/"
+	makeOlapPWMdir(h1, h2, sharedKeys, newDir)
+	lookupF2F3OlapHelices(sharedKeys, newDir)
 	
 
 	"""	

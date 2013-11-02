@@ -26,8 +26,8 @@ def infoEntr(f):
 
 def makeNucMatFile(path, label, nucMat):
 	# Write a transfac style frequency matrix to file
-
 	fout = open(path + label + '.txt', 'w')
+
 	# Write a dummy header
 	fout.write('ID idNum\nBF species\n')
 	fout.write('P0\t' + '\t'.join(nucs) + '\n')
@@ -112,6 +112,7 @@ def comparePCC(predPWM, expPWM):
 def pwmfile2matrix(pwmFile):
 	# Converts a file of the transfac format to 
 	# a matrix representaiton of the file
+	print pwmFile
 	fin = open(pwmFile, 'r')
 	fin.readline()  # Skip the headers
 	fin.readline()
@@ -140,6 +141,7 @@ def makeLogo(infile, outfile, format = 'pdf', alpha = 'protein',
 	# - outfile is the path where the file will be saved
 	# The remaining parameters correspond ot flags for weblogo.
 	# See weblogo CLI for more info about them.
+	#print "Making logo"
 	opts = '-F %s -A %s -i 0 -s %s -c %s --composition %s' \
 			%(format, alpha, size, colScheme, composition)
 	if xlab != None:
