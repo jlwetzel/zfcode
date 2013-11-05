@@ -539,11 +539,10 @@ def lookupF2F3OlapHelices(sharedKeys, newDir):
 	makeDir(predLogoDir)
 	makeDir(predPwmDir)
 
-	F3Failed = ['SGSN','DSYT','LKTD']
-	F2Failed = ['DRCR', 'CKAA', 'FMQR']
-	F3CantFind = ['SGSN']
+	F3Failed = ['ASTH', 'DSAG', 'DSYT', 'LKTN', 'SGSN']
+	F2Failed = ['CKAA', 'DRCR', 'DRSY', 'FMQR', 'SNGG']
 	#print sharedKeys
-	sharedKeys += (F3Failed + F2Failed + F3CantFind)
+	sharedKeys += (F3Failed + F2Failed)
 	for k in sorted(sharedKeys):
 		F2Mat, blah = lookupCanonZF(freqDictF2, k, useNN = False, 
 		                      skipExact = False, decompose = None, 
