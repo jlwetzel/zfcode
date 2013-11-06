@@ -91,7 +91,9 @@ def lookupMarcusPWMs(inDir, outputDir, freqDict,
 		makeLogo(logoIn, logoOut, alpha = 'dna', 
 		         colScheme = 'classic',
 		         annot = "'5,M,3'",
-		         xlab = '_'.join([goal,prot]))
+		         xlab = "''",
+		         fineprint = "''")
+		         #xlab = '_'.join([goal,prot]))
 		
 		# Compare this pwm to the reverse experiment
 		expMat = pwmfile2matrix(expDir + fname)
@@ -379,7 +381,7 @@ def runMarcusDataAnalysis(style, decomp, weight_mat, order_mat,
 
 	# PErform the lookup or nn strategy on various datasets
 	testFings = ['F3']
-	testStrins = ['union']
+	testStrins = ['low']
 	filts = ['filt_10e-4_025_0_c']
 	filtsLabs = ['10e-4_025_0_c']
 	for f in testFings:
@@ -500,13 +502,13 @@ def predict_matrix_bls(protein): #predict matrix by BLS02 -- written by Anton Pe
 def main():
 
 	#styles = ['top10', 'top15', 'top20', 'top25', 'top30'] #For nearest neighbors
-	styles = ['top25'] #For Barbas / F3
-	#styles = ['lookonly']  #For direct lookup
+	#styles = ['top25'] #For Barbas / F3
+	styles = ['lookonly']  #For direct lookup
 	decomps = ['singles'] * 5
 	weight_mats = ['PAM30']
 	order_mats = ['PAM30']
-	useExacts = [True, False]  #For dnearest neighbors
-	#useExacts = [True]  # For direct lookup and Barbas
+	#useExacts = [True, False]  #For dnearest neighbors
+	useExacts = [True]  # For direct lookup and Barbas
 	trainFings = ["F2", "F3"]#["F1", "F2", "F3"] 
 	trainStrins = ["union"]#["low", "high"]
 
