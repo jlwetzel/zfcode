@@ -190,6 +190,11 @@ compareF2vsF3 <- function(dfList, strins, filts, simType, outDir,
 
     simFrame <- data.frame(prot = interProts, sim = simVect,
                            weight = weights)
+    
+    tabFile <- paste("F2vsF3_sub_", simTag, filts[1], sep = '_')
+    tabFile <- paste0(outDir, '/', tabFile, '.txt')
+    write.table(simFrame, file = tabFile)
+
     print(nrow(simFrame))
     print(paste("F2vsF3_sub_", simTag, filts[1], sep='_'))
     plotFile <- paste("F2vsF3_sub_", simTag, filts[1], sep = '_')
@@ -592,11 +597,11 @@ parseWeightedJaccard <- function(dframe, triplets) {
         
         for (p in interProts)
           interWeight <- interWeight + f1[p] + f2[p]
-        wjaccard <- interWeight/(2 - interWeight)
+        wjaccard <- interWeight/2
 
         # Correct for rounding errors
-        if (i == j)
-          wjaccard = NA
+        #if (i == j)
+        #  wjaccard = NA
       } else {
         wjaccard <- 0
       }
@@ -655,10 +660,13 @@ makeTripletHeatmap <- function(fing, strin, filt,
   print(names(jacFrame))
   g <- ggplot(jacFrame, aes(x = trip1, y = trip2)) + 
     geom_tile(aes(fill = wjac)) +
+    coord_flip() + 
     #scale_fill_gradient2(breaks = br,
     #                     low = 'white', high = 'royalblue',
     #                     limits = c(0,1), guide = 'legend') +
-    scale_fill_gradient2("Weighted Jaccard", low = 'white', high = 'royalblue')+#, 
+    scale_fill_gradient2("Weighted Overlap", low = 'white', high = "royalblue")+
+                         #high = rgb(15,75,200,
+                         #                                         maxColorValue = 255))+#, 
                          #limits = c(0,1))+#, guide = "legend") +
     geom_segment(aes(x = 0.5, xend = 0.5, y = 0.5, yend = 64.5)) + 
     geom_segment(aes(x = 16.5, xend = 16.5, y = 0.5, yend = 65 - 16.5)) + 
@@ -684,24 +692,24 @@ makeTripletHeatmap <- function(fing, strin, filt,
 
     theme(axis.title.x = element_blank(),
           axis.title.y = element_blank(),
-          axis.text.y = element_text(size = 8),
-          axis.text.x = element_text(angle=90, vjust=0.5, size = 8))
+          axis.text.y = element_text(size = 8, hjust = 0),
+          axis.text.x = element_text(angle=270, vjust=0.5, size = 8))
 
   plotName <- paste(outDir, paste(fing, strin, 
-                                   'wJaccTrip_v2.eps', sep = '_'),
+                                   'wJaccTrip_ljust.pdf', sep = '_'),
                         sep = '/')
   ggsave(plotName, plot = g, width = 7.75, height = 7.5)
 }
 
 main <- function() {
-  runHighVsLowAnalysis('cosine')
+  #runHighVsLowAnalysis('cosine')
   #runF2vF3SimAnalysis('pcc')
-  #runF2vF3SimAnalysis('cosine', sub = TRUE)
+  runF2vF3SimAnalysis('cosine', sub = TRUE)
   #runF2vF3SimAnalysis('cosine_bin')
   #runWeightedFractionAnalysis(6, "F2high")
   #runWeightedFractionAnalysis(4, "F2high")
-  #makeTripletHeatmap("F3", "union", 
-  #                  'filt_10e-4_025_0_c', noParse = FALSE)
+  #makeTripletHeatmap("F2", "union", 
+  #                  'filt_10e-4_025_0_c', noParse = TRUE)
 }
 
 main()

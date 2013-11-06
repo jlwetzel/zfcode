@@ -112,7 +112,6 @@ def comparePCC(predPWM, expPWM):
 def pwmfile2matrix(pwmFile):
 	# Converts a file of the transfac format to 
 	# a matrix representaiton of the file
-	print pwmFile
 	fin = open(pwmFile, 'r')
 	fin.readline()  # Skip the headers
 	fin.readline()

@@ -28,6 +28,7 @@ timesCanonicalHelixObserved <- function(pathPref,
 	  # per triplet
 	  trip <- vector()
 	  avg <- vector()
+	  med <- vector()
 	  stDev <- vector()
 	  for (t in triplets) {
 	  	dfsub <- subset(df, b1 == substr(t, 1, 1) &
@@ -42,13 +43,24 @@ timesCanonicalHelixObserved <- function(pathPref,
 				canHelices <- c(canHelices, canHelix)
 			}
 			trip <- c(trip, t)
-			avg <- c(avg, mean(table(canHelices)))
-			stDev <- c(stDev, sd(table(canHelices)))
+			avg <- c(avg, mean(as.vector(table(canHelices))))
+			med <- c(med, median(as.vector(table(canHelices))))
+			stDev <- c(stDev, sd(as.vector(table(canHelices))))
 			print(t)
-			print(mean(table(canHelices)))
-			print(sd(table(canHelices)))
+			cFrame <- data.frame(count = as.vector(table(canHelices)))
+			#print(cFrame$count)
+			g <- ggplot(cFrame, aes(count)) +
+				geom_histogram(fill = "royalblue") +
+				xlab("Number of times canonical helix observed") +
+				ylab("Count") +
+				theme_bw()
+			plotName <- paste0(paste(paste(outDir, paste0(t, "_timesCanonObserved"), sep = '/'), 
+                  fing, strin, filt, "hist", sep = '_'), '.eps')
+			ggsave(plotName, plot = g)
+			print(as.vector(table(canHelices)))
+			#print(sd(table(canHelices)))
   	}
-  	df <- data.frame(trip = trip, avg = avg, stDev = stDev)
+  	df <- data.frame(trip = trip, avg = avg, stDev = stDev, med = med)
   	tableName <- paste0(paste(paste(outDir, "timesCanonObserved", sep = '/'), 
                       fing, strin, filt, sep = '_'), '.txt')
   	write.table(df, file = tableName)
@@ -71,17 +83,30 @@ timesCanonicalHelixObserved <- function(pathPref,
                       fing, strin, filt, "barPlot", sep = '_'), '.eps')
   ggsave(plotName, plot = g)
 
-  # Boxplot
+  # Boxplot of means
   df$dummyVar <- as.factor(rep(1,length(df$trip)))
   g <- ggplot(df, aes(x = dummyVar, y = avg)) + 
   geom_boxplot(fill = "royalblue") + 
-  ylab("Average number of times canonical helix observed per DNA triplet") + 
+  ylab("Mean number of times canonical helix observed per DNA triplet") + 
   theme_bw() + 
   theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(),
         axis.title.x = element_blank())#, 
         #axis.title.y = element_text(size = 10))
   plotName <- paste0(paste(paste(outDir, "timesCanonObserved", sep = '/'), 
-                      fing, strin, filt, "boxPlot", sep = '_'), '.eps')
+                      fing, strin, filt, "boxPlot_mean", sep = '_'), '.eps')
+  ggsave(plotName, plot = g)
+
+  # Boxplot of medians
+  df$dummyVar <- as.factor(rep(1,length(df$trip)))
+  g <- ggplot(df, aes(x = dummyVar, y = med)) + 
+  geom_boxplot(fill = "royalblue") + 
+  ylab("Median number of times canonical helix observed per DNA triplet") + 
+  theme_bw() + 
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+        axis.title.x = element_blank())#, 
+        #axis.title.y = element_text(size = 10))
+  plotName <- paste0(paste(paste(outDir, "timesCanonObserved", sep = '/'), 
+                      fing, strin, filt, "boxPlot_median", sep = '_'), '.eps')
   ggsave(plotName, plot = g)
 
 }
@@ -265,10 +290,10 @@ main <- function(){
 	strin <- "unionUnions"
 	filt <- 'filt_10e-4_025_0_c'
 	#variationPerPosPerTriplet(pathPref, fing, strin, filt)
-	#timesCanonicalHelixObserved(pathPref, fing, 
-	#                            strin, filt, skipParse = TRUE)
-	numTargsVsWeight(pathPref, fing, strin, 
-	                  filt, skipParse = TRUE)
+	timesCanonicalHelixObserved(pathPref, fing, 
+	                            strin, filt, skipParse = FALSE)
+	#numTargsVsWeight(pathPref, fing, strin, 
+	#                  filt, skipParse = TRUE)
 }
 
 main()

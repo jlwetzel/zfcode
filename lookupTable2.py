@@ -2,7 +2,7 @@ import os
 import re
 import numpy as np
 import math
-from pwm import makeLogo, pwmfile2matrix, comparePCC, getConsensus, makeNucMatFile
+from pwm import makeLogo, pwmfile2matrix, comparePCC, getConsensus, makeNucMatFile, infoEntr
 from fixTables import normalizeFreq
 from entropy import *
 #from gatherBindStats import getProtDict
@@ -758,10 +758,69 @@ def predictTop64(fname):
 			       annot = "'5,M,3'",
 			       fineprint = '""')
 
+def predictIntersectProts(fname):
+	# Perform lookup predictions using F2 union and F3 union for the 
+	# proteins listed in fname
+
+	fin = open(fname, 'r')
+	fin.readline()  # Strip the header
+	canProts = []
+	for line in fin:
+		sp_line = line.strip().replace('"', '').split()
+		canProts.append(sp_line[1])
+	print canProts
+	fin.close()
+
+	dirPath = '../data/intersectLookupPred/'
+	makeDir(dirPath)
+	fout = open('../data/intersectLookupPred/compareInfoContent.txt', 'w')
+	fout.write('%s\t%s\t%s\n' %('predFing', 'bpos', 'infoCont'))
+
+	labels = ["F2", "F3"]
+	canonical = True
+	varpos = 6
+	canInd = getPosIndex(varpos, canonical)
+
+	for l in labels:
+		inDir = '../data/b1hData/antonProcessed/' + l + '/union/filt_10e-4_025_0_c/'
+		freqDict = computeFreqDict(inDir, canInd)
+		
+		makeDir(dirPath + l + '_lookup/')
+		pwmDir = dirPath + l + '_lookup/pwms/'
+		makeDir(pwmDir)
+		logoDir = dirPath + l + '_lookup/logos/'
+		makeDir(logoDir)
+		
+		for cProt in sorted(canProts):
+			nmat, npb = lookupCanonZF(freqDict, cProt, useNN = False, 
+		                          skipExact = False, decompose = None, 
+		                          topk = None, verbose = None)
+
+
+			for i in range(len(nmat)):
+				infoContent = 2 - infoEntr(nmat[i,:])
+				fout.write("%s\t%s\t%f\n" %(l, str(i+1), infoContent))
+
+			lab = cProt
+			makeNucMatFile(pwmDir, lab, nmat)
+			logoIn = pwmDir + lab + '.txt'
+			logoOut = logoDir + lab + '.pdf'
+			makeLogo(logoIn, logoOut, alpha = 'dna',
+					   format = 'pdf', 
+			       colScheme = 'classic',
+			       annot = "'5,M,3'",
+			       fineprint = '""')
+
+	fout.close()
+
+
 def main():
 
-	fname = '../data/revExp/best64F2/best64F2.txt'
-	predictTop64(fname)
+	fname = '../figures/contextAnalysis/F2vsF3/F2vsF3_sub__CosineSim_filt_10e-4_025_0_c.txt'
+	predictIntersectProts(fname)
+
+	#fname = '../data/revExp/best64F2/best64F2.txt'
+	#predictTop64(fname)
 	
 	"""
 	# Debugging stuff
