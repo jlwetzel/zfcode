@@ -762,6 +762,7 @@ def predictIntersectProts(fname):
 	# Perform lookup predictions using F2 union and F3 union for the 
 	# proteins listed in fname
 
+	"""
 	fin = open(fname, 'r')
 	fin.readline()  # Strip the header
 	canProts = []
@@ -770,6 +771,7 @@ def predictIntersectProts(fname):
 		canProts.append(sp_line[1])
 	print canProts
 	fin.close()
+	"""
 
 	dirPath = '../data/intersectLookupPred/'
 	makeDir(dirPath)
@@ -791,10 +793,12 @@ def predictIntersectProts(fname):
 		logoDir = dirPath + l + '_lookup/logos/'
 		makeDir(logoDir)
 		
-		for cProt in sorted(canProts):
+		#for cProt in sorted(canProts):
+		for cProt in ['WASY']:
 			nmat, npb = lookupCanonZF(freqDict, cProt, useNN = False, 
 		                          skipExact = False, decompose = None, 
 		                          topk = None, verbose = None)
+			print nmat
 
 
 			for i in range(len(nmat)):
