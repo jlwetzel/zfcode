@@ -754,7 +754,7 @@ makeTripletHeatmap <- function(fing, strin, filt,
 }
 
 main <- function() {
-  runHighVsLowAnalysis('cosine')
+  #runHighVsLowAnalysis('cosine')
   #runF2vF3SimAnalysis('pcc')
   #runF2vF3SimAnalysis('cosine', sub = TRUE)
   #runF2vF3SimAnalysis('cosine_bin')
