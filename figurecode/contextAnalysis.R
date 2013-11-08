@@ -1,4 +1,27 @@
 library(ggplot2)
+library(scales)
+library(boot)
+
+hist3d<-function(x,y=NULL,nclass="auto",alpha=1,col="#ff0000",scale=10){
+  save <- par3d(skipRedraw=TRUE)
+  on.exit(par3d(save))
+  xy <- xy.coords(x,y)
+  x <- xy$x
+  y <- xy$y
+  n<-length(x)
+  if (nclass == "auto") { nclass<-ceiling(sqrt(nclass.Sturges(x))) }
+  breaks.x <- seq(min(x),max(x),length=(nclass+1))
+  breaks.y <- seq(min(y),max(y),length=(nclass+1))
+  z<-matrix(0,(nclass),(nclass))
+  for (i in 1:nclass) {
+   for (j in 1:nclass) {
+     z[i, j] <- (1/n)*sum(x < breaks.x[i+1] & y < breaks.y[j+1] & 
+                           x >= breaks.x[i] & y >= breaks.y[j])
+     binplot.3d(c(breaks.x[i],breaks.x[i+1]),c(breaks.y[j],breaks.y[j+1]),
+                scale*z[i,j],alpha=alpha,topcol=col)
+     }
+   }
+}
 
 getCosineSim <- function(v1, v2) {
   # Returns the cosine similarity of vectors v1 and v2
@@ -37,6 +60,22 @@ plotWeightVsSim <- function(df, plotFile, xlabel, ylabel) {
   theme_bw()
 
   ggsave(plotFile, plot = g)
+}
+
+plot2dHist <- function(simFrame, plotFile, br){
+  g <- ggplot(simFrame, aes(x = weight, y = sim)) + 
+    #geom_point() +
+    stat_bin2d(bins = 50) +
+    scale_x_log10(breaks = c(1e-5, 1e-4, 1e-3, 1e-2))+
+    scale_fill_gradient2("Count", breaks = br,
+                         mid = "gray90",
+                         high = "royalblue", midpoint = 1)+#,
+                         #guide = "legend") + 
+    theme_bw() +  
+    xlab("Weight") +
+    ylab("Cosine Similarity")
+    #theme(panel.background = element_rect(fill = "black"))
+  ggsave(plotFile, plot = g, height = 5.5, width = 5.5)
 }
   
 compareHighLowString <- function(dfList, fings, filts, simType, outDir) {
@@ -112,15 +151,24 @@ compareHighLowString <- function(dfList, fings, filts, simType, outDir) {
 
       plotFile <- paste("intersectHighLow", simTag, f, 
                         filt, sep = '_')
-      plotFile <- paste0(outDir, '/', plotFile, '.eps')
+      plotFile <- paste0(outDir, '/', plotFile, '.pdf')
 
       makeSimHist(simFrame, plotFile, xlabel)
 
       plotFile <- paste("intersectHighLow", simTag, 'vWeight', f, 
                         filt, sep = '_')
-      plotFile <- paste0(outDir, '/', plotFile, '.eps')
+      plotFile <- paste0(outDir, '/', plotFile, '.pdf')
       plotWeightVsSim(simFrame, plotFile, "Protein weight",
                       xlabel)
+      plotFile <- paste("intersectHighLow", simTag, 'vWeight', f, 
+                        filt, "2dhist", sep = '_')
+      plotFile <- paste0(outDir, '/', plotFile, '.pdf')
+      plot2dHist(simFrame, plotFile, c(1,5,10,15,20,25,29))
+      #plotFile <- paste("intersectHighLow", simTag, 'vWeight', f, 
+      #                  filt, "3dhist", sep = '_')
+      #plotFile <- paste0(outDir, '/', plotFile, '.eps')
+      #plot3dHist(simFrame, plotFile)
+
     }
 }
 
@@ -198,8 +246,12 @@ compareF2vsF3 <- function(dfList, strins, filts, simType, outDir,
     print(nrow(simFrame))
     print(paste("F2vsF3_sub_", simTag, filts[1], sep='_'))
     plotFile <- paste("F2vsF3_sub_", simTag, filts[1], sep = '_')
-    plotFile <- paste0(outDir, '/', plotFile, '.eps')
+    plotFile <- paste0(outDir, '/', plotFile, '.pdf')
     makeSimHist(simFrame, plotFile, xlabel)
+    
+    plotFile <- paste("F2vsF3_sub_", simTag, filts[1], sep = '_')
+    plotFile <- paste0(outDir, '/', plotFile, '.pdf')
+    plot2dHist(simFrame, plotFile, c(1,2,3,4,5,6))
 
   } else {
     for (s in strins)
@@ -275,7 +327,7 @@ runHighVsLowAnalysis <- function(simType) {
 
   fings <- c('F2', 'F3')
   strins <- c('low', 'high')
-  filts <- c('filt_10e-4_025_1_c')
+  filts <- c('filt_10e-4_025_0_c')
   inPref <- '../../data/b1hData/antonProcessed'
   outDir <- '../../figures/contextAnalysis/highVsLow'
   inFiles <- vector() 
@@ -665,7 +717,7 @@ makeTripletHeatmap <- function(fing, strin, filt,
     #                     low = 'white', high = 'royalblue',
     #                     limits = c(0,1), guide = 'legend') +
     scale_fill_gradient2("Weighted Overlap", low = 'white', high = "royalblue")+
-                         #high = rgb(15,75,200,
+                         #high = rgb(15,75,200),
                          #                                         maxColorValue = 255))+#, 
                          #limits = c(0,1))+#, guide = "legend") +
     geom_segment(aes(x = 0.5, xend = 0.5, y = 0.5, yend = 64.5)) + 
@@ -702,9 +754,9 @@ makeTripletHeatmap <- function(fing, strin, filt,
 }
 
 main <- function() {
-  #runHighVsLowAnalysis('cosine')
+  runHighVsLowAnalysis('cosine')
   #runF2vF3SimAnalysis('pcc')
-  runF2vF3SimAnalysis('cosine', sub = TRUE)
+  #runF2vF3SimAnalysis('cosine', sub = TRUE)
   #runF2vF3SimAnalysis('cosine_bin')
   #runWeightedFractionAnalysis(6, "F2high")
   #runWeightedFractionAnalysis(4, "F2high")

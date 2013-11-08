@@ -820,11 +820,11 @@ def predictIntersectProts(fname):
 
 def main():
 
-	fname = '../figures/contextAnalysis/F2vsF3/F2vsF3_sub__CosineSim_filt_10e-4_025_0_c.txt'
-	predictIntersectProts(fname)
+	#fname = '../figures/contextAnalysis/F2vsF3/F2vsF3_sub__CosineSim_filt_10e-4_025_0_c.txt'
+	#predictIntersectProts(fname)
 
-	#fname = '../data/revExp/best64F2/best64F2.txt'
-	#predictTop64(fname)
+	fname = '../data/revExp/best64F2/best64F2.txt'
+	predictTop64(fname)
 	
 	"""
 	# Debugging stuff
