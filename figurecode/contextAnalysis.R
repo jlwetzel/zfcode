@@ -712,13 +712,12 @@ makeTripletHeatmap <- function(fing, strin, filt,
   print(names(jacFrame))
   g <- ggplot(jacFrame, aes(x = trip1, y = trip2)) + 
     geom_tile(aes(fill = wjac)) +
-    coord_flip() + 
+    #coord_flip() + 
     #scale_fill_gradient2(breaks = br,
     #                     low = 'white', high = 'royalblue',
     #                     limits = c(0,1), guide = 'legend') +
-    scale_fill_gradient2("Weighted Overlap", low = 'white', high = "royalblue")+
-                         #high = rgb(15,75,200),
-                         #                                         maxColorValue = 255))+#, 
+    scale_fill_gradient2("Weighted Overlap", low = 'white',# high = "royalblue")+
+                         high = rgb(15,75,200, maxColorValue = 255))+#, 
                          #limits = c(0,1))+#, guide = "legend") +
     geom_segment(aes(x = 0.5, xend = 0.5, y = 0.5, yend = 64.5)) + 
     geom_segment(aes(x = 16.5, xend = 16.5, y = 0.5, yend = 65 - 16.5)) + 
@@ -750,7 +749,7 @@ makeTripletHeatmap <- function(fing, strin, filt,
   plotName <- paste(outDir, paste(fing, strin, 
                                    'wJaccTrip_ljust.pdf', sep = '_'),
                         sep = '/')
-  ggsave(plotName, plot = g, width = 7.75, height = 7.5)
+  ggsave(plotName, plot = g, width = 7.5, height = 7.5)
 }
 
 main <- function() {
@@ -760,8 +759,8 @@ main <- function() {
   #runF2vF3SimAnalysis('cosine_bin')
   #runWeightedFractionAnalysis(6, "F2high")
   #runWeightedFractionAnalysis(4, "F2high")
-  #makeTripletHeatmap("F2", "union", 
-  #                  'filt_10e-4_025_0_c', noParse = TRUE)
+  makeTripletHeatmap("F2", "union", 
+                    'filt_10e-4_025_0_c', noParse = TRUE)
 }
 
 main()
