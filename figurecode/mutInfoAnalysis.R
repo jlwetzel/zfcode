@@ -1,5 +1,6 @@
 library(infotheo)
 library(ggplot2)
+library(grid)
 
 fing <- 'F2F3'
 strin <- 'unionUnions'
@@ -24,19 +25,34 @@ runAllAnalysis <- function(filtDirs, outDirs, filters) {
   }
 }
 
+randAnalysis <- function(data, helixPosNames, basePosNames, 
+                         outDir, numTimes = 100) {
+  
+  randMats <- list()
+  for (t in 1:numTimes) {
+    # Create a randomized dataframe where labels triplets
+    # are shuffled with respect to proteins
+    randData <- data
+    randOrder <- sample(seq(1,length(data$b1)))
+    randData$b1 <- randData$b1[randOrder]
+    randData$b2 <- randData$b2[randOrder]
+    randData$b3 <- randData$b3[randOrder]
+    write.csv(randData,
+              paste(outDir, "data", "shuffleTriples.csv", sep = '/'))
+    contactMutInfo <- getNormMutInfo(randData, helixPosNames, basePosNames)
+    randMats[[t]] <- contactMutInfo
+  }
+  print(randMats)
+  contactFrame <- mat2Frame(randMats[[1]])
+  writeFrame(paste(outDir, "data", "rand_contactMutInfo.txt", sep = '/'),
+             contactFrame)
+  makeHeatPlot(paste(outDir, "rand_contactMutInfo.eps", sep = '/'),
+               contactFrame, "Helix position", "Base position")
+}
+
 mutInfoAnalysis <- function(data, outDir) {
   # Perform analysis of mutual information for different contact 
   # positions along the helix and the dna strand
-  
-  # Create a randomized dataframe where labels triplets
-  # are shuffled with respect to proteins
-  randData <- data
-  randOrder <- sample(seq(1,length(data$b1)))
-  randData$b1 <- randData$b1[randOrder]
-  randData$b2 <- randData$b2[randOrder]
-  randData$b3 <- randData$b3[randOrder]
-  write.csv(randData,
-            paste(outDir, "data", "shuffleTriples.csv", sep = '/'))
   
   helixPosNames <- c('a0', 'a1', 'a2', 'a3', 'a5', 'a6')
   basePosNames <- c('b1', 'b2', 'b3')
@@ -91,12 +107,8 @@ mutInfoAnalysis <- function(data, outDir) {
   
   # Get mutual information for contacts with randomly 
   # shuffled triples
-  contactMutInfo <- getNormMutInfo(randData, helixPosNames, basePosNames)
-  contactFrame <- mat2Frame(contactMutInfo)
-  writeFrame(paste(outDir, "data", "rand_contactMutInfo.txt", sep = '/'),
-             contactFrame)
-  makeHeatPlot(paste(outDir, "rand_contactMutInfo.eps", sep = '/'),
-               contactFrame, "Helix position", "Base position")
+  print(system.time(randAnalysis(data, helixPosNames, 
+                                 basePosNames, outDir, 10)))
 
   if (FALSE){
   # Get mutual information for base-amino contacts in the context
@@ -135,8 +147,8 @@ getNormMutInfo <- function(data, axis1, axis2) {
   rownames(infoMat) <- axis1
   colnames(infoMat) <- axis2
   
-  print(axis1)
-  print(axis2)
+  #print(axis1)
+  #print(axis2)
   # Compute Shannon entropy for each separate variable
   ent1 <- vector(mode = 'numeric', length = length(axis1))
   ent2 <- vector(mode = 'numeric', length = length(axis2))
