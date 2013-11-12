@@ -120,7 +120,7 @@ randAnalysis <- function(data, helixPosNames, basePosNames,
   vectFrame <- data.frame(matrix(unlist(vectList), 
                           ncol = length(vectList)))
   names(vectFrame) <- names(vectList)
-  print(vectFrame)
+  #print(vectFrame)
   writeFrame(paste(outDir, "data", 
              paste0("rand_contactMutInfoRawNums_", numTimes ,".txt"),
              sep = '/'), vectFrame)
@@ -220,7 +220,7 @@ mutInfoAnalysis <- function(data, outDir) {
   # shuffled triples
   print(system.time(randAnalysis(data, helixPosNames, 
                                  basePosNames, outDir, 
-                                 contactMutInfo, 2)))
+                                 contactMutInfo, 1000)))
 
   if (FALSE){
   # Get mutual information for base-amino contacts in the context
