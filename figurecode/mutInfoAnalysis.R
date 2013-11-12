@@ -25,12 +25,82 @@ runAllAnalysis <- function(filtDirs, outDirs, filters) {
   }
 }
 
+mats2Vectors <- function(mats, numTimes){
+  # Converts each position of a list of x matrices into 
+  # a corresponding vector of x values
+
+  vectList <- list()
+  for (i in rownames(mats[[1]])) {
+    for (j in colnames(mats[[1]])) {
+      vectList[[paste(i,j)]] <- vector(length = numTimes)
+    }
+  }
+
+  for (k in 1:length(mats)){
+    for (i in rownames(mats[[1]])) {
+      for (j in colnames(mats[[1]])) {
+        vectList[[paste(i,j)]][k] <- mats[[k]][i,j]
+      }
+    }
+  }
+  vectList
+}
+
+makeStatMat <- function(vectList, rnames, cnames, 
+                        stat = "mean"){
+  # Return a matrix of a summary statistic 
+  # for each contact pair across the multiple 
+  # randomization experiments
+
+  statMat <- matrix(nrow = 6, ncol = 3)
+  rownames(statMat) <- rnames
+  colnames(statMat) <- cnames
+  for (i in rnames) {
+    for (j in cnames) {
+      if (stat == "mean"){
+        statMat[i,j] <- mean(vectList[[paste(i,j)]])
+      } else if (stat == "sd"){
+        statMat[i,j] <- sd(vectList[[paste(i,j)]])
+      }
+    }
+  }
+  statMat
+}
+
+makeEmpPvalCountMat <- function(vectList, rnames,
+                                cnames, actualMat) {
+  # Count how many times the values for each contact 
+  # pair in the randomized experiment are greater than 
+  # or equal to the actual values.
+
+  countMat <- matrix(nrow = 6, ncol = 3)
+  rownames(countMat) <- rnames
+  colnames(countMat) <- cnames
+
+  for (k in length(vectList)){
+    for (i in rnames) {
+      for (j in cnames) {
+        vect <- vectList[[paste(i,j)]]
+        #print(paste(i,j))
+        #print(vect)
+        #print(actualMat[i,j])
+        countMat[i,j] <- length(vect[vect >= actualMat[i,j]])
+      }
+    }
+  }
+  countMat
+}
+
 randAnalysis <- function(data, helixPosNames, basePosNames, 
-                         outDir, numTimes = 100) {
+                         outDir, actualMat, numTimes = 100) {
   
+  # Create numTimes randomized MI matrices by permuting
+  # the DNA triplet labels with respect to the helices
+
+  set.seed(972364)
   randMats <- list()
   for (t in 1:numTimes) {
-    # Create a randomized dataframe where labels triplets
+    # Create a randomized dataframe where labels of triplets
     # are shuffled with respect to proteins
     randData <- data
     randOrder <- sample(seq(1,length(data$b1)))
@@ -42,12 +112,53 @@ randAnalysis <- function(data, helixPosNames, basePosNames,
     contactMutInfo <- getNormMutInfo(randData, helixPosNames, basePosNames)
     randMats[[t]] <- contactMutInfo
   }
-  print(randMats)
-  contactFrame <- mat2Frame(randMats[[1]])
-  writeFrame(paste(outDir, "data", "rand_contactMutInfo.txt", sep = '/'),
-             contactFrame)
-  makeHeatPlot(paste(outDir, "rand_contactMutInfo.eps", sep = '/'),
-               contactFrame, "Helix position", "Base position")
+
+  # Convert the set of randomized matrices to 
+  # a list of vectors (one vector per contact pair)
+  # and write to file
+  vectList <- mats2Vectors(randMats, numTimes)
+  vectFrame <- data.frame(matrix(unlist(vectList), 
+                          ncol = length(vectList)))
+  names(vectFrame) <- names(vectList)
+  print(vectFrame)
+  writeFrame(paste(outDir, "data", 
+             paste0("rand_contactMutInfoRawNums_", numTimes ,".txt"),
+             sep = '/'), vectFrame)
+
+  #or (i in 1:length(vectList)){
+  #  vectFrame[[i]] <- 
+  #}
+
+  # Get a matrix of means
+  avgMat <- makeStatMat(vectList, helixPosNames,
+                        basePosNames, stat = "mean")
+  # Get a matrix of standard deviation
+  sdMat <- makeStatMat(vectList, helixPosNames,
+                        basePosNames, stat = "sd")
+  # Get a matrix of counts for empirical p-vals
+  pvalCountMat <- makeEmpPvalCountMat(vectList, helixPosNames,
+                                      basePosNames, actualMat)
+
+  # Convert each matrix to a dataframe
+  avgFrame <- mat2Frame(avgMat)
+  sdFrame <- mat2Frame(sdMat)
+  pvalCountFrame <- mat2Frame(pvalCountMat)
+
+  # Combine the mats into a single dataframe
+  statFrame <- avgFrame[c(1,2)]
+  statFrame$nrand <- rep(numTimes, nrow(statFrame))
+  statFrame$mean <- avgFrame$score
+  statFrame$sd <- sdFrame$score
+  statFrame$count <- pvalCountFrame$score
+  statFrame$raw.pval <- statFrame$count/numTimes
+  statFrame$bonf.pval <- statFrame$raw.pval*nrow(statFrame)*ncol(statFrame)
+
+  # Write the dataframe into a text file
+  writeFrame(paste(outDir, "data", 
+             paste0("rand_contactMutInfoStats_", numTimes ,".txt"),
+             sep = '/'), statFrame)
+  #makeHeatPlot(paste(outDir, "rand_contactMutInfo.eps", sep = '/'),
+  #             contactFrame, "Helix position", "Base position")
 }
 
 mutInfoAnalysis <- function(data, outDir) {
@@ -108,7 +219,8 @@ mutInfoAnalysis <- function(data, outDir) {
   # Get mutual information for contacts with randomly 
   # shuffled triples
   print(system.time(randAnalysis(data, helixPosNames, 
-                                 basePosNames, outDir, 10)))
+                                 basePosNames, outDir, 
+                                 contactMutInfo, 2)))
 
   if (FALSE){
   # Get mutual information for base-amino contacts in the context
