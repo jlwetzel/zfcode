@@ -743,13 +743,14 @@ makeTripletHeatmap <- function(fing, strin, filt,
 
     theme(axis.title.x = element_blank(),
           axis.title.y = element_blank(),
-          axis.text.y = element_text(size = 8, hjust = 0),
+          axis.text.y = element_text(size = 8, hjust = 1, angle = 180),
           axis.text.x = element_text(angle=270, vjust=0.5, size = 8))
 
   plotName <- paste(outDir, paste(fing, strin, 
-                                   'wJaccTrip_ljust.pdf', sep = '_'),
+                                   'wJaccTrip_ljust_upsideDown-yaxis.pdf',
+                                   sep = '_'),
                         sep = '/')
-  ggsave(plotName, plot = g, width = 7.5, height = 7.5)
+  ggsave(plotName, plot = g, width = 7.5, height = 7.4)
 }
 
 main <- function() {
