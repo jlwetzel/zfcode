@@ -220,7 +220,7 @@ mutInfoAnalysis <- function(data, outDir) {
   # shuffled triples
   print(system.time(randAnalysis(data, helixPosNames, 
                                  basePosNames, outDir, 
-                                 contactMutInfo, 1000)))
+                                 contactMutInfo, 10000)))
 
   if (FALSE){
   # Get mutual information for base-amino contacts in the context
