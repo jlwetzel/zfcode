@@ -84,6 +84,7 @@ makeEmpPvalCountMat <- function(vectList, rnames,
         #print(paste(i,j))
         #print(vect)
         #print(actualMat[i,j])
+        #print(length(vect[vect >= actualMat[i,j]]))
         countMat[i,j] <- length(vect[vect >= actualMat[i,j]])
       }
     }
@@ -102,13 +103,14 @@ randAnalysis <- function(data, helixPosNames, basePosNames,
   for (t in 1:numTimes) {
     # Create a randomized dataframe where labels of triplets
     # are shuffled with respect to proteins
+    print(t)
     randData <- data
     randOrder <- sample(seq(1,length(data$b1)))
     randData$b1 <- randData$b1[randOrder]
     randData$b2 <- randData$b2[randOrder]
     randData$b3 <- randData$b3[randOrder]
-    write.csv(randData,
-              paste(outDir, "data", "shuffleTriples.csv", sep = '/'))
+    #write.csv(randData,
+    #          paste(outDir, "data", "shuffleTriples.csv", sep = '/'))
     contactMutInfo <- getNormMutInfo(randData, helixPosNames, basePosNames)
     randMats[[t]] <- contactMutInfo
   }
@@ -116,29 +118,27 @@ randAnalysis <- function(data, helixPosNames, basePosNames,
   # Convert the set of randomized matrices to 
   # a list of vectors (one vector per contact pair)
   # and write to file
+  #print(randMats)
   vectList <- mats2Vectors(randMats, numTimes)
   vectFrame <- data.frame(matrix(unlist(vectList), 
                           ncol = length(vectList)))
   names(vectFrame) <- names(vectList)
-  #print(vectFrame)
   writeFrame(paste(outDir, "data", 
              paste0("rand_contactMutInfoRawNums_", numTimes ,".txt"),
              sep = '/'), vectFrame)
-
-  #or (i in 1:length(vectList)){
-  #  vectFrame[[i]] <- 
-  #}
+  #print(vectList)
 
   # Get a matrix of means
   avgMat <- makeStatMat(vectList, helixPosNames,
                         basePosNames, stat = "mean")
+  
   # Get a matrix of standard deviation
   sdMat <- makeStatMat(vectList, helixPosNames,
                         basePosNames, stat = "sd")
   # Get a matrix of counts for empirical p-vals
   pvalCountMat <- makeEmpPvalCountMat(vectList, helixPosNames,
                                       basePosNames, actualMat)
-
+  print(pvalCountMat)
   # Convert each matrix to a dataframe
   avgFrame <- mat2Frame(avgMat)
   sdFrame <- mat2Frame(sdMat)
@@ -169,6 +169,7 @@ mutInfoAnalysis <- function(data, outDir) {
   basePosNames <- c('b1', 'b2', 'b3')
   nucs = c('A', 'C', 'G', 'T')
   
+  if(FALSE) {
   # Get mutual information for helix against helix
   helixMutInfo <- getNormMutInfo(data, helixPosNames, helixPosNames)
   helixMutInfo <- makeTriangular(helixMutInfo, diag = TRUE)
@@ -178,7 +179,7 @@ mutInfoAnalysis <- function(data, outDir) {
   makeHeatPlot(paste(outDir, "helixMutInfo.eps", sep = '/'),
                helixFrame, "Helix position", "Helix position")
 
-  if(FALSE) {
+  
   # Get mutual information for helix against helix in the 
   # context of specific bases in specific positions
   for (bpos in basePosNames) {
@@ -197,7 +198,7 @@ mutInfoAnalysis <- function(data, outDir) {
       makeHeatPlot(pfile, helixFrame)
     }
   }
-  }
+  
 
   # Get mutual information for base positions against base positions
   baseMutInfo <- getNormMutInfo(data, basePosNames, basePosNames)
@@ -207,20 +208,21 @@ mutInfoAnalysis <- function(data, outDir) {
              baseFrame)
   makeHeatPlot(paste(outDir, "baseMutInfo.eps", sep = '/'),
                baseFrame, "Base position", "Base position")
+  } #END IF FALSE
 
   # Get mutual information for base-amino position contacts
   contactMutInfo <- getNormMutInfo(data, helixPosNames, basePosNames)
-  contactFrame <- mat2Frame(contactMutInfo)
-  writeFrame(paste(outDir, "data", "contactMutInfo.txt", sep = '/'),
-             contactFrame)
-  makeHeatPlot(paste(outDir, "contactMutInfo.eps", sep = '/'),
-               contactFrame, "Helix position", "Base position")
+  #contactFrame <- mat2Frame(contactMutInfo)
+  #writeFrame(paste(outDir, "data", "contactMutInfo.txt", sep = '/'),
+  #           contactFrame)
+  #makeHeatPlot(paste(outDir, "contactMutInfo.eps", sep = '/'),
+  #             contactFrame, "Helix position", "Base position")
   
   # Get mutual information for contacts with randomly 
   # shuffled triples
   print(system.time(randAnalysis(data, helixPosNames, 
                                  basePosNames, outDir, 
-                                 contactMutInfo, 10000)))
+                                 contactMutInfo, 2)))
 
   if (FALSE){
   # Get mutual information for base-amino contacts in the context
