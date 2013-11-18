@@ -698,7 +698,7 @@ makeTripletHeatmap <- function(fing, strin, filt,
                        header = TRUE)
     jacFrame <- parseWeightedJaccard(dframe, triplets)
     tableName <- paste(outDir, paste(fing, strin, 
-                                   'wJaccTrip_v2.txt', sep = '_'),
+                                   'wJaccTrip.txt', sep = '_'),
                         sep = '/')
     write.table(file = tableName, jacFrame, row.names=FALSE, 
                 quote=FALSE)
