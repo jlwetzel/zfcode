@@ -4,7 +4,7 @@ import numpy as np
 import math
 from pwm import makeLogo, pwmfile2matrix, comparePCC, getConsensus, makeNucMatFile, infoEntr
 from fixTables import normalizeFreq
-from entropy import *
+#from entropy import *
 #from gatherBindStats import getProtDict
 
 def avgMats(mat1, mat2):
@@ -409,7 +409,7 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, decomp, topk,
 	
 	# For each base
 	# print neighborDict.keys()
-	neighborsPerBase = []
+	neighborsPerBase = {}#[]
 	for k in neighborDict.keys():
 		baseVectors = []
 		
@@ -442,7 +442,7 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, decomp, topk,
 		for i, n in enumerate(neighborDict[k]):
 			newVect = getNeighborBaseVect(freqDict, n, k)
 			baseVectors.append(newVect)
-		
+				
 		# Remove Nones from both the neighbor list, baseVectorList, and the 
 		# corresponding entries in nWeights, then renormalize nWeights
 		nWeights = list(nWeights)
@@ -450,18 +450,20 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, decomp, topk,
 		                    in enumerate(baseVectors) if n != None][:topk], 
 		                    dtype = float)
 		
-		# Give a uniform vector if all weights are 0
-		if np.sum(nWeights) == 0:
-			pwm[k-1] = np.array([0.25, 0.25, 0.25, 0.25], dtype = float)
-			neighborsPerBase.append(len(nWeights))
-			continue
 
-		nWeights = nWeights/np.sum(nWeights)
 		neighborDict[k] = [neighborDict[k][i] for i, n \
 		                    in enumerate(baseVectors) if n != None][:topk]
 		baseVectors = [i for i in baseVectors if i != None][:topk]
-		#print topk, len(baseVectors)
-		neighborsPerBase.append(len(baseVectors))
+
+		# Give a uniform vector if all weights are 0
+		if np.sum(nWeights) == 0:
+			pwm[k-1] = np.array([0.25, 0.25, 0.25, 0.25], dtype = float)
+			neighborsPerBase[k] = neighborDict[k]
+			continue
+
+		# Normalize the neighborWeights
+		nWeights = nWeights/np.sum(nWeights)
+		neighborsPerBase[k] = neighborDict[k]
 
 		# If we found at least one neighbor
 		if baseVectors != []:
@@ -493,7 +495,7 @@ def getTopKNeighborsPWM(freqDict, prot, neighborDict, decomp, topk,
 			pwm[k-1] = pwm[k-1]/np.sum(pwm[k-1]) 
 			if verbose != None:
 				print "Used %d neighbors for base %d" \
-					%(neighborsPerBase[len(neighborsPerBase)-1], k)
+					%(len(neighborsPerBase[k]), k)
 
 		
 		# If we found no neighbors use a uniform vector
