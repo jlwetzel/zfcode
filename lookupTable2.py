@@ -4,8 +4,6 @@ import numpy as np
 import math
 from pwm import makeLogo, pwmfile2matrix, comparePCC, getConsensus, makeNucMatFile, infoEntr
 from fixTables import normalizeFreq
-#from entropy import *
-#from gatherBindStats import getProtDict
 
 def avgMats(mat1, mat2):
     # Takes two matrices, mat1 and mat2, of the same 

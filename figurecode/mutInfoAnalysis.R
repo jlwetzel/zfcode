@@ -1,6 +1,7 @@
 library(infotheo)
 library(ggplot2)
 library(grid)
+library(scales)
 
 fing <- 'F2F3'
 strin <- 'unionUnions'
@@ -212,17 +213,17 @@ mutInfoAnalysis <- function(data, outDir) {
 
   # Get mutual information for base-amino position contacts
   contactMutInfo <- getNormMutInfo(data, helixPosNames, basePosNames)
-  #contactFrame <- mat2Frame(contactMutInfo)
-  #writeFrame(paste(outDir, "data", "contactMutInfo.txt", sep = '/'),
-  #           contactFrame)
-  #makeHeatPlot(paste(outDir, "contactMutInfo.eps", sep = '/'),
-  #             contactFrame, "Helix position", "Base position")
+  contactFrame <- mat2Frame(contactMutInfo)
+  writeFrame(paste(outDir, "data", "contactMutInfo.txt", sep = '/'),
+             contactFrame)
+  makeHeatPlot(paste(outDir, "contactMutInfo.eps", sep = '/'),
+               contactFrame, "Helix position", "Base position")
   
   # Get mutual information for contacts with randomly 
   # shuffled triples
-  print(system.time(randAnalysis(data, helixPosNames, 
-                                 basePosNames, outDir, 
-                                 contactMutInfo, 10000)))
+  #print(system.time(randAnalysis(data, helixPosNames, 
+  #                               basePosNames, outDir, 
+  #                               contactMutInfo, 10000)))
 
   if (FALSE){
   # Get mutual information for base-amino contacts in the context
@@ -352,17 +353,19 @@ mat2Frame <- function(mat){
 
 makeHeatPlot <- function(fname, dframe, xl, yl) {
   # Makes a heatplot
+  print(fname)
   br <- seq(0,1, 0.05)
   g <- ggplot(dframe, aes(hpos, bpos)) + 
     geom_tile(aes(fill = score)) +
-    scale_fill_gradient2("", breaks = br,
+    scale_fill_gradient2("Normalized\nmutual\ninformation", breaks = br,
                          low = 'white', high = 'royalblue',
                          limits = c(0,0.4), guide = 'legend') +
     xlab(xl) +
     ylab(yl) +
     theme_bw() +
-    theme(legend.key.size = unit(0.4, "cm"),
-          legend.title = element_blank())
+    #guides(colour = guide_legend(nrow = 3, title.position = "bottom"))+
+    theme(legend.key.size = unit(0.4, "cm"))#,
+          #legend.title = element_blank())
   ggsave(fname, plot = g, height = 2.7, width = 5.5)
 }
 

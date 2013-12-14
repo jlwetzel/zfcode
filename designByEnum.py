@@ -152,8 +152,8 @@ def predictTopProts(freqDict, topProtDict, outDir, topk,
 				logoOut = logodir + label + '.pdf'
 				makeLogo(logoIn, logoOut, alpha = 'dna', 
 			         colScheme = 'classic',
-			         annot = "'5,M,3'",
-			         xlab = '_'.join([targ,prot]))		
+			         annot = "'1,2,3'",
+			         fineprint = "''")		
 
 
 def getTopTenProts(targ, nucMatDict, minNeighbors, 
