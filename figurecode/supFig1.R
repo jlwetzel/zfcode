@@ -207,7 +207,7 @@ numTargsVsWeightSpearmans <- function(pathPref, fing, strin,
   	df <- read.table(file = fpath, header = FALSE, sep = '\t')
   	names(df) <- c("prot", "freq")
   	count <- vector()
-  	for (prot in df$prot)
+		for (prot in df$prot)
   		count <- c(count, cts[[prot]])
 
   	test <- cor.test(df$freq, count,
@@ -215,22 +215,31 @@ numTargsVsWeightSpearmans <- function(pathPref, fing, strin,
   	trip <- c(trip, t)
   	rho <- c(rho, test$estimate)
   	pval <- c(pval, test$p.value)
+  	if (t == "AGC") {
+  		print(cbind(df, count))
+  	}
+
 	}
 	spearFrame <- data.frame(trip = trip, rho = rho, pval = pval)
+	spearFrame$trip <- reorder(spearFrame$trip, spearFrame$rho)
+	spearFrame$BHpval <- p.adjust(spearFrame$pval, method = "BH")
 	write.table(spearFrame, file = tableName)
 	print(spearFrame)
 
+	
 	g <- ggplot(spearFrame, aes(x = trip, y = rho)) +
 	geom_bar(stat = 'identity', fill = 'royalblue') + 
 	ylab("Spearman correlation (# of triplets bound vs. helix frequency)") + 
 	xlab("DNA triplet") +
 	coord_flip() +
 	theme_bw() +
-	theme(axis.text.y = element_text(size=6))
+	theme(axis.text.y = element_text(size=6),
+	      axis.title.x = element_text(size=10))
 
 	plotName <- paste0(paste(paste(outDir, "ntargsVfreqSpearman", sep = '/'), 
-                      fing, strin, filt, sep = '_'), '.eps')
-	ggsave(plotName, plot = g)
+                      fing, strin, filt, sep = '_'), '.pdf')
+	ggsave(plotName, plot = g, width = 4.5)
+	print(table(cut(spearFrame$BHpval, breaks = c(0, 0.001, 0.01, 0.05, 1))))
 }
 
 numTargsVsWeight <- function(pathPref, fing, strin,
@@ -290,10 +299,10 @@ main <- function(){
 	strin <- "unionUnions"
 	filt <- 'filt_10e-4_025_0_c'
 	#variationPerPosPerTriplet(pathPref, fing, strin, filt)
-	timesCanonicalHelixObserved(pathPref, fing, 
-	                            strin, filt, skipParse = FALSE)
-	#numTargsVsWeight(pathPref, fing, strin, 
-	#                  filt, skipParse = TRUE)
+	#timesCanonicalHelixObserved(pathPref, fing, 
+	#                            strin, filt, skipParse = FALSE)
+	numTargsVsWeight(pathPref, fing, strin, 
+	                  filt, skipParse = TRUE)
 }
 
 main()
